@@ -1,0 +1,79 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>Microservices</groupId>
+  <artifactId>getConfigFileService</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>getConfigFileService</name>
+  <description>gets ConfigFile</description>
+   <build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.0</version>
+				<configuration>
+					<release>11</release>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+	<dependencies>
+
+				<!-- HttpServer -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-server</artifactId>
+			<version>9.4.26.v20200117</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-servlet</artifactId>
+			<version>9.4.26.v20200117</version>
+		</dependency>
+		<!-- Rest Services -->
+		<dependency>
+			<groupId>org.glassfish.jersey.containers</groupId>
+			<artifactId>jersey-container-servlet-core</artifactId>
+			<version>2.30</version>
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.jersey.inject</groupId>
+			<artifactId>jersey-hk2</artifactId>
+			<version>2.30</version>
+		</dependency>
+		
+		<!--  JSON  -->
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20180813</version>
+		</dependency>
+	
+	<!-- CommonsIO IOUtil -->
+	<dependency>
+	    <groupId>commons-io</groupId>
+	    <artifactId>commons-io</artifactId>
+	    <version>2.6</version>
+	</dependency>
+	
+	<!--  APACHE COMMONS Lang -->
+		<dependency>
+    		<groupId>org.apache.commons</groupId>
+  			<artifactId>commons-lang3</artifactId>
+   			<version>3.9</version>
+		</dependency>	
+		
+	<!-- Apache Commons Validator -->
+		<dependency>
+			<groupId>commons-validator</groupId>
+			<artifactId>commons-validator</artifactId>
+			<version>1.6</version>
+		</dependency>
+	
+	<!-- SQLITE  -->
+	<dependency>
+      <groupId>io.github.willena</groupId>
+      <artifactId>sqlite-jdbc</artifactId>
+      <version>3.28.0</version>
+    </dependency>
+		</dependencies>
+</project>
