@@ -20,10 +20,10 @@ import org.json.JSONObject;
 import inputHandler.RestRequestHandler;
 import webClient.RestClient;
 
+@Path("/Daten/Forecasting")
 public class ARIMAAdapterController {
 	
 	@POST
-	@Path("/RuleBasedData")
 	@Produces(MediaType.APPLICATION_JSON)
 	public void prepareDataARIMA(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		JSONObject responseContent = new JSONObject();
@@ -32,7 +32,7 @@ public class ARIMAAdapterController {
 			JSONObject loginCredentials = invokeLoginService(configurations);
 			if(loginCredentials.getBoolean("isAuthorized")) {
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-				responseContent = ARIMAAnalysis.sorteAnalysisDaily(configurations);
+				responseContent = ARIMAPreparation.sorteAnalysisDaily(configurations);
 				System.out.println(responseContent.toString());
 				response.setContentType("application/json");
 				response.setStatus(202);

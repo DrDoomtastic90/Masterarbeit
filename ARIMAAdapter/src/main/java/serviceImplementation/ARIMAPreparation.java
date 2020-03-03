@@ -17,7 +17,7 @@ import errorHandler.UniqueConstraintException;
 
 
 
-public class ARIMAAnalysis extends Analysis {
+public class ARIMAPreparation extends Analysis {
 	
 	public static JSONObject sorteAnalysisDaily(JSONObject configurations) throws JSONException, FileNotFoundException, ClassNotFoundException, SQLException {
 		return sorteAnalysisDaily("", configurations);

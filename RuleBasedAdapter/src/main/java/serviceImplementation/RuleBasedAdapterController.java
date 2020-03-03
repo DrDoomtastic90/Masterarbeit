@@ -24,7 +24,6 @@ import webClient.RestClient;
 public class RuleBasedAdapterController {
 	
 	@POST
-	@Path("/RuleBasedData")
 	@Produces(MediaType.APPLICATION_JSON)
 	public void prepareDataRuleBased(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		JSONObject responseContent = new JSONObject();
