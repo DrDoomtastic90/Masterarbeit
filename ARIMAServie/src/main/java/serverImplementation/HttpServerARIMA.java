@@ -19,9 +19,10 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
-import serviceImplementation.RuleBasedController;
+import serviceImplementation.ARIMAController;
+
  
-public class HttpServerRuleBased {
+public class HttpServerARIMA {
 	private static int port;
 	private static String passphrase;
 	private static int numberOfInstances;
@@ -65,7 +66,7 @@ public class HttpServerRuleBased {
 		jerseyServlet.setInitOrder(0);
  
 		// Tells the Jersey Servlet which REST service/class to load.
-		jerseyServlet.setInitParameter("jersey.config.server.provider.classnames", RuleBasedController.class.getCanonicalName());
+		jerseyServlet.setInitParameter("jersey.config.server.provider.classnames", ARIMAController.class.getCanonicalName());
  
 		// Start the server
 	    server.setStopTimeout(300000);
@@ -106,7 +107,7 @@ public class HttpServerRuleBased {
     		jerseyServlet.setInitOrder(0);
      
     		// Tells the Jersey Servlet which REST service/class to load.
-    		jerseyServlet.setInitParameter("jersey.config.server.provider.classnames", RuleBasedController.class.getCanonicalName());
+    		jerseyServlet.setInitParameter("jersey.config.server.provider.classnames", ARIMAController.class.getCanonicalName());
      
     		// Start the server
     		 server.setStopTimeout(300000);

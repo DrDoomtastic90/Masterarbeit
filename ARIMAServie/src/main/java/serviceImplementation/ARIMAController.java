@@ -18,7 +18,7 @@ import org.json.JSONObject;
 
 import inputHandler.RestRequestHandler;
 import outputHandler.CustomFileWriter;
-import serverImplementation.HttpServerRuleBased;
+import serverImplementation.HttpServerARIMA;
 
 public class ARIMAController {
 	
@@ -35,8 +35,8 @@ public class ARIMAController {
 			response.setContentType("application/json");
 			response.getWriter().write(analysisResult.toString());
 			response.flushBuffer();
-			if(HttpServerRuleBased.isAutomaticShutdown()) {
-				HttpServerRuleBased.attemptShutdown();
+			if(HttpServerARIMA.isAutomaticShutdown()) {
+				HttpServerARIMA.attemptShutdown();
 			}
 		} catch (JSONException | IOException e) {
 			e.printStackTrace();
