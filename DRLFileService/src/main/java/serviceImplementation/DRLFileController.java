@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
@@ -21,7 +22,7 @@ import inputHandler.WebInputHandler;
 public class DRLFileController {
 
 	
-	@GET
+	@POST
 	@Path("/DRLFile")
 	@Produces(MediaType.APPLICATION_JSON)
 	public void getConfigFile(@Context HttpServletRequest request, @Context HttpServletResponse response) {

@@ -20,7 +20,7 @@ import inputHandler.WebInputHandler;
 @Path("/Daten")
 public class ConfigFileController {
 	
-	@GET
+	@POST
 	@Path("/ConfigFile")
 	@Produces(MediaType.APPLICATION_JSON)
 	public void getConfigFile(@Context HttpServletRequest request, @Context HttpServletResponse response) {

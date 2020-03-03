@@ -73,6 +73,9 @@ public class ServiceController {
 	        	JSONObject jsonConfigurations =  invokeConfigFileService(loginCredentials.getString("apiURL"));
 				if(loginCredentials.getBoolean("isEnabledRuleBased")) {
 					JSONObject ruleBasedConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased");
+					ruleBasedConfigurations.put("username", "ForecastingTool");
+					ruleBasedConfigurations.put("password", "forecasting");
+					ruleBasedConfigurations.put("passPhrase", requestBody.get("passPhrase"));
 					analysisResult =  invokeRuleBasedService(ruleBasedConfigurations);
 					combinedAnalysisResult.put("RuleBasedResult", analysisResult);
 				}
