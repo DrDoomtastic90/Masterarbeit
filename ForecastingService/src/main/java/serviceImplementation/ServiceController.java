@@ -42,6 +42,7 @@ public class ServiceController {
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			JSONObject loginCredentials = invokeLoginService(requestBody);
 			if(loginCredentials.getBoolean("isAuthorized")) {
+				if(loginCredentials.getBoolean("isEnabledRuleBased")) {
 				JSONObject jsonConfigurations =  invokeConfigFileService(loginCredentials.getString("apiURL"));
 				JSONObject ruleBasedConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased");
 				JSONObject analysisResult = invokeRuleBasedService(ruleBasedConfigurations);
@@ -54,6 +55,7 @@ public class ServiceController {
 				response.getWriter().write("Permission Denied");
 			}
 			response.flushBuffer();
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -77,6 +79,14 @@ public class ServiceController {
 					ruleBasedConfigurations.put("password", "forecasting");
 					ruleBasedConfigurations.put("passPhrase", requestBody.get("passPhrase"));
 					analysisResult =  invokeRuleBasedService(ruleBasedConfigurations);
+					combinedAnalysisResult.put("RuleBasedResult", analysisResult);
+				}
+				if(loginCredentials.getBoolean("isEnabledARIMA")) {
+					JSONObject aRIMAConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ARIMA");
+					aRIMAConfigurations.put("username", "ForecastingTool");
+					aRIMAConfigurations.put("password", "forecasting");
+					aRIMAConfigurations.put("passPhrase", requestBody.get("passPhrase"));
+					analysisResult =  invokeARIMAService(aRIMAConfigurations);
 					combinedAnalysisResult.put("RuleBasedResult", analysisResult);
 				}
 				response.setContentType("application/json");
@@ -137,6 +147,19 @@ public class ServiceController {
 		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/ForecastingServices/RuleBasedService");
 		String contentType = "application/json";
 		String requestBody = ruleBasedConfigurations.toString();
+		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/Daten/Bantel/ruleBased/Adapter/Adapter.php");
+		RestClient restClient = new RestClient();
+		restClient.setHttpConnection(url, contentType);
+		return new JSONObject(restClient.postRequest(requestBody));
+	}
+	
+	private JSONObject invokeARIMAService(JSONObject aRIMAConfigurations) throws IOException {
+		//Internal Implementation
+		URL url = new URL("http://localhost:" + 8110 + "/ARIMAService");
+		//public_html implementation Forecasting
+		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/ForecastingServices/RuleBasedService");
+		String contentType = "application/json";
+		String requestBody = aRIMAConfigurations.toString();
 		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/Daten/Bantel/ruleBased/Adapter/Adapter.php");
 		RestClient restClient = new RestClient();
 		restClient.setHttpConnection(url, contentType);
