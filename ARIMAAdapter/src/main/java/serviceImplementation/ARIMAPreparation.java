@@ -83,8 +83,8 @@ public class ARIMAPreparation extends Analysis {
 	}
 
 	public static String createSorteCSVDaily(String sorte, List<Datastruct> dataSet, JSONObject configurations) throws JSONException {
-		boolean campaigns = configurations.getJSONObject("parameters").getBoolean("campaigns");
-		boolean nA = configurations.getJSONObject("parameters").getBoolean("navalues");
+		boolean campaigns = Boolean.parseBoolean(configurations.getJSONObject("parameters").getString("campaigns"));
+		boolean nA = Boolean.parseBoolean(configurations.getJSONObject("parameters").getString("navalues"));
 
 		
 		String content = AnalysisDAO.dataToCSVString(dataSet, false, campaigns, nA);
