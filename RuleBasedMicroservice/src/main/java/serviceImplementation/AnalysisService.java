@@ -27,7 +27,7 @@ import webClient.RestClient;
 public class AnalysisService {
 	KieSession kieSession = null;
 	URLClassLoader classLoader = null;
-	String dynamicDirectoryLocation = "D:/Arbeit/Bantel/Masterarbeit/Daten/preProcessed/ruleBased";
+	String dynamicDirectoryLocation = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\RuleBasedService\\DynamicClasses";
 
 	private KieSession instantiateKnowledgebase(
 			File drlFile /* , JSONObject json *//* , List<Object> dataObjects, ClassLoader cloader */) {
@@ -71,7 +71,7 @@ public class AnalysisService {
 	public String getPreparedData(JSONObject ruleBasedConfigurations) throws JSONException, IOException {
 		URL url = new URL(ruleBasedConfigurations.getJSONObject("data").getString("provisioningServiceURL"));
 		String contentType = "application/json";
-		String requestBody = new JSONObject(ruleBasedConfigurations).toString();
+		String requestBody = ruleBasedConfigurations.toString();
 		RestClient restClient = new RestClient();
 		restClient.setHttpsConnection(url, contentType);
 		return restClient.postRequest(requestBody);

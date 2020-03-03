@@ -23,7 +23,7 @@ public class DynamicClassFileCreator {
 		StringBuilder constructor = new StringBuilder();
 		StringBuilder classTemplate = new StringBuilder();
 
-		classTemplate.append("package analytics.ruleBased;\n");
+		classTemplate.append("package serviceImplementation;\n");
 
 		classTemplate.append("import java.util.LinkedHashMap;\n");
 		classTemplate.append("import java.util.Map;\n");

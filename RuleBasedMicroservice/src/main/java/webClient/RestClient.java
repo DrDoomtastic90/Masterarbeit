@@ -27,8 +27,10 @@ public class RestClient {
 	public void setHttpsConnection(URL url, String contentType) throws IOException {
 		
 		HttpsURLConnection.setDefaultHostnameVerifier ((hostname, session) -> true);
-		setHttpConnection(url, contentType);
-		httpsConnection = (HttpsURLConnection) httpConnection;
+		httpsConnection = (HttpsURLConnection) url.openConnection();
+		httpsConnection.setDoOutput(true);
+		httpsConnection.setRequestProperty("Content-Type", contentType);
+
 	}
 	
 	public String postRequest(String requestBody) throws IOException {

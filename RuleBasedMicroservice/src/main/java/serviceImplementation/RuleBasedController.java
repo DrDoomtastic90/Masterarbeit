@@ -22,6 +22,7 @@ import org.json.JSONObject;
 
 import inputHandler.RestRequestHandler;
 import inputHandler.WebInputHandler;
+import outputHandler.CustomFileWriter;
 import serverImplementation.HttpServerRuleBased;
 import webClient.RestClient;
 
@@ -39,7 +40,7 @@ public class RuleBasedController {
 				String drlFileLocation =ruleBasedConfigurations.getJSONObject("data").getString("drlFilePath");
 				//File drlFile = WebInputHandler.getWebFile(drlFilepath,".drl");
 				JSONObject drlJSON = invokeDRLFileService(drlFileLocation);
-				File drlFile = new File(drlJSON.getString("drlFile"));
+				File drlFile = CustomFileWriter.createTempFile(drlJSON.getString("drlFile"));
 				JSONObject factors = ruleBasedConfigurations.getJSONObject("factors");
 				AnalysisService analysisService = new AnalysisService();
 				String preparedData;
@@ -49,6 +50,7 @@ public class RuleBasedController {
 				String analysisResult = analysisService.analyseWorld(worldFacts);
 				//Write JSON File to File System
 				//JSONWritter.createJSON(ruleBasedConfigurations.getJSONObject("data").getString("target"),preparedData.getJSONObject("ruleBased").toString());
+				response.setStatus(202);
 				response.setContentType("application/json");
 				response.getWriter().write(analysisResult);
 				response.flushBuffer();
