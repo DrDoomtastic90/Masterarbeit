@@ -12,7 +12,7 @@ public class ConsoleOutput {
 	public static void setOutputStreamToFile(/*final String message*/) {
 		if(out == null) {
 			try {
-				out = new PrintStream(new FileOutputStream("D:/Arbeit/Bantel/Masterarbeit/Sicherungen/DRLFiles/log.txt"));
+				out = new PrintStream(new FileOutputStream("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\log.txt"));
 				System.setOut(out);
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block

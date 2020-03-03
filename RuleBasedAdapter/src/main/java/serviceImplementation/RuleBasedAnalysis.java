@@ -80,17 +80,17 @@ public class RuleBasedAnalysis extends Analysis {
 		Map<String, Sorte> sorteMap = sorteDAO.getSorteMasterData();
 		Map<String, Map<String, Double>> currentSalesWeeklySorte = sorteDAO.getCurrentSalesAmountsWeekly(configurations);
 		Map<String, Map<String, Double>> pastSalesWeeklySorte = sorteDAO.getPastSalesAmountsWeekly(configurations);
-		Map<String, Double> inventoryMap = sorteDAO.getInventory(sorteMap, configurations);
+		//Map<String, Double> inventoryMap = sorteDAO.getInventory(sorteMap, configurations);
 		Map<String, Double> campaignMap = sorteDAO.getCampaigns(configurations);
 		Map<String, Double> directSalesMap = sorteDAO.getDirectSales(configurations);
-		Map<String, Double> unpackedMap = sorteDAO.getMengenUnverpackt(configurations);
+		//Map<String, Double> unpackedMap = sorteDAO.getMengenUnverpackt(configurations);
 		for(String skbez: sorteMap.keySet()) {
 			Sorte sorte = sorteMap.get(skbez);
-			if(inventoryMap.containsKey(skbez)) {
-				sorte.setInventory(inventoryMap.get(skbez));
-			}
+			//if(inventoryMap.containsKey(skbez)) {
+			//	sorte.setInventory(inventoryMap.get(skbez));
+			//}
 			JSONObject jsonSorte = sorte.SorteTOJSON();
-			jsonSorte.put("unpacked",unpackedMap.get(skbez));
+			//jsonSorte.put("unpacked",unpackedMap.get(skbez));
 			Map<String, Double> demands = new LinkedHashMap<String, Double>();
 			for(String strDate : currentSalesWeeklySorte.keySet()) {
 				demands.put(strDate,currentSalesWeeklySorte.get(strDate).get(skbez));

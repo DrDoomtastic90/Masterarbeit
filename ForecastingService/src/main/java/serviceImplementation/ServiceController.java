@@ -44,10 +44,10 @@ public class ServiceController {
 			if(loginCredentials.getBoolean("isAuthorized")) {
 				JSONObject jsonConfigurations =  invokeConfigFileService(loginCredentials.getString("apiURL"));
 				JSONObject ruleBasedConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased");
-				String analysisResult = invokeRuleBasedService(ruleBasedConfigurations);
+				JSONObject analysisResult = invokeRuleBasedService(ruleBasedConfigurations);
 				response.setContentType("application/json");
 				response.setStatus(200);
-				response.getWriter().write(analysisResult);
+				response.getWriter().write(analysisResult.toString());
 			}else {
 				response.setContentType("application/json");
 				response.setStatus(401);
@@ -69,7 +69,7 @@ public class ServiceController {
 			JSONObject loginCredentials = invokeLoginService(requestBody);
 			if(loginCredentials.getBoolean("isAuthorized")) {
 	        	JSONObject combinedAnalysisResult = new JSONObject();
-	        	String analysisResult = "";
+	        	JSONObject analysisResult = null;
 	        	JSONObject jsonConfigurations =  invokeConfigFileService(loginCredentials.getString("apiURL"));
 				if(loginCredentials.getBoolean("isEnabledRuleBased")) {
 					JSONObject ruleBasedConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased");
@@ -130,7 +130,7 @@ public class ServiceController {
     }
 	
 	
-	private String invokeRuleBasedService(JSONObject ruleBasedConfigurations) throws IOException {
+	private JSONObject invokeRuleBasedService(JSONObject ruleBasedConfigurations) throws IOException {
 		//Internal Implementation
 		URL url = new URL("http://localhost:" + 8110 + "/RuleBasedService");
 		//public_html implementation Forecasting
@@ -140,7 +140,7 @@ public class ServiceController {
 		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/Daten/Bantel/ruleBased/Adapter/Adapter.php");
 		RestClient restClient = new RestClient();
 		restClient.setHttpConnection(url, contentType);
-		return restClient.postRequest(requestBody);
+		return new JSONObject(restClient.postRequest(requestBody));
 	}
 	
 	private JSONObject invokeLoginService(JSONObject requestBody) throws IOException {

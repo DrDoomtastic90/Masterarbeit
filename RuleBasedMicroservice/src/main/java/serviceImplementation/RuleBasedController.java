@@ -47,12 +47,12 @@ public class RuleBasedController {
 				preparedData = analysisService.getPreparedData(ruleBasedConfigurations);	
 				JSONObject worldFacts = new JSONObject(preparedData);
 				analysisService.prepareForecasting(drlFile, factors);
-				String analysisResult = analysisService.analyseWorld(worldFacts);
+				JSONObject analysisResult = analysisService.analyseWorld(worldFacts);
 				//Write JSON File to File System
 				//JSONWritter.createJSON(ruleBasedConfigurations.getJSONObject("data").getString("target"),preparedData.getJSONObject("ruleBased").toString());
 				response.setStatus(202);
 				response.setContentType("application/json");
-				response.getWriter().write(analysisResult);
+				response.getWriter().write(analysisResult.toString());
 				response.flushBuffer();
 				if(HttpServerRuleBased.isAutomaticShutdown()) {
 					HttpServerRuleBased.attemptShutdown();

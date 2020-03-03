@@ -714,17 +714,15 @@ public class SorteDAO {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
 		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
 		calendar.setFirstDayOfWeek(Calendar.MONDAY);
+		calendar.setTime(dateFormat.parse(fromDate)); 
+		calendar.add(Calendar.DAY_OF_MONTH, - 7);
+		int kwFrom = calendar.get(Calendar.WEEK_OF_YEAR);
+		int weekCounter = 0;
 		calendar.setTime(dateFormat.parse(toDate));
 		dateFormat = new SimpleDateFormat("yy"); 
 		String year = dateFormat.format(calendar.getTime());
 		dateFormat = new SimpleDateFormat("yyyy-MM-dd"); 
 		int kwTo = calendar.get(Calendar.WEEK_OF_YEAR);
-		calendar.setTime(dateFormat.parse(fromDate)); 
-		calendar.add(Calendar.DAY_OF_MONTH, - 7);
-		int kwFrom = calendar.get(Calendar.WEEK_OF_YEAR);
-		int weekCounter = 0;
-		//int kw = kwTo-kwFrom;
-		//for(int weekCounter = 0; weekCounter < kw; weekCounter++) {
 		calendar.set(Calendar.WEEK_OF_YEAR, kwTo); 
 		while(kwFrom!=kwTo) {	
 			calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
@@ -805,16 +803,17 @@ public class SorteDAO {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
 		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
 		calendar.setFirstDayOfWeek(Calendar.MONDAY);
+		calendar.setTime(dateFormat.parse(fromDate)); 
+		calendar.add(Calendar.YEAR, -1);
+		calendar.add(Calendar.DAY_OF_MONTH, - 7);
+		int kwFrom = calendar.get(Calendar.WEEK_OF_YEAR);
 		calendar.setTime(dateFormat.parse(toDate)); 
 		calendar.add(Calendar.YEAR, -1);
 		int kwTo = calendar.get(Calendar.WEEK_OF_YEAR);
 		dateFormat = new SimpleDateFormat("yy"); 
 		String year = dateFormat.format(calendar.getTime());
 		dateFormat = new SimpleDateFormat("yyyy-MM-dd"); 
-		calendar.setTime(dateFormat.parse(fromDate)); 
-		calendar.add(Calendar.YEAR, -1);
-		calendar.add(Calendar.DAY_OF_MONTH, - 7);
-		int kwFrom = calendar.get(Calendar.WEEK_OF_YEAR);
+
 		
 		int weekCounter = 0;
 		//int kw = kwTo-kwFrom;

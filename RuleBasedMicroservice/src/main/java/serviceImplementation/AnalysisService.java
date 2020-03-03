@@ -84,7 +84,7 @@ public class AnalysisService {
 	}
 
 
-	public String analyseWorld(JSONObject worldFacts) {
+	public JSONObject analyseWorld(JSONObject worldFacts) {
 		ObjectMapper objectMapper = new ObjectMapper();
 		JSONObject objectMap = new JSONObject();
 		for (String factors : worldFacts.keySet()) {
@@ -117,6 +117,6 @@ public class AnalysisService {
 		}
 		kieSession.fireAllRules();
 		;
-		return RuleBasedResult.getResult().toString();
+		return RuleBasedResult.getResult();
 	}
 }
