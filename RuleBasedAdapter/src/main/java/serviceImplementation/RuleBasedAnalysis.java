@@ -22,7 +22,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sqlite.SQLiteConfig;
 
-import dBConnections.MilkDAO;
 import dBConnections.SorteDAO;
 
 
@@ -69,7 +68,7 @@ public class RuleBasedAnalysis extends Analysis {
 
 		
 		
-		ruleObjects.put("Milk", getMilkObjects(configurations));
+		//ruleObjects.put("Milk", getMilkObjects(configurations));
 		return ruleObjects;
 	}
 	
@@ -77,7 +76,7 @@ public class RuleBasedAnalysis extends Analysis {
 	private static JSONObject getSorteDataWeekly(JSONObject configurations) throws JSONException, ParseException, ClassNotFoundException, SQLException {
 		JSONObject responseContent = new JSONObject();
 		//SorteDAO sorteDAO = new SorteDAO(configurations.getJSONObject("data").getString("sourcepath"), configurations.getJSONObject("data").getString("passPhrase"));
-		SorteDAO sorteDAO = new SorteDAO("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Datenbanken", configurations.getJSONObject("data").getString("passPhrase"));
+		SorteDAO sorteDAO = new SorteDAO(configurations.getString("passPhrase"));
 		Map<String, Sorte> sorteMap = sorteDAO.getSorteMasterData();
 		Map<String, Map<String, Double>> currentSalesWeeklySorte = sorteDAO.getCurrentSalesAmountsWeekly(configurations);
 		Map<String, Map<String, Double>> pastSalesWeeklySorte = sorteDAO.getPastSalesAmountsWeekly(configurations);
@@ -143,7 +142,7 @@ public class RuleBasedAnalysis extends Analysis {
 	
 	private static JSONObject getSorteDataDaily(JSONObject configurations) throws JSONException, ParseException, ClassNotFoundException, SQLException {
 		JSONObject responseContent = new JSONObject();
-		SorteDAO sorteDAO = new SorteDAO(configurations.getJSONObject("data").getString("source"), configurations.getJSONObject("data").getString("passPhrase"));
+		SorteDAO sorteDAO = new SorteDAO(configurations.getString("passPhrase"));
 
 		Map<String, Sorte> sorteMap = sorteDAO.getSorteMasterData();
 		Map<String, Map<String, Double>> currentSalesDailySorte = sorteDAO.getCurrentSalesAmountsDaily(configurations);
@@ -280,7 +279,7 @@ public class RuleBasedAnalysis extends Analysis {
 		return responseContent;
 	}*/
 	
-	private static JSONObject getMilkObjects(JSONObject configurations) throws JSONException, ParseException, ClassNotFoundException, SQLException {
+	/*private static JSONObject getMilkObjects(JSONObject configurations) throws JSONException, ParseException, ClassNotFoundException, SQLException {
 		JSONObject responseContent = new JSONObject();
 		//MilkDAO milkDAO = new MilkDAO(configurations.getJSONObject("data").getString("sourcepath"), configurations.getJSONObject("data").getString("passPhrase"));
 		MilkDAO milkDAO = new MilkDAO(configurations.getJSONObject("data").getString("source"), configurations.getJSONObject("data").getString("passPhrase"));
@@ -293,7 +292,7 @@ public class RuleBasedAnalysis extends Analysis {
 		}
 		//}
 		return responseContent;
-	}
+	}*/
 	
 	private static Map<String, Sorte> getDynamicSorteDataDaily(Map<String,Sorte> sorteMap, SorteDAO sorteDAO){
 		//aufteilen von getMasterDAta?

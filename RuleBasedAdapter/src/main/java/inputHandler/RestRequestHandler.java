@@ -17,7 +17,8 @@ public class RestRequestHandler {
 		ServletInputStream inputStream = request.getInputStream();
 		StringWriter writer = new StringWriter();
 		IOUtils.copy(inputStream, writer, "utf-8");
-		JSONObject requestBody = new JSONObject(writer.toString());
+		String responseString = writer.toString();
+		JSONObject requestBody = new JSONObject(responseString);
 		return requestBody;
 	}
 	

@@ -1,12 +1,10 @@
 package dBConnections;
 
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-
-
 import org.sqlite.SQLiteConfig;
-
 
 public class SQLiteConnection implements DBConnection{
 	private  static SQLiteConnection singleton;
@@ -39,6 +37,7 @@ public class SQLiteConnection implements DBConnection{
 		}
 		return singleton;
 	}
+	
 	public static DBConnection getInstance() {
 		return singleton;
 	}

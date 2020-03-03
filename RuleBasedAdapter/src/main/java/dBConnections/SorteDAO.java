@@ -28,18 +28,25 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 
-public class SorteDAO extends DAO {
+public class SorteDAO {
+	DBConnection authenticationConnection = null;
 
-	public SorteDAO(String sourcePath, String pw) throws ClassNotFoundException, SQLException {
-		super(sourcePath, pw);
+	public SorteDAO(String passPhrase) throws ClassNotFoundException {
+		authenticationConnection = BantelDBConnection.getInstance(passPhrase);
 	}
 
-	public Map<String, Sorte> getSorteMasterData(){
+
+	public SorteDAO() {
+		authenticationConnection = BantelDBConnection.getInstance();
+	}
+
+	public Map<String, Sorte> getSorteMasterData() throws SQLException{
 		Map<String, Sorte> sorteMap = new LinkedHashMap<String, Sorte>();
 		Statement statement = null;
 		ResultSet resultSet = null;
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(
 				"SELECT ks.SKBez, ks.Bezeichnung, ks.MengePW, ks.MilchbedarfPW, ks.PrioritaetProd, ks.PrioritaetZut, ksZus.StueckelungWanne, ksZus.Sollbestand, ksZus.Laender, ksZus.Saisonalitaet, msp.MKBez from Kaesesorten ks join MilchSortePaarung msp on msp.SKBez=ks.SKBez join KaesesortenZusatz ksZus on ksZus.skbez=ks.skbez order by msp.MKBez asc, ks.SKBez asc;");
 		while (resultSet.next()) {
@@ -64,10 +71,13 @@ public class SorteDAO extends DAO {
 		// TODO Auto-generated catch block
 		e.printStackTrace();
 	} finally {
-		if (getConnection() != null) {
+		if (connection != null) {
 			try {
 				statement.close();
 				resultSet.close();
+				connection.close();
+				connection = null;
+				
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -80,12 +90,13 @@ public class SorteDAO extends DAO {
 	return sorteMap;
 }
 
-	public Map<String, String> getSortePKBezMapping() {
+	public Map<String, String> getSortePKBezMapping() throws SQLException {
 		Statement statement = null;
 		ResultSet resultSet = null;
 		Map<String, String> SortePKBezMap = new LinkedHashMap<String, String>();
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(
 					"SELECT svp.SKBez, vep.PKBez from VerpacktEndproduktPaarung vep join SorteVerpacktPaarung svp on vep.VKBez = svp.VKBez order by vep.PKBez asc, svp.SKBez asc;");
 			while (resultSet.next()) {
@@ -98,10 +109,13 @@ public class SorteDAO extends DAO {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
-			if (getConnection() != null) {
+			if (connection != null) {
 				try {
 					statement.close();
 					resultSet.close();
+					connection.close();
+					connection = null;
+					
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -111,12 +125,13 @@ public class SorteDAO extends DAO {
 	}
 	
 
-	public double getAmountPerPackage(String pKBez) throws UniqueConstraintException {
+	public double getAmountPerPackage(String pKBez) throws UniqueConstraintException, SQLException {
 		Statement statement = null;
 		ResultSet resultSet = null;
 		double amountPerPackage = 1;
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(
 					"SELECT kart.Menge from Kartonagen kart join EndproduktKartonagePaarung ekp on ekp.VerpID = kart.VerpID where ekp.PKBez='"+ pKBez + "'");
 			while (resultSet.next()) {
@@ -125,10 +140,13 @@ public class SorteDAO extends DAO {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			if (getConnection() != null) {
+			if (connection != null) {
 				try {
 					statement.close();
 					resultSet.close();
+					connection.close();
+					connection = null;
+					
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -138,19 +156,19 @@ public class SorteDAO extends DAO {
 	}
 
 	public Map<String, Datastruct> getCustomerDataDaily(String pKBez, String kNo, String fromDate,
-			String toDate/* , boolean nA */) throws UniqueConstraintException {
+			String toDate/* , boolean nA */) throws UniqueConstraintException, SQLException {
 		String sql = "SELECT ls.Datum, pos.Menge, pos.LS_No, pos.Pos_No from LS_Positionen pos join Lieferscheine ls on pos.LS_No = ls.LS_NO where pos.PKBez = '"
 				+ pKBez + "' and ls.K_No = '" + kNo + "' order by ls.Datum asc";
 		return getData(pKBez, sql, fromDate, toDate/* , nA */);
 	}
 
 	public Map<String, Datastruct> getDataDaily(String pKBez, String fromDate, String toDate)
-			throws UniqueConstraintException {
+			throws UniqueConstraintException, SQLException {
 		String sql = "SELECT ls.Datum, pos.Menge, pos.LS_No, pos.Pos_No from LS_Positionen pos join Lieferscheine ls on pos.LS_No = ls.LS_NO where pos.PKBez = '"
 				+ pKBez + "' and ls.Datum>='" + fromDate + "' and ls.Datum <= '" + toDate + "' order by ls.Datum asc";
 		return getData(pKBez, sql, fromDate, toDate/* , nA */);
 	}
-	public Map<String, Double> getDirectSales(JSONObject configurations) throws ParseException {
+	public Map<String, Double> getDirectSales(JSONObject configurations) throws ParseException, SQLException {
 		Map<String, Double> directSalesMap = new LinkedHashMap<String, Double>();
 		Statement statement = null;
 		ResultSet resultSet = null;
@@ -194,7 +212,8 @@ public class SorteDAO extends DAO {
 		calendar.add(Calendar.DAY_OF_MONTH, +6);
 		String toDate = dateFormat.format(calendar.getTime()); 
 		String sql = "select svp.skbez, sum(akt.Menge) from Aktionen akt join EndproduktKartonagePaarung ekp on akt.PKBez = ekp.PKBez join VerpacktEndproduktPaarung vep on vep.pkbez = akt.PKBez join SorteVerpacktPaarung svp on svp.vkbez=vep.vkbez join Kartonagen kart on ekp.VerpId = kart.VerpID where akt.ProduktionsDatum>='" + fromDate + "' and akt.ProduktionsDatum <= '" + toDate + "'  Group BY svp.sKBez order by svp.sKBez asc";
-		statement = getConnection().createStatement();
+		Connection connection = authenticationConnection.checkConnectivity();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 				while (resultSet.next()) {
 					String pKBez =resultSet.getString(1);
@@ -214,13 +233,15 @@ public class SorteDAO extends DAO {
 		return campaignMap;
 	}
 	
-	public Map<String, Double> getSaisonality(JSONObject configurations) throws ParseException {
+	public Map<String, Double> getSaisonality(JSONObject configurations) throws ParseException, SQLException {
 		Map<String, Double> saisonMap = new LinkedHashMap<String, Double>();
 		Statement statement = null;
 		ResultSet resultSet = null;
-	try {	
+		Connection connection = authenticationConnection.checkConnectivity();	
 		String sql = "select saison.SKBez, saison.ProdPercentage from Saisonality saison order by saison.SKBez asc";
-		statement = getConnection().createStatement();
+
+		try {
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 				while (resultSet.next()) {
 					String sKBez =resultSet.getString(1);
@@ -283,8 +304,9 @@ public class SorteDAO extends DAO {
 		Statement statement = null;
 		ResultSet resultSet = null;
 		Map<String, Double> verpacktMengen = new LinkedHashMap<String, Double>();
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 			while(resultSet.next()) {
 				String vkbez = resultSet.getString(1);
@@ -306,8 +328,9 @@ public class SorteDAO extends DAO {
 		ResultSet resultSet = null;
 		Map<String, Double> lieferscheinMengen = new LinkedHashMap<String, Double>();
 		String sql = "Select svp.SKBez, sum(pos.Menge * kart.Menge) from Lieferscheine ls join LS_Positionen pos on pos.LS_No = ls.LS_No join VerpacktEndproduktPaarung vep on vep.pkbez=pos.pkbez join EndproduktKartonagePaarung ekp on ekp.pkbez= vep.pkbez join Kartonagen kart on kart.verpID = ekp.verpID join SorteVerpacktPaarung svp on svp.vkbez=vep.vkbez where ls.datum>='" + fromDate + "' and ls.datum<='" + toDate + "' group by svp.skbez order by svp.skbez asc";
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 			while(resultSet.next()) {
 				String skbez = resultSet.getString(1);
@@ -338,7 +361,8 @@ public class SorteDAO extends DAO {
 			calendar.add(Calendar.MONTH, -1);
 			String fromDate = dateFormat.format(calendar.getTime()); 
 			String sql = " Select ab.Datum from SorteVerpacktPaarung svp join GezaehlterBestand ab on ab.VKBez=svp.VKBez where ab.Datum = (Select max(Datum) from GezaehlterBestand where Datum>='" + fromDate + "' and Datum <= '" + toDate + "') Group BY svp.SKBez order by svp.SKBez asc";
-			statement = getConnection().createStatement();
+			Connection connection = authenticationConnection.checkConnectivity();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 			while (resultSet.next()) {
 				letzteZaehlung = resultSet.getString(1);
@@ -359,7 +383,8 @@ public class SorteDAO extends DAO {
 		ResultSet resultSet = null;
 	try {	
 		String sql = "Select svp.SKBez, sum(ab.menge/pv.prodfaktor) from SorteVerpacktPaarung svp join GezaehlterBestand ab on ab.VKBez=svp.VKBez join VerpacktKartonagePaarung vkp on vkp.vkbez=svp.vkbez join produkteVerpackt pv on pv.vkbez=svp.vkbez where ab.Datum = '" + datumLetzteZaehlung + "' Group BY svp.SKBez order by svp.SKBez asc";
-		statement = getConnection().createStatement();
+		Connection connection = authenticationConnection.checkConnectivity();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 				while (resultSet.next()) {
 					String sKBez =resultSet.getString(1);
@@ -376,7 +401,7 @@ public class SorteDAO extends DAO {
 		return inventoryMap;
 	}
 	
-	public Map<String, Double> getMengenUnverpackt(JSONObject configurations) throws ParseException{
+	public Map<String, Double> getMengenUnverpackt(JSONObject configurations) throws ParseException, SQLException{
 		String toDate = configurations.getJSONObject("data").getString("to");
 		//String toDate = configurations.getJSONObject("data").getString("toDate");
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
@@ -402,7 +427,8 @@ public class SorteDAO extends DAO {
 			try {	
 				String sql = "select pp.skbez, sum(pp.menge*ks.mengePW) from Kaesesorten ks left join Produktionsbestand pb  on ks.skbeZ=pb.skbez join Produktionsplan pp on pp.charge=pb.charge and pp.skbez=pb.skbez \r\n" + 
 						"where pb.VerarbeitungDatum>='" + fromDate + "' and pb.VerarbeitungDatum <= '" + toDate + "' group by pp.skbez order by pp.skbez asc";
-				statement = getConnection().createStatement();
+				Connection connection = authenticationConnection.checkConnectivity();
+					statement = connection.createStatement();
 				resultSet = statement.executeQuery(sql);
 					while (resultSet.next()) {
 						String sKBez =resultSet.getString(1);
@@ -421,7 +447,7 @@ public class SorteDAO extends DAO {
 	
 
 	public Map<String, Datastruct> getData(String pKBez, String sql, String fromDateString, String toDateString)
-			throws UniqueConstraintException {
+			throws UniqueConstraintException, SQLException {
 		Statement statement = null;
 		ResultSet resultSet = null;
 		double amountPerPackage = getAmountPerPackage(pKBez);
@@ -434,8 +460,9 @@ public class SorteDAO extends DAO {
 
 		boolean containsPKBez = false;
 
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 			while (resultSet.next()) {
 				containsPKBez = true;
@@ -461,10 +488,13 @@ public class SorteDAO extends DAO {
 		} catch (SQLException | ParseException e) {
 			e.printStackTrace();
 		} finally {
-			if (getConnection() != null) {
+			if (connection != null) {
 				try {
 					statement.close();
 					resultSet.close();
+					connection.close();
+					connection = null;
+					
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -477,13 +507,14 @@ public class SorteDAO extends DAO {
 		}
 	}
 
-	public void update() throws UniqueConstraintException {
+	public void update() throws UniqueConstraintException, SQLException {
 		Statement statement = null;
 		ResultSet resultSet = null;
 		Map<String, String> update = new LinkedHashMap<String, String>();
 		String sql = "Select LS_No, Datum from Lieferscheine order by Datum asc;";
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 			while (resultSet.next()) {
 				String strDatum = resultSet.getString(2);
@@ -495,18 +526,22 @@ public class SorteDAO extends DAO {
 		} catch (SQLException e) {
 			System.out.println("Error: " + e.getMessage());
 		} finally {
-			if (getConnection() != null) {
+			if (connection != null) {
 				try {
 					statement.close();
 					resultSet.close();
+					connection.close();
+					connection = null;
+					
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
 			}
 		}
 		sql = "Update LS_Positionen SET LS_No = ? where LS_No = ?";
+		connection = authenticationConnection.checkConnectivity();
 		for (String lSNo : update.keySet()) {
-			try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+			try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
 				pstmt.setString(1, lSNo);
 				pstmt.setString(2, update.get(lSNo));
 				pstmt.executeUpdate();
@@ -533,13 +568,14 @@ public class SorteDAO extends DAO {
 		return dailyValues;
 	}
 
-	public List<String> getAllKNo() throws UniqueConstraintException {
+	public List<String> getAllKNo() throws UniqueConstraintException, SQLException {
 		List<String> kNoList = new ArrayList<String>();
 		Statement statement = null;
 		ResultSet resultSet = null;
 
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(" select distinct K_No from Lieferscheine order by K_No asc");
 			while (resultSet.next()) {
 				String kNo = resultSet.getString(1);
@@ -548,10 +584,13 @@ public class SorteDAO extends DAO {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			if (getConnection() != null) {
+			if (connection != null) {
 				try {
 					statement.close();
 					resultSet.close();
+					connection.close();
+					connection = null;
+					
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -560,18 +599,19 @@ public class SorteDAO extends DAO {
 		return kNoList;
 	}
 
-	public ArrayList<String> getAllPKBez() {
+	public ArrayList<String> getAllPKBez() throws SQLException {
 		ArrayList<String> pkBezList = new ArrayList<String>();
 		pkBezList = getPKBezList();
 		return pkBezList;
 	}
 
-	private ArrayList<String> getPKBezList() {
+	private ArrayList<String> getPKBezList() throws SQLException {
 		ArrayList<String> pkBezList = new ArrayList<String>();
 		Statement statement = null;
 		ResultSet resultSet = null;
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery("SELECT PKBez from Endprodukte order by PKBez asc");
 			while (resultSet.next()) {
 				pkBezList.add(resultSet.getString(1));
@@ -579,10 +619,13 @@ public class SorteDAO extends DAO {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			if (getConnection() != null) {
+			if (connection != null) {
 				try {
 					statement.close();
 					resultSet.close();
+					connection.close();
+					connection = null;
+					
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -608,7 +651,7 @@ public class SorteDAO extends DAO {
 	}
 	 
 	
-	public Map<String, Map<String, Datastruct>> getProductDataDailyPast(JSONObject configurations) throws JSONException, ParseException{
+	public Map<String, Map<String, Datastruct>> getProductDataDailyPast(JSONObject configurations) throws JSONException, ParseException, SQLException{
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
 		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
 		//Date datum = dateFormat.parse(configurations.getJSONObject("data").getString("toDate"));
@@ -639,7 +682,7 @@ public class SorteDAO extends DAO {
 		return dailyDataPast;
 	}
 	
-	public Map<String, Map<String, Double>> getCurrentSalesAmountsDaily(JSONObject configurations) throws JSONException, ParseException {
+	public Map<String, Map<String, Double>> getCurrentSalesAmountsDaily(JSONObject configurations) throws JSONException, ParseException, SQLException {
 		Map<String, Map<String, Double>> salesAmountsSorteAllDays = new LinkedHashMap<String, Map<String, Double>>();
 		//int consideredPeriods = configurations.getJSONObject("parameters").getInt("considerPeriods");
 		//String fromDate = configurations.getJSONObject("data").getString("fromDate");	
@@ -661,7 +704,7 @@ public class SorteDAO extends DAO {
 		return salesAmountsSorteAllDays;
 	}
 	
-	public Map<String, Map<String, Double>> getCurrentSalesAmountsWeekly(JSONObject configurations) throws JSONException, ParseException {
+	public Map<String, Map<String, Double>> getCurrentSalesAmountsWeekly(JSONObject configurations) throws JSONException, ParseException, SQLException {
 		Map<String, Map<String, Double>> salesAmountsSorteAllWeeks = new LinkedHashMap<String, Map<String, Double>>();
 		//int consideredPeriods = configurations.getJSONObject("parameters").getInt("considerPeriods");
 		//String fromDate = configurations.getJSONObject("data").getString("fromDate");	
@@ -721,7 +764,7 @@ public class SorteDAO extends DAO {
 		return salesAmountsSorteAllWeeks;
 	}*/
 	
-	public Map<String, Map<String, Double>> getPastSalesAmountsDaily(JSONObject configurations) throws JSONException, ParseException {
+	public Map<String, Map<String, Double>> getPastSalesAmountsDaily(JSONObject configurations) throws JSONException, ParseException, SQLException {
 		Map<String, Map<String, Double>> salesAmountsSorteAllDays = new LinkedHashMap<String, Map<String, Double>>();
 		//int consideredPeriods = configurations.getJSONObject("parameters").getInt("considerPeriods");
 		//String fromDate = configurations.getJSONObject("data").getString("fromDate");	
@@ -752,7 +795,7 @@ public class SorteDAO extends DAO {
 	
 
 	
-	public Map<String, Map<String, Double>> getPastSalesAmountsWeekly(JSONObject configurations) throws JSONException, ParseException {
+	public Map<String, Map<String, Double>> getPastSalesAmountsWeekly(JSONObject configurations) throws JSONException, ParseException, SQLException {
 		Map<String, Map<String, Double>> salesAmountsSorteAllWeeks = new LinkedHashMap<String, Map<String, Double>>();
 		//int consideredPeriods = configurations.getJSONObject("parameters").getInt("considerPeriods");
 		//String fromDate = configurations.getJSONObject("data").getString("fromDate");	
@@ -794,7 +837,7 @@ public class SorteDAO extends DAO {
 	}
 		
 
-	private Map<String, Double>  calculateSalesAmounts(String fromDate, String toDate) {
+	private Map<String, Double>  calculateSalesAmounts(String fromDate, String toDate) throws SQLException {
 		Map<String, Double> salesAmountsSorteSingleWeek = getSalesAmounts(fromDate, toDate);
 		Map<String, Double> campaignAmountsSorteSingleWeek = getCampaignsAmountsWeekly(fromDate, toDate);
 		Map<String, Double> directSalesSorteSingleWeek = getDirectSalesWeekly(fromDate, toDate);
@@ -813,7 +856,7 @@ public class SorteDAO extends DAO {
 		return salesAmountsSorteSingleWeek;
 	}
 	
-	private Map<String, Double> getSalesAmounts(String fromDate, String toDate){
+	private Map<String, Double> getSalesAmounts(String fromDate, String toDate) throws SQLException{
 		Statement statement = null;
 		ResultSet resultSet = null;
 		Map<String, Double> salesamounts = new  LinkedHashMap<String, Double>();
@@ -837,8 +880,9 @@ public class SorteDAO extends DAO {
 				"where ls.Datum>='" + fromDate + "' and ls.Datum <= '" + toDate + "' \r\n" + 
 				"group by svp.skbez \r\n" + 
 				"order by svp.skbez asc";*/
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 			while (resultSet.next()) {
 				String skbez = resultSet.getString(1);
@@ -850,7 +894,7 @@ public class SorteDAO extends DAO {
 		return salesamounts;
 	}
 	
-	private Map<String, Double> getCampaignsAmountsWeekly(String fromDate, String toDate){
+	private Map<String, Double> getCampaignsAmountsWeekly(String fromDate, String toDate) throws SQLException{
 		Statement statement = null;
 		ResultSet resultSet = null;
 		Map<String, Double> salesamounts = new  LinkedHashMap<String, Double>();
@@ -864,8 +908,9 @@ public class SorteDAO extends DAO {
 				"where akt.LieferDatum>='" + fromDate + "' and akt.LieferDatum <= '" + toDate + "' \r\n" + 
 				"group by svp.skbez\r\n" + 
 				"order by svp.skbez asc;";
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 			while (resultSet.next()) {
 				String skbez = resultSet.getString(1);
@@ -877,7 +922,7 @@ public class SorteDAO extends DAO {
 		return salesamounts;
 	}
 	
-	private Map<String, Double> getDirectSalesWeekly(String fromDate, String toDate){
+	private Map<String, Double> getDirectSalesWeekly(String fromDate, String toDate) throws SQLException{
 		Statement statement = null;
 		ResultSet resultSet = null;
 		Map<String, Double> salesamounts = new  LinkedHashMap<String, Double>();
@@ -886,8 +931,9 @@ public class SorteDAO extends DAO {
 				"where dv.VerkDatum>='" + fromDate + "' and dv.VerkDatum <= '" + toDate + "' \r\n" + 
 				"group by dv.skbez\r\n" + 
 				"order by dv.skbez asc";
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 			while (resultSet.next()) {
 				String skbez = resultSet.getString(1);
@@ -899,13 +945,14 @@ public class SorteDAO extends DAO {
 		return salesamounts;
 	}
 	
-	private Map<String, Double> getDirectSalesProduction(String fromDate, String toDate){
+	private Map<String, Double> getDirectSalesProduction(String fromDate, String toDate) throws SQLException{
 		Statement statement = null;
 		ResultSet resultSet = null;
 		Map<String, Double> productionAmounts = new  LinkedHashMap<String, Double>();
 		String sql = "select dv.skbez, sum(dv.Menge) from DirektVerkaeufe dv where dv.ProdDatum>='" + fromDate + "' and dv.ProdDatum <= '" + toDate + "'  Group BY dv.sKBez order by dv.sKBez asc";
-		try{
-			statement = getConnection().createStatement();
+		Connection connection = authenticationConnection.checkConnectivity();
+		try {
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 				while (resultSet.next()) {
 					String skbez =resultSet.getString(1);
@@ -925,7 +972,7 @@ public class SorteDAO extends DAO {
 		return productionAmounts;
 	}
 	
-	private Map<String, Double> getDeliveryShortage(String fromDate, String toDate){
+	private Map<String, Double> getDeliveryShortage(String fromDate, String toDate) throws SQLException{
 		Statement statement = null;
 		ResultSet resultSet = null;
 		Map<String, Double> shortage = new  LinkedHashMap<String, Double>();
@@ -935,8 +982,9 @@ public class SorteDAO extends DAO {
 				+ "where fm.Datum>='" + fromDate + "' and fm.Datum<='" + toDate + "' "
 				+ "group by svp.skbez "
 				+ "order by svp.skbez";
+		Connection connection = authenticationConnection.checkConnectivity();
 		try {
-			statement = getConnection().createStatement();
+			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 			while (resultSet.next()) {
 				String skbez = resultSet.getString(1);
@@ -948,7 +996,7 @@ public class SorteDAO extends DAO {
 		return shortage;
 	}
 	
-	public Map<String, Map<String, Datastruct>> getProductDataDaily(JSONObject configurations) throws JSONException {
+	public Map<String, Map<String, Datastruct>> getProductDataDaily(JSONObject configurations) throws JSONException, SQLException {
 		//String fromDate = configurations.getJSONObject("data").getString("fromDate");	
 		//String toDate = configurations.getJSONObject("data").getString("toDate");		
 		String fromDate = configurations.getJSONObject("data").getString("from");	
