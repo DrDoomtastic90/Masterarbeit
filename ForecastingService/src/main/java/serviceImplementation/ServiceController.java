@@ -73,8 +73,14 @@ public class ServiceController {
 	        	JSONObject combinedAnalysisResult = new JSONObject();
 	        	JSONObject analysisResult = null;
 	        	JSONObject jsonConfigurations =  invokeConfigFileService(loginCredentials.getString("apiURL"));
+	        	String from = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("from");
+	        	String to = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("to");
+	        	int forecastPeriods = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getInt("forecastPeriods");
 				if(loginCredentials.getBoolean("isEnabledRuleBased")) {
 					JSONObject ruleBasedConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased");
+					ruleBasedConfigurations.getJSONObject("data").put("from", from);
+					ruleBasedConfigurations.getJSONObject("data").put("to", to);
+					ruleBasedConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
 					ruleBasedConfigurations.put("username", "ForecastingTool");
 					ruleBasedConfigurations.put("password", "forecasting");
 					ruleBasedConfigurations.put("passPhrase", requestBody.get("passPhrase"));
@@ -83,6 +89,9 @@ public class ServiceController {
 				}
 				if(loginCredentials.getBoolean("isEnabledARIMA")) {
 					JSONObject aRIMAConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ARIMA");
+					aRIMAConfigurations.getJSONObject("data").put("from", from);
+					aRIMAConfigurations.getJSONObject("data").put("to", to);
+					aRIMAConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
 					aRIMAConfigurations.put("username", "ForecastingTool");
 					aRIMAConfigurations.put("password", "forecasting");
 					aRIMAConfigurations.put("passPhrase", requestBody.get("passPhrase"));
@@ -92,12 +101,15 @@ public class ServiceController {
 				response.setContentType("application/json");
 				response.setStatus(200);
 				response.getWriter().write(combinedAnalysisResult.toString());
+				response.flushBuffer();
+				requestBody.put("results", combinedAnalysisResult);
+				invokeEvaluationService(requestBody);
 			}else {
 				response.setContentType("application/json");
 				response.setStatus(401);
 				response.getWriter().write("Permission Denied");
+				response.flushBuffer();
 			}
-			response.flushBuffer();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -195,6 +207,15 @@ public class ServiceController {
 		RestClient restClient = new RestClient();
 		restClient.setHttpsConnection(url, contentType);
 		return new JSONObject(restClient.postRequest(configFileLocation.toString()));
+	}
+	
+	private JSONObject invokeEvaluationService(JSONObject requestBody) throws IOException {
+		//Internal Implementation
+		URL url = new URL("http://localhost:" + 8900 + "/EvaluationService");	
+		String contentType = "application/json";
+		RestClient restClient = new RestClient();
+		restClient.setHttpsConnection(url, contentType);
+		return new JSONObject(restClient.postRequest(restClient.postRequest(requestBody.toString())));
 	}
 	
 	
