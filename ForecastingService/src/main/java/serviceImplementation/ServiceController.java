@@ -87,7 +87,7 @@ public class ServiceController {
 					aRIMAConfigurations.put("password", "forecasting");
 					aRIMAConfigurations.put("passPhrase", requestBody.get("passPhrase"));
 					analysisResult =  invokeARIMAService(aRIMAConfigurations);
-					combinedAnalysisResult.put("RuleBasedResult", analysisResult);
+					combinedAnalysisResult.put("ARIMAResult", analysisResult);
 				}
 				response.setContentType("application/json");
 				response.setStatus(200);
@@ -162,7 +162,7 @@ public class ServiceController {
 		String requestBody = aRIMAConfigurations.toString();
 		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/Daten/Bantel/ruleBased/Adapter/Adapter.php");
 		RestClient restClient = new RestClient();
-		restClient.setHttpConnection(url, contentType);
+		restClient.setHttpConnection(url, contentType, 12000);
 		return new JSONObject(restClient.postRequest(requestBody));
 	}
 	
