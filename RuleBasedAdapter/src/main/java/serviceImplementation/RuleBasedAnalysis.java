@@ -98,6 +98,9 @@ public class RuleBasedAnalysis extends Analysis {
 			for(String strDate : pastSalesWeeklySorte.keySet()) {
 				demands.put(strDate,pastSalesWeeklySorte.get(strDate).get(skbez));
 			}
+			if(skbez.equals("S6")) {
+				System.out.println(skbez + ": " + demands);
+			}
 			jsonSorte.put("demand",demands);
 			jsonSorte.put("demandWeek0",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek0").getString("content"));
 			jsonSorte.put("demandWeek1",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek1").getString("content"));

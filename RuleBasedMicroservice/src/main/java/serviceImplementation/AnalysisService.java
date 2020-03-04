@@ -85,6 +85,7 @@ public class AnalysisService {
 
 
 	public JSONObject analyseWorld(JSONObject worldFacts) {
+		RuleBasedResult.setForecastPeriods(5);
 		ObjectMapper objectMapper = new ObjectMapper();
 		JSONObject objectMap = new JSONObject();
 		for (String factors : worldFacts.keySet()) {

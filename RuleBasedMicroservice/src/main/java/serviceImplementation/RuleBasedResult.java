@@ -4,6 +4,8 @@ import org.json.JSONObject;
 
 public class RuleBasedResult {
 	private static JSONObject result = new JSONObject();
+	private static int forecastPeriods = 0;
+	private static int actualPeriod = 0;
 	
 	public static JSONObject getResult() {
 		return result;
@@ -39,4 +41,24 @@ public class RuleBasedResult {
 		initForecastResult.put(entryKey, productionAmount);
 		result.put("initForecastResult", initForecastResult);
 	}
+
+	public static int getForecastPeriods() {
+		return forecastPeriods;
+	}
+
+	public static void setForecastPeriods(int forecastPeriods) {
+		RuleBasedResult.forecastPeriods = forecastPeriods;
+	}
+
+	public static int getActualPeriod() {
+		return actualPeriod;
+	}
+
+	public static void setActualPeriod(int actualPeriod) {
+		RuleBasedResult.actualPeriod = actualPeriod;
+	}
+	
+
+	
+	
 }
