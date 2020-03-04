@@ -11,15 +11,15 @@ public class RuleBasedResult {
 		return result;
 	}
 
-	public static void setForecastResult(String entryKey, double productionAmount) {
+	public static void setForecastResult(String entryKey, int pos, double productionAmount) {
 		JSONObject forecastResult;
-		if(result.has("forecastResult")){
-			forecastResult = result.getJSONObject("forecastResult");
+		if(result.has(entryKey)){
+			forecastResult = result.getJSONObject(entryKey);
 		}else {
 			forecastResult  = new JSONObject();
 		}
-		forecastResult.put(entryKey, productionAmount);
-		result.put("forecastResult", forecastResult);
+		forecastResult.put(Integer.toString(pos), productionAmount);
+		result.put(entryKey, forecastResult);
 	}
 	public static void setProdPlanResult(String entryKey, double productionAmount) {
 		JSONObject prodPlanResult;

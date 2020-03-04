@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 
 public class Sorte {
+	private int actualPeriod;
 	private String skbez;
 	private String sorteBez;
 	private double demandAverage;
@@ -30,6 +31,7 @@ public class Sorte {
 	
 	
 	public Sorte() {
+		actualPeriod = 1;
 		skbez = "";
 		sorteBez = "";
 		demandAverage = 0;
@@ -187,6 +189,14 @@ public class Sorte {
 	
 	public void setSaisonalitaet(double saisonalitaet) {
 		this.saisonalitaet = saisonalitaet;
+	}
+	
+	public int getActualPeriod() {
+		return actualPeriod;
+	}
+	
+	public void setActualPeriod(int actualPeriod) {
+		this.actualPeriod = actualPeriod;
 	}
 	
 	public void printSorte() {

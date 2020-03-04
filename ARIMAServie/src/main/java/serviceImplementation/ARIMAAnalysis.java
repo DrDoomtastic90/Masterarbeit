@@ -42,13 +42,13 @@ public class ARIMAAnalysis {
 		rEngine.eval("attach( javaImport('java.util'), pos = 2 , name = 'java:java.util')");
 		}
 	
-	private ArrayList<Double> dataProcessingTargetFormat(String selectedFrequency, int forecastPeriods, boolean seasonal, String filePath) {
+	private JSONObject dataProcessingTargetFormat(String selectedFrequency, int forecastPeriods, boolean seasonal, String filePath) {
 		int end = 0;
 		int exp = rEngine.eval("freq").asIntArray()[0];
 		double outPutFrequency = exp;
 		double intervall = 0;
 		int intervallInteger = 0;
-		ArrayList<Double> resultList = new ArrayList<Double>();
+		JSONObject result = new JSONObject();
 		switch (selectedFrequency.toLowerCase()) {
 		case "daily":
 			rEngine.eval("cnt_maW = ma(cnt_cln, order=" + outPutFrequency + ")");
@@ -129,6 +129,7 @@ public class ARIMAAnalysis {
 		}
 		//end = 5;
 		getForecast(end, filePath);
+		int counter = 1;
 			for (int beg = 1; beg <= end; beg++) {
 				outPutFrequency = 5;
 				intervall = (intervall + outPutFrequency);
@@ -136,11 +137,12 @@ public class ARIMAAnalysis {
 				//intervallInteger = 5;
 				//System.out.println(rEngine.eval("print(sum(fcast[[4]][" + beg + ": " + intervallInteger + "]))"));
 				double ergebnis = rEngine.eval("sum(fcast[[4]][" + beg + ": " + intervallInteger + "])").asDoubleArray()[0];
-				resultList.add(ergebnis);
+				result.put(Integer.toString(counter),ergebnis);
 				beg = (int) (intervall);
+				counter = counter + 1;
 			}
 
-		return resultList;
+		return result;
 	}
 	
 	private void getForecast(int forecastPeriods, String filePath) {

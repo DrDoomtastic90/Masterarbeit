@@ -101,12 +101,18 @@ public class RuleBasedAnalysis extends Analysis {
 			if(skbez.equals("S6")) {
 				System.out.println(skbez + ": " + demands);
 			}
-			jsonSorte.put("demand",demands);
+			/*jsonSorte.put("demand",demands);
 			jsonSorte.put("demandWeek0",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek0").getString("content"));
 			jsonSorte.put("demandWeek1",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek1").getString("content"));
 			jsonSorte.put("demandWeek2",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek2").getString("content"));
 			jsonSorte.put("demandWeekLY0",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY0").getString("content"));
 			jsonSorte.put("demandWeekLY1",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY1").getString("content"));
+			*/
+			jsonSorte.put("demandWeek0_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek0_Bez").getString("content")));
+			jsonSorte.put("demandWeek1_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek1_Bez").getString("content")));
+			jsonSorte.put("demandWeek2_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek2_Bez").getString("content")));
+			jsonSorte.put("demandWeekLY0_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY0_Bez").getString("content")));
+			jsonSorte.put("demandWeekLY1_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY1_Bez").getString("content")));
 			/*if(currentSalesWeeklySorte.containsKey("demandWeekM0")){
 				if (currentSalesWeeklySorte.get("demandWeekM0").containsKey(skbez)){
 					jsonSorte.put("demandWeek0",currentSalesWeeklySorte.get("demandWeekM0").get(skbez));
