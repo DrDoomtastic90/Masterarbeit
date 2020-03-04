@@ -13,6 +13,7 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.Rengine;
 
 import webClient.RestClient;
@@ -37,7 +38,7 @@ public class ARIMAAnalysis {
 		rEngine.eval("library(forecast)");
 		rEngine.eval("library(tseries)");
 		rEngine.eval("library(futile.logger)");
-		rEngine.eval("library(jdx)");
+		//rEngine.eval("library(jdx)");
 		rEngine.eval("attach( javaImport('java.util'), pos = 2 , name = 'java:java.util')");
 		}
 	
@@ -151,9 +152,9 @@ public class ARIMAAnalysis {
 		//System.out.println("FCAST: " + rEngine.eval("fcast"));
 		//rEngine.eval("flog.trace(fcast)");
 		//rEngine.eval("flog.trace('DANACH)");
-		rEngine.eval("jpeg('" + filePath + "/rplot_fcast.jpg')");
-		rEngine.eval("plot(fcast)");
-		rEngine.eval("dev.off()");
+		//rEngine.eval("jpeg('" + filePath + "/rplot_fcast.jpg')");
+		//rEngine.eval("plot(fcast)");
+		//rEngine.eval("dev.off()");
 		
 		
 	}
@@ -163,16 +164,16 @@ public class ARIMAAnalysis {
 		JSONObject resultValues = new JSONObject();
 		
 
-		String targetPath = configurations.getJSONObject("data").getString("target");
+		String targetPath = "D:/Arbeit/Bantel/Masterarbeit/Implementierung/ForecastingTool/Daten/Bantel";
 		//String preprocessedData = configurations.get("data").get("preprocessed");
-		String filetype =configurations.getJSONObject("data").getString("filetype");
+		//String filetype =configurations.getJSONObject("data").getString("filetype");
 		String aggregation = configurations.getJSONObject("parameters").getString("aggregationOutputData");
 		boolean seasonality = configurations.getJSONObject("parameters").getBoolean("seasonality");
 		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
 		
 		//Applicable for NON-URL File access!!
 		// source of code https://www.java2novice.com/java-file-io-operations/file-list-by-file-filter/
-		String sourcepath = configurations.getJSONObject("data").getString("sourcepreprocessed");
+		/*String sourcepath = configurations.getJSONObject("data").getString("sourcepreprocessed");
 		File folder = new File(sourcepath + "/");
 		File[] files = folder.listFiles(new FilenameFilter() {
             @Override
@@ -184,7 +185,7 @@ public class ARIMAAnalysis {
                     return false;
                 }
             }
-        });
+        });*/
 		
         
 		setUpArimaConfiguration();
@@ -197,11 +198,19 @@ public class ARIMAAnalysis {
 		//System.out.println(rEngine.eval("daily_data"));
 		
 		
-		//For non URL-File Location (File-List)
-		for(File file:files){
-			new File((targetPath + "/" + file.getName()).split("\\.")[0]).mkdirs();
-			String filepath = file.getAbsolutePath().replaceAll("\\\\", "/");
+		for(String sorte : preparedData.keySet()) {
 			try {
+				if(sorte.equals("S6")) {
+					System.out.println(sorte + ": " + preparedData.getString(sorte));
+				}
+				String input = "raw_data = read.csv(text='" + preparedData.getString(sorte) +"')";
+				rEngine.eval(input);
+				//rEngine.eval("write.csv(dataset, '" + targetPath + "/raw_data.csv')");
+		//For non URL-File Location (File-List)
+		//for(File file:files){
+			//new File((targetPath + "/" + file.getName()).split("\\.")[0]).mkdirs();
+			//String filepath = file.getAbsolutePath().replaceAll("\\\\", "/");
+			//try {
 			
 		//FOR URL-File Location
 		/* URL sourcepath = null;
@@ -218,11 +227,14 @@ public class ARIMAAnalysis {
 		//File file = File.createTempFile("Sorte_" + sorte, ".csv");
 		//FileUtils.copyURLToFile(sourcepath, file);
 		//String filepath = file.getAbsolutePath().replace("\\", "/");
-		rEngine.eval("raw_data = read.csv('" + filepath + "', header=TRUE, stringsAsFactors=FALSE)");
+		//rEngine.eval("raw_data = read.csv('" + filepath + "', header=TRUE, stringsAsFactors=FALSE)");
 		
 		
 		//rEngine.eval("raw_data = read.csv('D:\\Arbeit\\Bantel\\Masterarbeit\\Daten\\Bantel\\ARIMA\\SorteAnalysisDaily\\all\\F01.csv', header=TRUE, stringsAsFactors=FALSE)");
-		
+		//System.out.println("Raw Data: " + rEngine.eval("raw_data"));
+		//System.out.println("Raw Data: " + rEngine.eval("print(raw_data)"));
+		//REXP result= rEngine.eval("raw_data");
+		//System.out.println(result.asString());
 		//rEngine.eval("daily_data$Date = as.Date(daily_data)");
 		rEngine.eval("daily_data<- data.frame(Date=as.Date(raw_data$Datum), stringsAsFactors=FALSE)");
 		rEngine.eval("daily_data$Menge <- raw_data$Menge");
@@ -232,14 +244,14 @@ public class ARIMAAnalysis {
 		//rEngine.eval("flog.appender(appender.file('D:/Arbeit/Bantel/Masterarbeit/Server/Logs/rlog.txt'))");
 		//rEngine.eval("flog.trace(daily_data)");
 		// rEngine.eval("jpeg('D:/Arbeit/Bantel/Masterarbeit/rplot.jpg')");
-		rEngine.eval("plt<-ggplot() + geom_line(data = daily_data, aes(x = Date, y = daily_data$Menge, colour = 'Red')) + ylab('DailyData')");
+		//rEngine.eval("plt<-ggplot() + geom_line(data = daily_data, aes(x = Date, y = daily_data$Menge, colour = 'Red')) + ylab('DailyData')");
 		
 		//rEngine.eval("jpeg('" + targetPath + "/rplot_initialDataStructure.jpg')");
 		//rEngine.eval(" pl <- (ggplot() + geom_line(data = daily_data, aes(x = Date, y = daily_data$Menge, colour = 'Counts')) + ylab('DailyData'))");
 		//rEngine.eval("print(plt)");
-		rEngine.eval("ggsave('" + targetPath + "/rplot_initialDataStructure.jpg',plt)");
+		//rEngine.eval("ggsave('" + targetPath + "/rplot_initialDataStructure.jpg',plt)");
 		
-		rEngine.eval("dev.off()");
+		//rEngine.eval("dev.off()");
 		// order dates
 		rEngine.eval("daily_data <- daily_data[order(daily_data$Date),]");
 		// count days in data set
@@ -295,7 +307,7 @@ public class ARIMAAnalysis {
 		//resultValues.put(sorte, dataProcessingTargetFormat(aggregation, forecastPeriods, seasonality, targetPath));
 		
 		//Only for NON URL
-		resultValues.put(file.getName().split("\\.")[0], dataProcessingTargetFormat(aggregation, forecastPeriods, seasonality, targetPath));
+		resultValues.put(sorte, dataProcessingTargetFormat(aggregation, forecastPeriods, seasonality, targetPath));
 		
 			}catch (Exception e) {
 				e.printStackTrace();
