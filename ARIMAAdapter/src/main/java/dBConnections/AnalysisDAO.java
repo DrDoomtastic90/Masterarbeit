@@ -313,7 +313,7 @@ public class AnalysisDAO {
 		}
 		return pkBezList;
 	}
-	public static String dataToCSVString(List<Datastruct> dataSet, boolean dayDummies, boolean campaigns, boolean nA){
+	public static String dataToCSVString(List<Datastruct> dataSet, boolean dayDummies, boolean campaigns){
 		StringBuilder csvString = new StringBuilder();	
 		csvString.append("Datum");
 		csvString.append(",");
@@ -330,11 +330,7 @@ public class AnalysisDAO {
 		    double menge = entry.getMenge();
 		    csvString.append(datum);
 		    csvString.append(",");
-		    if(menge==0 && nA) {
-		    	 csvString.append("NA");
-		    }else {
 		    csvString.append(menge);
-		    }
 		    if(dayDummies) {
 		    	csvString.append(",");
 		    	//http://www.java2s.com/Tutorials/Java/Data_Type_How_to/Date/Get_day_of_week_int_value_and_String_value.html

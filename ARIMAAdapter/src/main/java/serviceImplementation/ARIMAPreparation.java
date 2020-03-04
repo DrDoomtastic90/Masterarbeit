@@ -26,7 +26,7 @@ public class ARIMAPreparation extends Analysis {
 	public static JSONObject sorteAnalysisDaily(String kNo, JSONObject configurations) throws JSONException, FileNotFoundException, ClassNotFoundException, SQLException {
 		JSONObject responseContent = new JSONObject();
 		AnalysisDAO daoAnalysis = new AnalysisDAO(configurations.getString("passPhrase"));
-		
+		boolean campaigns = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
 		Map<String, Map<String, Datastruct>> dailyAggregatedData = DataAggregator.aggregateSorteDataDaily(kNo, configurations, daoAnalysis);
 		for (String sorte : dailyAggregatedData.keySet()) {
 			//System.out.println(sorte);
@@ -36,8 +36,10 @@ public class ARIMAPreparation extends Analysis {
 				//System.out.println(dailyAggregatedData.get(sorte).get(dateEntry).getDatum() + " "
 				//		+ dailyAggregatedData.get(sorte).get(dateEntry).getMenge());
 			}
-			String path = createSorteCSVDaily(sorte, datastructList, configurations);
-			responseContent.put(sorte, path);
+			//String path = createSorteCSVDaily(sorte, datastructList, configurations);
+			//responseContent.put(sorte, path);
+			String content = AnalysisDAO.dataToCSVString(datastructList, false, campaigns );
+			responseContent.put(sorte, content);
 		}
 		return responseContent;
 	}
@@ -83,32 +85,15 @@ public class ARIMAPreparation extends Analysis {
 	}
 
 	public static String createSorteCSVDaily(String sorte, List<Datastruct> dataSet, JSONObject configurations) throws JSONException {
-		boolean campaigns = Boolean.parseBoolean(configurations.getJSONObject("parameters").getString("campaigns"));
-		boolean nA = Boolean.parseBoolean(configurations.getJSONObject("parameters").getString("navalues"));
-
-		
-		String content = AnalysisDAO.dataToCSVString(dataSet, false, campaigns, nA);
-		//String analysis = "";
-		/*if (campaigns) {
-			analysis = "SorteAnalysisDailyWCampaigns";
-		} else {
-			analysis = "SorteAnalysisDaily";
-		}
-		if (kNo.length() > 0) {
-			analysis = "/" + analysis + "/" + kNo;
-		} else {
-			analysis = "/" + analysis + "/all";
-		}
-		String path = configurations.get("data").get("sourcepath") + analysis + "/" + sorte +  ".csv";
-		*/
-		//String path = configurations.get("data").get("sourcepath") + "/" + sorte + ".csv";
+		boolean campaigns = Boolean.parseBoolean(configurations.getJSONObject("parameters").getJSONObject("campaigns").getString("contained"));
+		String content = AnalysisDAO.dataToCSVString(dataSet, false, campaigns );
 		String path = configurations.getJSONObject("data").getString("preprocessed") + "/" + sorte + ".csv";
 		return path;
 	}
 
 	public static void createSorteCSVWeekly(String sorte, List<Datastruct> dataSet, boolean campaigns, String kNo,
 			boolean nA) {
-		String content = AnalysisDAO.dataToCSVString(dataSet, false, campaigns, nA);
+		String content = AnalysisDAO.dataToCSVString(dataSet, false, campaigns);
 		String analysis = "";
 		if (campaigns) {
 			analysis = "SorteAnalysisWeeklyWCampaigns";

@@ -70,7 +70,7 @@ public class WeeklyAnalysis extends Analysis{
 	}
 
 	private static void createWeeklyCSV(String pKBez, List<Datastruct> dataSet, boolean campaigns, String kNo, boolean nA) {
-		String content = AnalysisDAO.dataToCSVString(dataSet, false, campaigns, nA);
+		String content = AnalysisDAO.dataToCSVString(dataSet, false, campaigns);
 		String analysis = "";
 		if (campaigns) {
 			analysis = "WeeklyAnalysisCampaigns";
