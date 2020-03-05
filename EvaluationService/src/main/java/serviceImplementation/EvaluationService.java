@@ -18,6 +18,7 @@ import java.util.Map;
 import org.json.JSONObject;
 
 import dBConnection.EvaluationDAO;
+import outputHandler.CustomFileWriter;
 import webClient.RestClient;
 
 
@@ -88,16 +89,29 @@ public class EvaluationService {
 		JSONObject loginCredentials = invokeLoginService(configurations);
     	String passPhrase = loginCredentials.getString("passPhrase");
 		configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-		JSONObject aRIMAResults = configAndResults.getJSONObject("results").getJSONObject("ARIMAResult");
-		JSONObject ruleBasedResults = configAndResults.getJSONObject("results").getJSONObject("RuleBasedResult");
-    	String fromDate = configAndResults.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("from");
+		String fromDate = configAndResults.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("from");
     	String toDate = configAndResults.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("to");
     	int forecastPeriods = configAndResults.getJSONObject("forecasting").getJSONObject("Combined").getInt("forecastPeriods");
     	JSONObject actualResults = getActualResults(fromDate, toDate, forecastPeriods, passPhrase);
+    	
+    	
+		JSONObject aRIMAResults = configAndResults.getJSONObject("results").getJSONObject("ARIMAResult");
+		JSONObject ruleBasedResults = configAndResults.getJSONObject("results").getJSONObject("RuleBasedResult");
+		JSONObject aNNResult = configAndResults.getJSONObject("results").getJSONObject("ANNResult");
+		JSONObject kalmanResult = configAndResults.getJSONObject("results").getJSONObject("KalmanResult");
+		JSONObject smoothedCombResult = configAndResults.getJSONObject("results").getJSONObject("SmoothedCombResult");
+
     	diffResults.put("ARIMADiff", evaluationMAE(actualResults, aRIMAResults));
     	diffResults.put("RuleBasedDiff", evaluationMAE(actualResults, ruleBasedResults));
-    	diffResults.put("SMAEARIMA", evaluationSMAE(diffResults.getJSONObject("ARIMADiff"),diffResults.getJSONObject("RuleBasedDiff")));
+    	diffResults.put("ANNDiff", evaluationMAE(actualResults, ruleBasedResults));
+    	diffResults.put("KalmanDiff", evaluationMAE(actualResults, ruleBasedResults));
+    	diffResults.put("SmoothedCombDiff", evaluationMAE(actualResults, ruleBasedResults));
+    	diffResults.put("MASE_ARIMA", evaluationSMAE(diffResults.getJSONObject("ARIMADiff"),diffResults.getJSONObject("SmoothedCombDiff")));
+    	diffResults.put("MASE_RuleBased", evaluationSMAE(diffResults.getJSONObject("ARIMADiff"),diffResults.getJSONObject("RuleBasedDiff")));
+    	diffResults.put("MASE_ANNs", evaluationSMAE(diffResults.getJSONObject("ARIMADiff"),diffResults.getJSONObject("ANNDiff")));
+    	diffResults.put("MASE_Kalman", evaluationSMAE(diffResults.getJSONObject("ARIMADiff"),diffResults.getJSONObject("KalmanDiff")));
     	System.out.println(diffResults);
+    	CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Evaluation\\EvaluationResults.json", diffResults.toString());
 	}
 	
 	public static JSONObject getActualResults(String fromDate, String toDate, int forecastPeriods, String passPhrase) throws SQLException, ParseException, ClassNotFoundException {
