@@ -50,6 +50,7 @@ public class Sorte {
 	}
 
 	public Sorte(String skbez, String sorteBez,  String milktype, double milkDemandProduction, int prioritaetProd, int prioritaetZut, int stueckelung, double targetInventory, double unitsPerTube, List<String> laender, double saisonalitaet) {
+		this.actualPeriod = 1;
 		this.skbez = skbez;
 		this.sorteBez = sorteBez;
 		this.milktype = milktype;
@@ -200,6 +201,7 @@ public class Sorte {
 	}
 	
 	public void printSorte() {
+		System.out.println("actualPeriod: " + this.actualPeriod);
 		System.out.println("skbez: " + this.skbez);
 		System.out.println("sorte: " + this.sorteBez);
 		System.out.println("DemAV: " + this.demandAverage);
@@ -221,6 +223,7 @@ public class Sorte {
 	}
 	public JSONObject SorteTOJSON() throws JSONException {
 		JSONObject json = new JSONObject();
+		json.put("actualPeriod", this.actualPeriod);
 		json.put("skbez", this.skbez);
 		json.put("name", this.sorteBez);
 		json.put("milktype", this.milktype);

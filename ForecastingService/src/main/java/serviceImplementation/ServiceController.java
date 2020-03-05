@@ -102,8 +102,8 @@ public class ServiceController {
 				response.setStatus(200);
 				response.getWriter().write(combinedAnalysisResult.toString());
 				response.flushBuffer();
-				requestBody.put("results", combinedAnalysisResult);
-				invokeEvaluationService(requestBody);
+				jsonConfigurations.put("results", combinedAnalysisResult);
+				invokeEvaluationService(jsonConfigurations);
 			}else {
 				response.setContentType("application/json");
 				response.setStatus(401);
@@ -211,10 +211,10 @@ public class ServiceController {
 	
 	private JSONObject invokeEvaluationService(JSONObject requestBody) throws IOException {
 		//Internal Implementation
-		URL url = new URL("http://localhost:" + 8900 + "/EvaluationService");	
+		URL url = new URL("http://localhost:" + 8110 + "/EvaluationService");
 		String contentType = "application/json";
 		RestClient restClient = new RestClient();
-		restClient.setHttpsConnection(url, contentType);
+		restClient.setHttpConnection(url, contentType);
 		return new JSONObject(restClient.postRequest(restClient.postRequest(requestBody.toString())));
 	}
 	

@@ -117,7 +117,6 @@ public class AnalysisService {
 			}
 		}
 		kieSession.fireAllRules();
-		;
 		return RuleBasedResult.getResult();
 	}
 }
