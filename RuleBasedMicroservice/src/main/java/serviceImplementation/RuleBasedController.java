@@ -38,6 +38,7 @@ public class RuleBasedController {
 				
 				JSONObject ruleBasedConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 				String drlFileLocation =ruleBasedConfigurations.getJSONObject("data").getString("drlFilePath");
+				int forecastPeriods = ruleBasedConfigurations.getJSONObject("parameters").getInt("forecastPeriods");
 				//File drlFile = WebInputHandler.getWebFile(drlFilepath,".drl");
 				JSONObject drlJSON = invokeDRLFileService(drlFileLocation);
 				File drlFile = CustomFileWriter.createTempFile(drlJSON.getString("drlFile"));
@@ -47,7 +48,7 @@ public class RuleBasedController {
 				preparedData = analysisService.getPreparedData(ruleBasedConfigurations);	
 				JSONObject worldFacts = new JSONObject(preparedData);
 				analysisService.prepareForecasting(drlFile, factors);
-				JSONObject analysisResult = analysisService.analyseWorld(worldFacts);
+				JSONObject analysisResult = analysisService.analyseWorld(worldFacts, forecastPeriods);
 				//Write JSON File to File System
 				//JSONWritter.createJSON(ruleBasedConfigurations.getJSONObject("data").getString("target"),preparedData.getJSONObject("ruleBased").toString());
 				response.setStatus(202);

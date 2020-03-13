@@ -98,6 +98,17 @@ public class ServiceController {
 					analysisResult =  invokeARIMAService(aRIMAConfigurations);
 					combinedAnalysisResult.put("ARIMAResult", analysisResult);
 				}
+				if(loginCredentials.getBoolean("isEnabledKalman")) {
+					JSONObject kalmanConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman");
+					kalmanConfigurations.getJSONObject("data").put("from", from);
+					kalmanConfigurations.getJSONObject("data").put("to", to);
+					kalmanConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
+					kalmanConfigurations.put("username", "ForecastingTool");
+					kalmanConfigurations.put("password", "forecasting");
+					kalmanConfigurations.put("passPhrase", requestBody.get("passPhrase"));
+					analysisResult =  invokeKalmanService(kalmanConfigurations);
+					combinedAnalysisResult.put("KalmanResult", analysisResult);
+				}
 				response.setContentType("application/json");
 				response.setStatus(200);
 				response.getWriter().write(combinedAnalysisResult.toString());
@@ -168,6 +179,18 @@ public class ServiceController {
 	private JSONObject invokeARIMAService(JSONObject aRIMAConfigurations) throws IOException {
 		//Internal Implementation
 		URL url = new URL("http://localhost:" + 8110 + "/ARIMAService");
+		//public_html implementation Forecasting
+		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/ForecastingServices/RuleBasedService");
+		String contentType = "application/json";
+		String requestBody = aRIMAConfigurations.toString();
+		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/Daten/Bantel/ruleBased/Adapter/Adapter.php");
+		RestClient restClient = new RestClient();
+		restClient.setHttpConnection(url, contentType, 12000);
+		return new JSONObject(restClient.postRequest(requestBody));
+	}
+	private JSONObject invokeKalmanService(JSONObject aRIMAConfigurations) throws IOException {
+		//Internal Implementation
+		URL url = new URL("http://localhost:" + 8110 + "/KalmanService/ARIMA");
 		//public_html implementation Forecasting
 		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/ForecastingServices/RuleBasedService");
 		String contentType = "application/json";

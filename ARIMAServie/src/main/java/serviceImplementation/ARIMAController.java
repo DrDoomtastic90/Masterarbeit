@@ -31,8 +31,10 @@ public class ARIMAController {
 			
 			JSONObject aRIMAConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			ARIMAAnalysis aRIMAAnalysis = new ARIMAAnalysis();
-			JSONObject preparedData = aRIMAAnalysis.getPreparedData(aRIMAConfigurations);	;
-			JSONObject analysisResult = aRIMAAnalysis.executeArimaAnalysis(aRIMAConfigurations, preparedData);
+			JSONObject preparedData = aRIMAAnalysis.getPreparedData(aRIMAConfigurations);
+			//JSONObject analysisResult = aRIMAAnalysis.executeArimaAnalysis(aRIMAConfigurations, preparedData);
+			JSONObject analysisResult = aRIMAAnalysis.executeARIMAAnalysisCMD(aRIMAConfigurations, preparedData);
+			
 			response.setStatus(202);
 			response.setContentType("application/json");
 			response.getWriter().write(analysisResult.toString());
@@ -43,6 +45,9 @@ public class ARIMAController {
 		} catch (JSONException | IOException e) {
 			e.printStackTrace();
 			
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	

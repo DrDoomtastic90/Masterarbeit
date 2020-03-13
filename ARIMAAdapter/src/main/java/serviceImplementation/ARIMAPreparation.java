@@ -14,6 +14,7 @@ import org.json.JSONObject;
 
 import dBConnections.AnalysisDAO;
 import errorHandler.UniqueConstraintException;
+import outputHandler.CustomFileWriter;
 
 
 
@@ -39,6 +40,7 @@ public class ARIMAPreparation extends Analysis {
 			//String path = createSorteCSVDaily(sorte, datastructList, configurations);
 			//responseContent.put(sorte, path);
 			String content = AnalysisDAO.dataToCSVString(datastructList, false, campaigns );
+			CustomFileWriter.createCSV("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Daten\\Bantel\\ARIMA\\DAILY\\" + sorte + ".csv", content);
 			responseContent.put(sorte, content);
 		}
 		return responseContent;

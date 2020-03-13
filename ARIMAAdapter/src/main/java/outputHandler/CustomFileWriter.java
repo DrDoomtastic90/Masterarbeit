@@ -1,16 +1,11 @@
 package outputHandler;
 
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import org.json.JSONObject;
 
 public class CustomFileWriter {
 	public static void createJSON(String targetString, String jsonString) {
@@ -51,41 +46,5 @@ public class CustomFileWriter {
 		} catch (IOException permissionException) {
 			permissionException.printStackTrace();
 		}
-	}
-	
-	public static File createTempFile(String content) {
-		File tempFile = null;
-		BufferedWriter writer = null;
-		try {
-			tempFile = File.createTempFile("temporaryDRLFILE", ".tmp");
-			writer = new BufferedWriter(new FileWriter(tempFile));
-			writer.write(content);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			try{
-				if(writer != null) writer.close();
-			}catch(Exception ex){}
-		}
-		return tempFile;
-	}
-	
-	public static File createFile(String filename, String content) {
-		File file = null;
-		BufferedWriter writer = null;
-		try {
-			file = new File(filename);
-			writer = new BufferedWriter(new FileWriter(file));
-			writer.write(content);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			try{
-				if(writer != null) writer.close();
-			}catch(Exception ex){}
-		}
-		return file;
 	}
 }
