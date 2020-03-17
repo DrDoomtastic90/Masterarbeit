@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.sql.SQLException;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -32,8 +33,7 @@ public class KalmanController {
 			JSONObject kalmanConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			KalmanAnalysis kalmanAnalysis = new KalmanAnalysis();
 			JSONObject preparedData = kalmanAnalysis.getPreparedData(kalmanConfigurations);
-			//JSONObject analysisResult = aRIMAAnalysis.executeArimaAnalysis(aRIMAConfigurations, preparedData);
-			JSONObject analysisResult = kalmanAnalysis.executeAnalysisCMD(kalmanConfigurations, preparedData);
+			JSONObject analysisResult = kalmanAnalysis.executeAnalysisCMDNeu(kalmanConfigurations, preparedData);
 			
 			response.setStatus(202);
 			response.setContentType("application/json");
@@ -46,6 +46,12 @@ public class KalmanController {
 			e.printStackTrace();
 			
 		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

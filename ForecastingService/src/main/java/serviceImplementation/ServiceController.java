@@ -76,7 +76,8 @@ public class ServiceController {
 	        	String from = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("from");
 	        	String to = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("to");
 	        	int forecastPeriods = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getInt("forecastPeriods");
-				if(loginCredentials.getBoolean("isEnabledRuleBased")) {
+	        	String username = jsonConfigurations.getJSONObject("user").getString("name");
+				if(loginCredentials.getBoolean("isEnabledRuleBased") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 					JSONObject ruleBasedConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased");
 					ruleBasedConfigurations.getJSONObject("data").put("from", from);
 					ruleBasedConfigurations.getJSONObject("data").put("to", to);
@@ -87,7 +88,7 @@ public class ServiceController {
 					analysisResult =  invokeRuleBasedService(ruleBasedConfigurations);
 					combinedAnalysisResult.put("RuleBasedResult", analysisResult);
 				}
-				if(loginCredentials.getBoolean("isEnabledARIMA")) {
+				if(loginCredentials.getBoolean("isEnabledARIMA") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("ARIMA").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 					JSONObject aRIMAConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ARIMA");
 					aRIMAConfigurations.getJSONObject("data").put("from", from);
 					aRIMAConfigurations.getJSONObject("data").put("to", to);
@@ -98,12 +99,13 @@ public class ServiceController {
 					analysisResult =  invokeARIMAService(aRIMAConfigurations);
 					combinedAnalysisResult.put("ARIMAResult", analysisResult);
 				}
-				if(loginCredentials.getBoolean("isEnabledKalman")) {
+				boolean execute = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute");
+				if(loginCredentials.getBoolean("isEnabledKalman") && execute) {
 					JSONObject kalmanConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman");
 					kalmanConfigurations.getJSONObject("data").put("from", from);
 					kalmanConfigurations.getJSONObject("data").put("to", to);
 					kalmanConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
-					kalmanConfigurations.put("username", "ForecastingTool");
+					kalmanConfigurations.put("username", username);
 					kalmanConfigurations.put("password", "forecasting");
 					kalmanConfigurations.put("passPhrase", requestBody.get("passPhrase"));
 					analysisResult =  invokeKalmanService(kalmanConfigurations);
@@ -188,13 +190,13 @@ public class ServiceController {
 		restClient.setHttpConnection(url, contentType, 12000);
 		return new JSONObject(restClient.postRequest(requestBody));
 	}
-	private JSONObject invokeKalmanService(JSONObject aRIMAConfigurations) throws IOException {
+	private JSONObject invokeKalmanService(JSONObject kalmanConfigurations) throws IOException {
 		//Internal Implementation
 		URL url = new URL("http://localhost:" + 8110 + "/KalmanService/ARIMA");
 		//public_html implementation Forecasting
 		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/ForecastingServices/RuleBasedService");
 		String contentType = "application/json";
-		String requestBody = aRIMAConfigurations.toString();
+		String requestBody = kalmanConfigurations.toString();
 		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/Daten/Bantel/ruleBased/Adapter/Adapter.php");
 		RestClient restClient = new RestClient();
 		restClient.setHttpConnection(url, contentType, 12000);
