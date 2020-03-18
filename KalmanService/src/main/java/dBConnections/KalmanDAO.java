@@ -52,14 +52,15 @@ public class KalmanDAO {
 		}
 	}
 	
-	public void storeModel(JSONObject model, String username, String inputAggr, String forecastAggr) throws SQLException {		
-		 String sql = "INSERT OR REPLACE INTO Models(model, username, inputAggregation, ForecastAggregation) VALUES(?,?,?,?)"; 
+	public void storeModel(JSONObject model, String username, String inputAggr, String forecastAggr, String modelID) throws SQLException {		
+		 String sql = "INSERT OR REPLACE INTO Models(model, username, inputAggregation, ForecastAggregation, ModelID) VALUES(?,?,?,?,?)"; 
 	        try (Connection connection = dbConnection.checkConnectivity(); 
 	        		PreparedStatement pstmt = connection.prepareStatement(sql)) {
 	            pstmt.setString(1, model.toString());
 	            pstmt.setString(2, username);
 	            pstmt.setString(3, inputAggr);
 	            pstmt.setString(4, forecastAggr);
+	            pstmt.setString(5, modelID);
 	            pstmt.executeUpdate();
 	        } catch (SQLException e) {
 	            System.out.println(e.getMessage());

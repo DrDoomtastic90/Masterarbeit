@@ -66,11 +66,13 @@ public class KalmanAnalysis {
 		  default:
 			  throw new RuntimeException("Aggregation Invalid");
 		}
+		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));	
 	}
 	
 	private JSONObject forecastModel(String inputAggr, String outputAggr, String kalmanPath, String filePath, String sorte, int forecastPeriods, String model) throws IOException {
 		String execString ="";
+		System.out.println("SORTE: " + sorte);
 		switch(inputAggr) {
 		  case "daily":
 			  switch(outputAggr) {
@@ -87,6 +89,7 @@ public class KalmanAnalysis {
 		  default:
 			  throw new RuntimeException("Aggregation Invalid");
 		}
+		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));
 	}
 	
@@ -98,10 +101,10 @@ public class KalmanAnalysis {
 		}
 	}
 	
-	public JSONObject executeAnalysisCMDNeu(JSONObject configurations, JSONObject preparedData) throws InterruptedException, IOException, SQLException, ClassNotFoundException {
+	public JSONObject executeAnalysisCMDNeu(JSONObject configurations, JSONObject preparedData) throws SQLException, ClassNotFoundException {
 		JSONObject resultValues = new JSONObject();
 		String kalmanPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Kalman\\";
-		String filePath = kalmanPath+"temp\\inputValues.tmp";
+		
 		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData");
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData");
@@ -111,18 +114,29 @@ public class KalmanAnalysis {
 		KalmanDBConnection.getInstance("KalmanFilterDB");
 		KalmanDAO kalmanDAO = new KalmanDAO();
 		for(String sorte : preparedData.keySet()) {
+			String filePath = kalmanPath+"temp\\" + sorte + ".tmp";
+			if(sorte.equals("S11")) {
+				System.out.println("STOP");
+			}
 			JSONObject model = new JSONObject();
 			JSONObject executionResult = new JSONObject();
 			//Input Daily OutputWeekly
 			CustomFileWriter.createFile(filePath, preparedData.getString(sorte));
-			if(train) {
+			
+			try {
+				if(train) {
 				model = trainModel(inputAggr, outputAggr, kalmanPath, filePath, sorte, forecastPeriods);
-				kalmanDAO.storeModel(model, username, inputAggr, outputAggr);
-			}else {
-				model = kalmanDAO.getModel(username, inputAggr, outputAggr);
+					
+					kalmanDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
+				}else {
+					model = kalmanDAO.getModel(username, inputAggr, outputAggr);
+				}			
+				executionResult = forecastModel(inputAggr, outputAggr, kalmanPath, filePath, sorte, forecastPeriods, model.toString());
+				resultValues.put(sorte, executionResult);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-			executionResult = forecastModel(inputAggr, outputAggr, kalmanPath, filePath, sorte, forecastPeriods, model.toString());
-			resultValues.put(sorte, executionResult);
 		}		
 		return resultValues;
 	}
@@ -131,13 +145,14 @@ public class KalmanAnalysis {
 		public JSONObject executeAnalysisCMD(JSONObject configurations, JSONObject preparedData) throws InterruptedException, IOException {
 			JSONObject resultValues = new JSONObject();
 			String kalmanPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Kalman\\";
-			String filePath = kalmanPath+"temp\\inputValues.tmp";
+			//String filePath = kalmanPath+"temp\\inputValues.tmp";
 			int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
 			String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData");
 			String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData");
 			boolean train = configurations.getJSONObject("parameters").getJSONObject("execution").getBoolean("train");
 
 			for(String sorte : preparedData.keySet()) {
+					String filePath = kalmanPath+"temp\\" + sorte + ".tmp";
 					if(sorte.equals("S1")) {
 						System.out.println("Stop");
 					}
