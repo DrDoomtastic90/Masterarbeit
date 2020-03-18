@@ -18,6 +18,8 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
@@ -65,7 +67,7 @@ public class ServiceController {
 	@GET
 	//@Path("{parameter: |CombinedServices}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public void performCombinedAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+	public void performCombinedAnalysis(@Context HttpServletRequest request, @Suspended final AsyncResponse asyncResponse) {
 		try {
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			JSONObject loginCredentials = invokeLoginService(requestBody);
@@ -77,7 +79,15 @@ public class ServiceController {
 	        	String to = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("to");
 	        	int forecastPeriods = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getInt("forecastPeriods");
 	        	String username = jsonConfigurations.getJSONObject("user").getString("name");
-				if(loginCredentials.getBoolean("isEnabledRuleBased") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				
+	        	//response.setContentType("application/json");
+				//response.setStatus(200);
+				//response.getWriter().write("Request Successfully Received. Result will be returned as soon as possible!");
+				//response.flushBuffer();
+				//return response;
+	        	asyncResponse.resume("Request Successfully Received. Result will be returned as soon as possible!");
+	        	
+	        	if(loginCredentials.getBoolean("isEnabledRuleBased") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 					JSONObject ruleBasedConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased");
 					ruleBasedConfigurations.getJSONObject("data").put("from", from);
 					ruleBasedConfigurations.getJSONObject("data").put("to", to);
@@ -111,18 +121,20 @@ public class ServiceController {
 					analysisResult =  invokeKalmanService(kalmanConfigurations);
 					combinedAnalysisResult.put("KalmanResult", analysisResult);
 				}
-				response.setContentType("application/json");
-				response.setStatus(200);
-				response.getWriter().write(combinedAnalysisResult.toString());
-				response.flushBuffer();
+				
 				jsonConfigurations.put("results", combinedAnalysisResult);
+				jsonConfigurations.put("username", "ForecastingTool");
+				jsonConfigurations.put("password", "forecasting");
+				jsonConfigurations.put("passPhrase", requestBody.get("passPhrase"));
+				invokeCallbackService(jsonConfigurations);
 				invokeEvaluationService(jsonConfigurations);
-			}else {
+			}
+			/*}else {
 				response.setContentType("application/json");
 				response.setStatus(401);
 				response.getWriter().write("Permission Denied");
 				response.flushBuffer();
-			}
+			}*/
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -240,9 +252,17 @@ public class ServiceController {
 		String contentType = "application/json";
 		RestClient restClient = new RestClient();
 		restClient.setHttpConnection(url, contentType);
-		return new JSONObject(restClient.postRequest(restClient.postRequest(requestBody.toString())));
+		return new JSONObject(restClient.postRequest(requestBody.toString()));
 	}
 	
+	private JSONObject invokeCallbackService(JSONObject requestBody) throws IOException {
+		//Internal Implementation
+		URL url = new URL("https://localhost:" + 9100 + "/Callback");
+		String contentType = "application/json";
+		RestClient restClient = new RestClient();
+		restClient.setHttpsConnection(url, contentType);
+		return new JSONObject(restClient.postRequest(requestBody.toString()));
+	}
 	
 	
 	
