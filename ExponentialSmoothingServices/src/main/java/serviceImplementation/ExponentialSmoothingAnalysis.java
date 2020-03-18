@@ -68,17 +68,17 @@ public class ExponentialSmoothingAnalysis {
 		return new JSONObject(executeProcessCMD(execString));	
 	}
 	
-	private JSONObject forecastModel(String inputAggr, String outputAggr, String expSmoothingPath, String filePath, String sorte, int forecastPeriods, String model) throws IOException {
+	private JSONObject forecastModel(String inputAggr, String outputAggr, String expSmoothingPath, String filePath, String sorte, int forecastPeriods) throws IOException {
 		String execString ="";
 		System.out.println("SORTE: " + sorte);
 		switch(inputAggr) {
 		  case "daily":
 			  switch(outputAggr) {
 			  case "daily":
-				execString   = "RScript " + expSmoothingPath + "Exec_ExpSmoothing_Day_Day_Week.txt " + filePath + " " + sorte + " " + forecastPeriods + " \"" + JSONObject.valueToString(model) + "\"";
+				execString   = "RScript " + expSmoothingPath + "ExpSmoothing_Day_Day_Week.txt " + filePath + " " + sorte + " " + forecastPeriods;
 				break;
 			  case "weekly": 
-				execString = "RScript " + expSmoothingPath + "Exec_ExpSmoothing_Day_Week_Week.txt " + filePath + " " + sorte + " " + forecastPeriods + " \"" + JSONObject.valueToString(model) + "\"";
+				execString = "RScript " + expSmoothingPath + "ExpSmoothing_Day_Week_Week.txt " + filePath + " " + sorte + " " + forecastPeriods;
 				break;
 			  default:
 				  throw new RuntimeException("Aggregation Invalid");
@@ -117,14 +117,14 @@ public class ExponentialSmoothingAnalysis {
 			CustomFileWriter.createFile(filePath, preparedData.getString(sorte));
 			
 			try {
-				if(train) {
-				model = trainModel(inputAggr, outputAggr, expPath, filePath, sorte, forecastPeriods);
+				//if(train) {
+				//model = trainModel(inputAggr, outputAggr, expPath, filePath, sorte, forecastPeriods);
 					
-				expSmoothingDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
-				}else {
-					model = expSmoothingDAO.getModel(username, inputAggr, outputAggr);
-				}			
-				executionResult = forecastModel(inputAggr, outputAggr, expPath, filePath, sorte, forecastPeriods, model.toString());
+				//expSmoothingDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
+				//}else {
+					//model = expSmoothingDAO.getModel(username, inputAggr, outputAggr);
+				//}			
+				executionResult = forecastModel(inputAggr, outputAggr, expPath, filePath, sorte, forecastPeriods);
 				resultValues.put(sorte, executionResult);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block

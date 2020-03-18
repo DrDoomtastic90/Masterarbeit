@@ -121,6 +121,18 @@ public class ServiceController {
 					analysisResult =  invokeKalmanService(kalmanConfigurations);
 					combinedAnalysisResult.put("KalmanResult", analysisResult);
 				}
+				execute = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute");
+				if(loginCredentials.getBoolean("isEnabledExpSmoothing") && execute) {
+					JSONObject kalmanConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing");
+					kalmanConfigurations.getJSONObject("data").put("from", from);
+					kalmanConfigurations.getJSONObject("data").put("to", to);
+					kalmanConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
+					kalmanConfigurations.put("username", username);
+					kalmanConfigurations.put("password", "forecasting");
+					kalmanConfigurations.put("passPhrase", requestBody.get("passPhrase"));
+					analysisResult =  invokeExpSmoothingService(kalmanConfigurations);
+					combinedAnalysisResult.put("ExpSmoothingResult", analysisResult);
+				}
 				
 				jsonConfigurations.put("results", combinedAnalysisResult);
 				jsonConfigurations.put("username", "ForecastingTool");
@@ -202,6 +214,7 @@ public class ServiceController {
 		restClient.setHttpConnection(url, contentType, 12000);
 		return new JSONObject(restClient.postRequest(requestBody));
 	}
+	
 	private JSONObject invokeKalmanService(JSONObject kalmanConfigurations) throws IOException {
 		//Internal Implementation
 		URL url = new URL("http://localhost:" + 8110 + "/KalmanService/ARIMA");
@@ -209,6 +222,19 @@ public class ServiceController {
 		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/ForecastingServices/RuleBasedService");
 		String contentType = "application/json";
 		String requestBody = kalmanConfigurations.toString();
+		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/Daten/Bantel/ruleBased/Adapter/Adapter.php");
+		RestClient restClient = new RestClient();
+		restClient.setHttpConnection(url, contentType, 12000);
+		return new JSONObject(restClient.postRequest(requestBody));
+	}
+	
+	private JSONObject invokeExpSmoothingService(JSONObject expSmoothingConfigurations) throws IOException {
+		//Internal Implementation
+		URL url = new URL("http://localhost:" + 8110 + "/SmoothingService");
+		//public_html implementation Forecasting
+		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/ForecastingServices/RuleBasedService");
+		String contentType = "application/json";
+		String requestBody = expSmoothingConfigurations.toString();
 		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/Daten/Bantel/ruleBased/Adapter/Adapter.php");
 		RestClient restClient = new RestClient();
 		restClient.setHttpConnection(url, contentType, 12000);

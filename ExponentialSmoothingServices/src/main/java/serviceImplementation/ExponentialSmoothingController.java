@@ -23,18 +23,17 @@ import inputHandler.RestRequestHandler;
 import outputHandler.CustomFileWriter;
 import serverImplementation.HttpServerExponentialSmoothing;
 
-@Path("/KalmanService")
+@Path("/SmoothingService")
 public class ExponentialSmoothingController {
 	
 	@POST
-	@Path("/ARIMA")
 	@Produces(MediaType.APPLICATION_JSON)
 	public void performKalmanAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
 			JSONObject kalmanConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			ExponentialSmoothingAnalysis kalmanAnalysis = new ExponentialSmoothingAnalysis();
 			JSONObject preparedData = kalmanAnalysis.getPreparedData(kalmanConfigurations);
-			JSONObject analysisResult = kalmanAnalysis.executeAnalysisCMDNeu(kalmanConfigurations, preparedData);
+			JSONObject analysisResult = kalmanAnalysis.executeAnalysisCMD(kalmanConfigurations, preparedData);
 			
 			response.setStatus(202);
 			response.setContentType("application/json");
