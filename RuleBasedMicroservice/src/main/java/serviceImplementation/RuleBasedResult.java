@@ -18,7 +18,7 @@ public class RuleBasedResult {
 		}else {
 			forecastResult  = new JSONObject();
 		}
-		forecastResult.put(Integer.toString(pos), productionAmount);
+		forecastResult.put(Integer.toString(pos), Double.toString(productionAmount));
 		result.put(entryKey, forecastResult);
 	}
 	public static void setProdPlanResult(String entryKey, double productionAmount) {

@@ -366,15 +366,16 @@ public class ARIMAAnalysis {
 					int counter = 1;
 					while ((resultString = outputStream.readLine()) != null) {
 						output.append(resultString + "\n");
-						executionResult.put(Integer.toString(counter), resultString);
-						counter = counter + 1;
+						//executionResult.put(Integer.toString(counter), resultString);
+						//counter = counter + 1;
 					}
 					while ((resultString = errorStream.readLine()) != null) {
 						error.append(resultString + "\n");
 					}
 					//System.out.println(output);
 					//System.out.println(error);
-					resultValues.put(sorte, executionResult);
+					//resultValues.put(sorte, executionResult);
+					resultValues.put(sorte, output.toString());
 			}		
 			return resultValues;
 		}
