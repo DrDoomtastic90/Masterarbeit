@@ -337,7 +337,6 @@ public class ARIMAAnalysis {
 					if(sorte.equals("S1")) {
 						System.out.println("Stop");
 					}
-					JSONObject executionResult = new JSONObject();
 					//Input Daily OutputWeekly
 					CustomFileWriter.createFile(filePath, preparedData.getString(sorte));
 					String execString="";
@@ -375,7 +374,8 @@ public class ARIMAAnalysis {
 					//System.out.println(output);
 					//System.out.println(error);
 					//resultValues.put(sorte, executionResult);
-					resultValues.put(sorte, output.toString());
+					JSONObject executionResult = new JSONObject(output.toString());
+					resultValues.put(sorte, executionResult);
 			}		
 			return resultValues;
 		}
