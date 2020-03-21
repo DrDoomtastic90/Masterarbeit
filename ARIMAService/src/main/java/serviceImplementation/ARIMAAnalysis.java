@@ -382,7 +382,8 @@ public class ARIMAAnalysis {
 		public JSONObject getPreparedData(JSONObject aRIMAconfigurations) throws JSONException, IOException {
 			URL url = new URL(aRIMAconfigurations.getJSONObject("data").getString("provisioningServiceURL"));
 			String contentType = "application/json";
-			String requestBody = aRIMAconfigurations.toString();
+			JSONObject requestBody = new JSONObject(aRIMAconfigurations.toString());
+			requestBody.put("username", "ForecastingTool");
 			RestClient restClient = new RestClient();
 			restClient.setHttpsConnection(url, contentType);
 			return new JSONObject(restClient.postRequest(requestBody.toString()));

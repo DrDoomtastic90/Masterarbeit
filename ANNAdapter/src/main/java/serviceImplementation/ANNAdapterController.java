@@ -33,7 +33,7 @@ public class ANNAdapterController {
 			JSONObject loginCredentials = invokeLoginService(configurations);
 			if(loginCredentials.getBoolean("isAuthorized")) {
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-				responseContent.put("preparedData", ANNPreparation.prepareDailyDataset(configurations));
+				responseContent = ANNPreparation.prepareDailyDataset(configurations);
 				System.out.println(responseContent.toString());
 				response.setContentType("application/json");
 				response.setStatus(202);

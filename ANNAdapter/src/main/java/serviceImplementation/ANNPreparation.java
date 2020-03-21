@@ -21,25 +21,25 @@ import outputHandler.CustomFileWriter;
 
 public class ANNPreparation extends Analysis {
 	
-	public static JSONArray prepareDailyDataset(JSONObject configurations) throws JSONException, FileNotFoundException, ClassNotFoundException, SQLException {
+	public static JSONObject prepareDailyDataset(JSONObject configurations) throws JSONException, FileNotFoundException, ClassNotFoundException, SQLException {
 		return prepareDailyDataSet("", configurations);
 	}
 
-	public static JSONArray prepareDailyDataSet(String kNo, JSONObject configurations) throws JSONException, FileNotFoundException, ClassNotFoundException, SQLException {
-		JSONObject responseContent = new JSONObject();
+	public static JSONObject prepareDailyDataSet(String kNo, JSONObject configurations) throws JSONException, FileNotFoundException, ClassNotFoundException, SQLException {
 		PreparationDAO daoAnalysis = new PreparationDAO(configurations.getString("passPhrase"));
 		boolean campaigns = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
 		JSONObject dailyAggregatedData = DataAggregator.aggregateSorteDataDaily(kNo, configurations, daoAnalysis);
 		//Consideration of Last YEar values not implemented yet
 		//double valueLastYear =0;
 		//double valueLastYearMinus1Week=0;
-		JSONArray preparedDataDaily= new JSONArray();
+		JSONObject preparedDataDailyAll = new JSONObject();
 		double currentValue=0;
 		double currentValueMinus1Week=0;
 		double currentValueMinus2Week=0;
 		double futureValue=0;
 		int counter = 0;
 		for (String sorte : dailyAggregatedData.keySet()) {
+			JSONArray preparedDataDailySingle = new JSONArray();
 			for (String dateEntry : dailyAggregatedData.getJSONObject(sorte).keySet()) {
 				currentValueMinus2Week=currentValueMinus1Week;
 				currentValueMinus1Week=currentValue;
@@ -52,14 +52,15 @@ public class ANNPreparation extends Analysis {
 					JSONObject inputOuputMap = new JSONObject();
 					inputOuputMap.put("input", input);
 					inputOuputMap.put("output",output);
-					preparedDataDaily.put(inputOuputMap);
+					preparedDataDailySingle.put(inputOuputMap);
 				}
 			}
+			preparedDataDailyAll.put(sorte,preparedDataDailySingle);
 			//String content = PreparationDAO.dataToCSVString(datastructList, false, campaigns );
 			//CustomFileWriter.createCSV("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Daten\\Bantel\\ARIMA\\DAILY\\" + sorte + ".csv", content);
 			//responseContent.put(sorte, content);
 		}
-		return preparedDataDaily;
+		return preparedDataDailyAll;
 	}
 
 	public void SorteAnalysisAllCustomers(/*Map<String, Map<String, String>>*/ JSONObject configurations) throws JSONException, FileNotFoundException, ClassNotFoundException, SQLException {

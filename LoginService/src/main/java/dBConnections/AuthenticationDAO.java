@@ -26,7 +26,7 @@ public class AuthenticationDAO {
 		
 		try {
 			statement = connection.createStatement();
-			String sql = "SELECT Username, Password, API_URL, isEnabledARIMA, isEnabledAI, isEnabledRuleBased, isEnabledKalman, isEnabledExpSmoothing from LoginCredentials where Username='" + username+ "' and password='" + password + "'";
+			String sql = "SELECT Username, Password, API_URL, isEnabledARIMA, isEnabledAI, isEnabledRuleBased, isEnabledKalman, isEnabledExpSmoothing, isEnabledANN from LoginCredentials where Username='" + username+ "' and password='" + password + "'";
 			resultSet = statement.executeQuery(sql);
 			
 			while (resultSet.next()) {
@@ -38,6 +38,7 @@ public class AuthenticationDAO {
 				credentials.put("isEnabledRuleBased", resultSet.getString(6));
 				credentials.put("isEnabledKalman", resultSet.getString(7));
 				credentials.put("isEnabledExpSmoothing", resultSet.getString(8));
+				credentials.put("isEnabledANN", resultSet.getString(8));
 				//credentials.put("erfassungProduktion", Boolean.toString(resultSet.getBoolean(7)));
 				//credentials.put("erfassungVerpackung", Boolean.toString(resultSet.getBoolean(8)));
 				//credentials.put("erfassungMilch", Boolean.toString(resultSet.getBoolean(9)));

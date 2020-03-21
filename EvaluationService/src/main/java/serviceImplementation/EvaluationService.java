@@ -99,7 +99,7 @@ public class EvaluationService {
 		JSONObject ruleBasedResults = configAndResults.getJSONObject("results").getJSONObject("RuleBasedResult");
 		JSONObject aNNResult = configAndResults.getJSONObject("results").getJSONObject("ANNResult");
 		JSONObject kalmanResult = configAndResults.getJSONObject("results").getJSONObject("KalmanResult");
-		JSONObject smoothedCombResult = configAndResults.getJSONObject("results").getJSONObject("SmoothedCombResult");
+		JSONObject smoothedCombResult = configAndResults.getJSONObject("results").getJSONObject("ExpSmoothingResult");
 
     	diffResults.put("ARIMADiff", evaluationMAE(actualResults, aRIMAResults));
     	diffResults.put("RuleBasedDiff", evaluationMAE(actualResults, ruleBasedResults));

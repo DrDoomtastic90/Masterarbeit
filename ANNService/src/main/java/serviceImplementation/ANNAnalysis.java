@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.rosuda.JRI.REXP;
@@ -69,17 +70,17 @@ public class ANNAnalysis {
 		return new JSONObject(executeProcessCMD(execString));	
 	}
 	
-	private JSONObject forecastModel(String inputAggr, String outputAggr, String scriptPath, String sourcePath, String sorte, int forecastPeriods, String model) throws IOException {
+	private JSONObject forecastModel(String inputAggr, String outputAggr, String scriptPath, String sourcePath, String sorte, int forecastPeriods, String modelPath) throws IOException {
 		String execString ="";
 		System.out.println("SORTE: " + sorte);
 		switch(inputAggr) {
 		  case "daily":
 			  switch(outputAggr) {
 			  case "daily":
-				execString   = "python " + scriptPath + "Exec_FeedForwardNetwork_Day_Week.py " + sourcePath + " " + sorte + " " + forecastPeriods;
+				execString   = "python " + scriptPath + "Exec_FeedForwardNetwork_Day_Week.py " + sourcePath + " " + modelPath + " " + sorte + " " + forecastPeriods;
 				break;
 			  case "weekly": 
-				execString = "python " + scriptPath + "Exec_FeedForwardNetwork_Week_Week.py " + sourcePath + " " + sorte + " " + forecastPeriods;
+				execString = "python " + scriptPath + "Exec_FeedForwardNetwork_Week_Week.py " + sourcePath + " " + modelPath + " " + sorte + " " + forecastPeriods;
 				break;
 			  default:
 				  throw new RuntimeException("Aggregation Invalid");
@@ -106,26 +107,28 @@ public class ANNAnalysis {
 		String username = configurations.getString("username");
 		
 		ANNDBConnection.getInstance("ANNDB");
-		ANNDAO kalmanDAO = new ANNDAO();
+		ANNDAO aNNDAO = new ANNDAO();
 		for(String sorte : preparedData.keySet()) {
-			String filePath = scriptPath+"temp\\" + sorte + ".tmp";
 			if(sorte.equals("S11")) {
 				System.out.println("STOP");
 			}
 			JSONObject model = new JSONObject();
 			JSONObject executionResult = new JSONObject();
 			//Input Daily OutputWeekly
-			CustomFileWriter.createFile(filePath, preparedData.getString(sorte));
+			String sourcePath = scriptPath+"temp\\" + sorte + ".tmp";
+			String modelPath = scriptPath+"temp\\network.xml";
+			JSONArray dataset = preparedData.getJSONArray(sorte);
+			CustomFileWriter.createFile(sourcePath, dataset.toString());
 			
 			try {
 				if(train) {
-				model = trainModel(inputAggr, outputAggr, scriptPath, filePath, sorte, forecastPeriods);
-					
-					kalmanDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
+					model = trainModel(inputAggr, outputAggr, scriptPath, sourcePath, sorte, forecastPeriods);
+					aNNDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
 				}else {
-					model = kalmanDAO.getModel(username, inputAggr, outputAggr);
-				}			
-				executionResult = forecastModel(inputAggr, outputAggr, scriptPath, filePath, sorte, forecastPeriods, model.toString());
+					model = aNNDAO.getModel(username, inputAggr, outputAggr);
+				}
+				CustomFileWriter.createFile(modelPath, preparedData.getString(sorte));
+				executionResult = forecastModel(inputAggr, outputAggr, scriptPath, sourcePath, sorte, forecastPeriods, modelPath);
 				resultValues.put(sorte, executionResult);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -138,7 +141,9 @@ public class ANNAnalysis {
 		public JSONObject getPreparedData(JSONObject aNNConfigurations) throws JSONException, IOException {
 			URL url = new URL(aNNConfigurations.getJSONObject("data").getString("provisioningServiceURL"));
 			String contentType = "application/json";
-			String requestBody = aNNConfigurations.toString();
+			JSONObject requestBody = new JSONObject(aNNConfigurations.toString());
+			requestBody.put("username", "ForecastingTool");
+			//String requestBody = kalmanConfigurations.toString();
 			RestClient restClient = new RestClient();
 			restClient.setHttpsConnection(url, contentType);
 			return new JSONObject(restClient.postRequest(requestBody.toString()));

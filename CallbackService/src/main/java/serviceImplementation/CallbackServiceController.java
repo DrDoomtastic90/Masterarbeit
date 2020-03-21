@@ -72,16 +72,6 @@ public class CallbackServiceController {
 	    	//TODO Error HAndling if error is returned
 	    }
 		
-		private JSONObject invokeDRLFileService(String drlFileLocation) throws IOException {
-			//Internal Implementation
-			URL url = new URL(drlFileLocation);	
-			//public_html implementation Forecasting
-			//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/LoginServices/LoginService");
-			String contentType = "application/json";
-			RestClient restClient = new RestClient();
-			restClient.setHttpsConnection(url, contentType);
-			return new JSONObject(restClient.postRequest(""));
-		}
 		
 		private JSONObject invokeLoginService(JSONObject requestBody) throws IOException {
 			URL url = new URL("http://localhost:" + 9110 + "/LoginServices/CustomLoginService");

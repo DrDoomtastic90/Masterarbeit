@@ -103,7 +103,7 @@ public class ServiceController {
 					aRIMAConfigurations.getJSONObject("data").put("from", from);
 					aRIMAConfigurations.getJSONObject("data").put("to", to);
 					aRIMAConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
-					aRIMAConfigurations.put("username", "ForecastingTool");
+					aRIMAConfigurations.put("username", username);
 					aRIMAConfigurations.put("password", "forecasting");
 					aRIMAConfigurations.put("passPhrase", requestBody.get("passPhrase"));
 					analysisResult =  invokeARIMAService(aRIMAConfigurations);
@@ -133,9 +133,20 @@ public class ServiceController {
 					analysisResult =  invokeExpSmoothingService(kalmanConfigurations);
 					combinedAnalysisResult.put("ExpSmoothingResult", analysisResult);
 				}
-				
+				execute = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ANN").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute");
+				if(loginCredentials.getBoolean("isEnabledANN") && execute) {
+					JSONObject aNNConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ANN");
+					aNNConfigurations.getJSONObject("data").put("from", from);
+					aNNConfigurations.getJSONObject("data").put("to", to);
+					aNNConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
+					aNNConfigurations.put("username", username);
+					aNNConfigurations.put("password", "forecasting");
+					aNNConfigurations.put("passPhrase", requestBody.get("passPhrase"));
+					analysisResult =  invokeANNFeedForwardService(aNNConfigurations);
+					combinedAnalysisResult.put("ANNResult", analysisResult);
+				}
 				jsonConfigurations.put("results", combinedAnalysisResult);
-				jsonConfigurations.put("username", "ForecastingTool");
+				jsonConfigurations.put("username", username);
 				jsonConfigurations.put("password", "forecasting");
 				jsonConfigurations.put("passPhrase", requestBody.get("passPhrase"));
 				invokeCallbackService(jsonConfigurations);
@@ -241,6 +252,19 @@ public class ServiceController {
 		return new JSONObject(restClient.postRequest(requestBody));
 	}
 	
+	private JSONObject invokeANNFeedForwardService(JSONObject aNNConfigurations) throws IOException {
+		//Internal Implementation
+		URL url = new URL("http://localhost:" + 8110 + "/ANNService");
+		//public_html implementation Forecasting
+		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/ForecastingServices/RuleBasedService");
+		String contentType = "application/json";
+		String requestBody = aNNConfigurations.toString();
+		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/Daten/Bantel/ruleBased/Adapter/Adapter.php");
+		RestClient restClient = new RestClient();
+		restClient.setHttpConnection(url, contentType, 12000);
+		return new JSONObject(restClient.postRequest(requestBody));
+	}
+	
 	private JSONObject invokeLoginService(JSONObject requestBody) throws IOException {
 		//Internal Implementation
 		//auslagern NGINX
@@ -284,6 +308,7 @@ public class ServiceController {
 	private JSONObject invokeCallbackService(JSONObject requestBody) throws IOException {
 		//Internal Implementation
 		URL url = new URL("https://localhost:" + 9100 + "/Callback");
+		requestBody.put("username", "ForecastingTool");
 		String contentType = "application/json";
 		RestClient restClient = new RestClient();
 		restClient.setHttpsConnection(url, contentType);
