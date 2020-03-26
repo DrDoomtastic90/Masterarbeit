@@ -130,19 +130,19 @@ public class PreparationDAO {
 		return amountPerPackage;
 	}
 
-	public JSONObject getCustomerDataDaily(String pKBez, String kNo, String fromDate, String toDate/*, boolean nA*/) throws UniqueConstraintException, SQLException {
+	public Map<String, Double> getCustomerDataDaily(String pKBez, String kNo, String fromDate, String toDate/*, boolean nA*/) throws UniqueConstraintException, SQLException {
 		String sql = "SELECT ls.Datum, pos.Menge, pos.LS_No, pos.Pos_No from LS_Positionen pos join Lieferscheine ls on pos.LS_No = ls.LS_NO where pos.PKBez = '"
 				+ pKBez + "' and ls.K_No = '" + kNo + "' order by ls.Datum asc";
 		return getData(pKBez, sql, fromDate, toDate/*, nA*/);
 	}
 
-	public JSONObject getDataDaily(String pKBez, String fromDate, String toDate/*, boolean nA*/) throws UniqueConstraintException, SQLException {
+	public Map<String, Double> getDataDaily(String pKBez, String fromDate, String toDate/*, boolean nA*/) throws UniqueConstraintException, SQLException {
 		String sql = "SELECT ls.Datum, pos.Menge, pos.LS_No, pos.Pos_No from LS_Positionen pos join Lieferscheine ls on pos.LS_No = ls.LS_NO where pos.PKBez = '"
 				+ pKBez + "' and ls.Datum>='" + fromDate + "' and ls.Datum <= '" + toDate + "' order by ls.Datum asc";
 		return getData(pKBez, sql, fromDate, toDate/*, nA*/);
 	}
 
-	public JSONObject getData(String pKBez, String sql, String fromDateString, String toDateString) throws UniqueConstraintException, SQLException {
+	public Map<String, Double> getData(String pKBez, String sql, String fromDateString, String toDateString) throws UniqueConstraintException, SQLException {
 		Statement statement = null;
 		ResultSet resultSet = null;
 		double amountPerPackage = getAmountPerPackage(pKBez);
@@ -151,7 +151,7 @@ public class PreparationDAO {
 		//		LocalDate.now()/*, nA*/);
 		LocalDate fromDate = LocalDate.parse(fromDateString);
 		LocalDate toDate = LocalDate.parse(toDateString);
-		JSONObject dailyValues = getMapOfDatesWithinTimespan(fromDate, toDate);
+		Map<String, Double> dailyValues = getMapOfDatesWithinTimespan(fromDate, toDate);
 				
 		boolean containsPKBez = false;
 		Connection connection = dBConnection.checkConnectivity();
@@ -168,7 +168,7 @@ public class PreparationDAO {
 				int posNo = resultSet.getInt(4);
 				//isAktion = checkAktion(lSNo, posNo);
 				if (dailyValues.get(strDatum) != null) {
-					double mengeAlt = dailyValues.getDouble(strDatum);
+					double mengeAlt = dailyValues.get(strDatum);
 					dailyValues.put(strDatum, (menge + mengeAlt));
 				}
 			}
@@ -232,10 +232,10 @@ public class PreparationDAO {
 		}
 	}
 
-	public static JSONObject getMapOfDatesWithinTimespan(LocalDate startDate, LocalDate endDate/*, boolean nA*/) {
-		JSONObject mapOfDates = new JSONObject();
+	public static Map<String, Double> getMapOfDatesWithinTimespan(LocalDate startDate, LocalDate endDate/*, boolean nA*/) {
+		Map<String, Double> mapOfDates = new LinkedHashMap<String, Double>();
 		while (!startDate.isAfter(endDate)) {
-			mapOfDates.put(startDate.toString(), 0);
+			mapOfDates.put(startDate.toString(), 0.);
 			startDate = startDate.plusDays(1);
 
 		}
@@ -349,11 +349,17 @@ public class PreparationDAO {
 		return  csvString.toString();
 	}
 	
-	public JSONObject getDataDaily(String KNo, JSONObject configurations) throws JSONException, SQLException {
+	public Map<String,Map<String,Double>> getDataDailyPerWeek(String KNo, JSONObject configurations) throws JSONException, SQLException, ParseException {
 		String fromDate = configurations.getJSONObject("data").getString("from");
 		String toDate = configurations.getJSONObject("data").getString("to");
+		Calendar cal = Calendar.getInstance();
+		cal.setFirstDayOfWeek(Calendar.MONDAY);
+		SimpleDateFormat dateformat = new SimpleDateFormat("yyyy-MM-dd");
+		cal.setTime(dateformat.parse(fromDate));
+		cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+		fromDate = dateformat.format(cal.getTime());
 		ArrayList<String> pkBezList = getAllPKBez();
-		JSONObject dailyData = new JSONObject();
+		Map<String,Map<String,Double>> dailyData = new LinkedHashMap<String, Map<String,Double>>();
 		for(String pKBez: pkBezList) {
 			try {
 				if(KNo.length()>0) {

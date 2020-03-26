@@ -34,13 +34,13 @@ public class ANNAdapterController {
 			if(loginCredentials.getBoolean("isAuthorized")) {
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
 				responseContent = ANNPreparation.prepareDailyDataset(configurations);
-				System.out.println(responseContent.toString());
+				//System.out.println(responseContent.toString());
 				response.setContentType("application/json");
 				response.setStatus(202);
 				response.getWriter().write(responseContent.toString());
 				response.flushBuffer();
 			}
-			System.out.println("STOP");
+			//System.out.println("STOP");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -51,6 +51,9 @@ public class ANNAdapterController {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
