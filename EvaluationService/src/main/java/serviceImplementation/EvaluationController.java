@@ -26,7 +26,6 @@ public class EvaluationController {
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	public void evaluateResults(@Context HttpServletRequest request, @Context HttpServletResponse response) {
-		JSONObject responseContent = new JSONObject();
 		try {
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			EvaluationService.evaluationCombined(requestBody);

@@ -59,7 +59,13 @@ public class EvaluationService {
 		for(String skbez : alternativeForecastingResult.keySet()) {
 			double altMAE = alternativeForecastingResult.getJSONObject(skbez).getDouble("MAE");
 			double benchMAE = Math.abs(benchmarkResult.getJSONObject(skbez).getDouble("1"));
-			double mase = Math.abs(altMAE/benchMAE);
+			double mase = 0;
+			if(benchMAE<=0) {
+				System.out.println("STOP");			
+				counter=counter - 1;
+			}else {
+				mase = Math.abs(altMAE/benchMAE);
+			}
 			maseResults.put(skbez, mase);
 			maseSum = maseSum + mase;
 			counter = counter + 1;
@@ -85,7 +91,7 @@ public class EvaluationService {
 	
 	public static void evaluationCombined(JSONObject configAndResults) throws SQLException, ParseException, ClassNotFoundException, IOException {
 		JSONObject diffResults = new JSONObject();
-		JSONObject configurations = configAndResults.getJSONObject("forecasting").getJSONObject("ARIMA");
+		JSONObject configurations = configAndResults.getJSONObject("forecasting").getJSONObject("Combined");
 		JSONObject loginCredentials = invokeLoginService(configurations);
     	String passPhrase = loginCredentials.getString("passPhrase");
 		configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
@@ -93,23 +99,26 @@ public class EvaluationService {
     	String toDate = configAndResults.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("to");
     	int forecastPeriods = configAndResults.getJSONObject("forecasting").getJSONObject("Combined").getInt("forecastPeriods");
     	JSONObject actualResults = getActualResults(fromDate, toDate, forecastPeriods, passPhrase);
-    	
+    	CustomFileWriter.createJSON("D:/Arbeit/Bantel/Masterarbeit/Implementierung/Bantel/Daten/Actual_RESULT.json", actualResults.toString());
     	
 		JSONObject aRIMAResults = configAndResults.getJSONObject("results").getJSONObject("ARIMAResult");
 		JSONObject ruleBasedResults = configAndResults.getJSONObject("results").getJSONObject("RuleBasedResult");
 		JSONObject aNNResult = configAndResults.getJSONObject("results").getJSONObject("ANNResult");
 		JSONObject kalmanResult = configAndResults.getJSONObject("results").getJSONObject("KalmanResult");
 		JSONObject smoothedCombResult = configAndResults.getJSONObject("results").getJSONObject("ExpSmoothingResult");
-
+		JSONObject combResult = configAndResults.getJSONObject("results").getJSONObject("CombinedResult");
     	diffResults.put("ARIMADiff", evaluationMAE(actualResults, aRIMAResults));
     	diffResults.put("RuleBasedDiff", evaluationMAE(actualResults, ruleBasedResults));
-    	diffResults.put("ANNDiff", evaluationMAE(actualResults, ruleBasedResults));
-    	diffResults.put("KalmanDiff", evaluationMAE(actualResults, ruleBasedResults));
-    	diffResults.put("SmoothedCombDiff", evaluationMAE(actualResults, ruleBasedResults));
-    	diffResults.put("MASE_ARIMA", evaluationSMAE(diffResults.getJSONObject("ARIMADiff"),diffResults.getJSONObject("SmoothedCombDiff")));
-    	diffResults.put("MASE_RuleBased", evaluationSMAE(diffResults.getJSONObject("ARIMADiff"),diffResults.getJSONObject("RuleBasedDiff")));
-    	diffResults.put("MASE_ANNs", evaluationSMAE(diffResults.getJSONObject("ARIMADiff"),diffResults.getJSONObject("ANNDiff")));
-    	diffResults.put("MASE_Kalman", evaluationSMAE(diffResults.getJSONObject("ARIMADiff"),diffResults.getJSONObject("KalmanDiff")));
+    	diffResults.put("ANNDiff", evaluationMAE(actualResults, aNNResult));
+    	diffResults.put("KalmanDiff", evaluationMAE(actualResults, kalmanResult));
+    	diffResults.put("ExpSmoothingbDiff", evaluationMAE(actualResults, smoothedCombResult));
+    	diffResults.put("CombDiff", evaluationMAE(actualResults, combResult));
+    	diffResults.put("MASE_ARIMA", evaluationSMAE(diffResults.getJSONObject("ExpSmoothingbDiff"),diffResults.getJSONObject("ARIMADiff")));
+    	diffResults.put("MASE_RuleBased", evaluationSMAE(diffResults.getJSONObject("ExpSmoothingbDiff"),diffResults.getJSONObject("RuleBasedDiff")));
+    	diffResults.put("MASE_ANNs", evaluationSMAE(diffResults.getJSONObject("ExpSmoothingbDiff"),diffResults.getJSONObject("ANNDiff")));
+    	diffResults.put("MASE_Kalman", evaluationSMAE(diffResults.getJSONObject("ExpSmoothingbDiff"),diffResults.getJSONObject("KalmanDiff")));
+    	diffResults.put("MASE_Comb", evaluationSMAE(diffResults.getJSONObject("ExpSmoothingbDiff"),diffResults.getJSONObject("CombDiff")));
+    	
     	System.out.println(diffResults);
     	CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Evaluation\\EvaluationResults.json", diffResults.toString());
 	}
