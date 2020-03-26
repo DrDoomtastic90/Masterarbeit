@@ -17,7 +17,7 @@ public class ANNDAO {
 	public ANNDAO() {
 		dbConnection = ANNDBConnection.getInstance();
 	}
-	public JSONObject getModel(String username, String inputAggr, String forecastAggr) throws SQLException {	
+	public JSONObject getModel(String username, String inputAggr, String forecastAggr, String sorte) throws SQLException {	
 		
 		JSONObject model = new JSONObject();
 		Statement statement = null;
@@ -26,7 +26,7 @@ public class ANNDAO {
 		
 		try {
 			statement = connection.createStatement();
-			String sql = "SELECT model from Models where Username='" + username+ "' and InputAggregation='" + inputAggr + "' and ForecastAggregation='" + forecastAggr + "'";
+			String sql = "SELECT model from Models where Username='" + username+ "' and InputAggregation='" + inputAggr + "' and ForecastAggregation='" + forecastAggr + "' and modelID = '" + sorte + "'";
 			resultSet = statement.executeQuery(sql);
 			
 			while (resultSet.next()) {

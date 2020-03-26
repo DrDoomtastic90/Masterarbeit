@@ -35,6 +35,30 @@ import webClient.RestClient;
 @Path("/ForecastingServices")
 public class ServiceController {
 
+	private JSONObject calculateCombinedResult(JSONObject results) {
+		JSONObject combinedResult = new JSONObject();
+		JSONObject arimaResult=results.getJSONObject("ARIMAResult");
+		JSONObject ruleBasedResult=results.getJSONObject("RuleBasedResult");
+		JSONObject kalmanResult=results.getJSONObject("KalmanResult");
+		JSONObject expSmoothingResult=results.getJSONObject("ExpSmoothingResult");
+		JSONObject aNNResult=results.getJSONObject("ANNResult");
+		for(String sorte : arimaResult.keySet()) {
+			JSONObject resultSorte = new JSONObject();
+			for(String forecastPeriod : arimaResult.getJSONObject(sorte).keySet()){
+				double arimaValue=arimaResult.getJSONObject(sorte).getDouble(forecastPeriod);
+				double ruleBasedValue=ruleBasedResult.getJSONObject(sorte).getDouble(forecastPeriod);
+				double kalmanValue=kalmanResult.getJSONObject(sorte).getDouble(forecastPeriod);
+				double expSmoothingValue=expSmoothingResult.getJSONObject(sorte).getDouble(forecastPeriod);
+				double aNNValue=aNNResult.getJSONObject(sorte).getDouble(forecastPeriod);
+				double combinedValue = (arimaValue+ruleBasedValue+kalmanValue+expSmoothingValue+aNNValue)/5;
+				resultSorte.put(forecastPeriod, combinedValue);
+			}
+			combinedResult.put(sorte, resultSorte);
+		}
+		
+		
+		return combinedResult;
+	}
 	
 	@GET
 	@Path("/RuleBasedService")
@@ -75,22 +99,18 @@ public class ServiceController {
 	        	JSONObject combinedAnalysisResult = new JSONObject();
 	        	JSONObject analysisResult = null;
 	        	JSONObject jsonConfigurations =  invokeConfigFileService(loginCredentials.getString("apiURL"));
-	        	String from = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("from");
-	        	String to = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("to");
+	        	
+	        	
+	        	//String from = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("from");
+	        	//String to = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("to");
 	        	int forecastPeriods = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getInt("forecastPeriods");
 	        	String username = jsonConfigurations.getJSONObject("user").getString("name");
-				
-	        	//response.setContentType("application/json");
-				//response.setStatus(200);
-				//response.getWriter().write("Request Successfully Received. Result will be returned as soon as possible!");
-				//response.flushBuffer();
-				//return response;
 	        	asyncResponse.resume("Request Successfully Received. Result will be returned as soon as possible!");
 	        	
 	        	if(loginCredentials.getBoolean("isEnabledRuleBased") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 					JSONObject ruleBasedConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased");
-					ruleBasedConfigurations.getJSONObject("data").put("from", from);
-					ruleBasedConfigurations.getJSONObject("data").put("to", to);
+					//ruleBasedConfigurations.getJSONObject("data").put("from", from);
+					//ruleBasedConfigurations.getJSONObject("data").put("to", to);
 					ruleBasedConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
 					ruleBasedConfigurations.put("username", "ForecastingTool");
 					ruleBasedConfigurations.put("password", "forecasting");
@@ -145,10 +165,11 @@ public class ServiceController {
 					analysisResult =  invokeANNFeedForwardService(aNNConfigurations);
 					combinedAnalysisResult.put("ANNResult", analysisResult);
 				}
+				combinedAnalysisResult.put("CombinedResult", calculateCombinedResult(combinedAnalysisResult));
 				jsonConfigurations.put("results", combinedAnalysisResult);
-				jsonConfigurations.put("username", username);
-				jsonConfigurations.put("password", "forecasting");
-				jsonConfigurations.put("passPhrase", requestBody.get("passPhrase"));
+				jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").put("username", username);
+				jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").put("password", "forecasting");
+				jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").put("passPhrase", requestBody.get("passPhrase"));
 				invokeCallbackService(jsonConfigurations);
 				invokeEvaluationService(jsonConfigurations);
 			}
@@ -308,7 +329,7 @@ public class ServiceController {
 	private JSONObject invokeCallbackService(JSONObject requestBody) throws IOException {
 		//Internal Implementation
 		URL url = new URL("https://localhost:" + 9100 + "/Callback");
-		requestBody.put("username", "ForecastingTool");
+		requestBody.getJSONObject("forecasting").getJSONObject("Combined").put("username", "ForecastingTool");
 		String contentType = "application/json";
 		RestClient restClient = new RestClient();
 		restClient.setHttpsConnection(url, contentType);

@@ -117,6 +117,7 @@ public class ANNAnalysis {
 			//Input Daily OutputWeekly
 			String sourcePath = scriptPath+"temp\\" + sorte + ".tmp";
 			String modelPath = scriptPath+"temp\\network.xml";
+			String targetPath = scriptPath+"temp\\" + sorte + "_result.tmp";
 			JSONArray dataset = preparedData.getJSONArray(sorte);
 			CustomFileWriter.createFile(sourcePath, dataset.toString());
 			
@@ -125,10 +126,11 @@ public class ANNAnalysis {
 					model = trainModel(inputAggr, outputAggr, scriptPath, sourcePath, sorte, forecastPeriods);
 					aNNDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
 				}else {
-					model = aNNDAO.getModel(username, inputAggr, outputAggr);
+					model = aNNDAO.getModel(username, inputAggr, outputAggr, sorte);
 				}
-				CustomFileWriter.createFile(modelPath, preparedData.getString(sorte));
+				CustomFileWriter.createFile(modelPath, model.getString("model"));
 				executionResult = forecastModel(inputAggr, outputAggr, scriptPath, sourcePath, sorte, forecastPeriods, modelPath);
+				CustomFileWriter.createFile(targetPath, executionResult.toString());
 				resultValues.put(sorte, executionResult);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block

@@ -38,7 +38,7 @@ public class CallbackServiceController {
 
 			try {
 				JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
-				JSONObject loginCredentials = invokeLoginService(requestBody);
+				JSONObject loginCredentials = invokeLoginService(requestBody.getJSONObject("forecasting").getJSONObject("Combined"));
 				if(loginCredentials.getBoolean("isAuthorized")) {
 				
 					String filePath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\Result.json";
