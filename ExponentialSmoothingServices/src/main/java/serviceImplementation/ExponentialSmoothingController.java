@@ -30,10 +30,10 @@ public class ExponentialSmoothingController {
 	@Produces(MediaType.APPLICATION_JSON)
 	public void performKalmanAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
-			JSONObject kalmanConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
-			ExponentialSmoothingAnalysis kalmanAnalysis = new ExponentialSmoothingAnalysis();
-			JSONObject preparedData = kalmanAnalysis.getPreparedData(kalmanConfigurations);
-			JSONObject analysisResult = kalmanAnalysis.executeAnalysisCMD(kalmanConfigurations, preparedData);
+			JSONObject smoothingConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			ExponentialSmoothingAnalysis smoothingAnalysis = new ExponentialSmoothingAnalysis();
+			JSONObject preparedData = smoothingAnalysis.getPreparedData(smoothingConfigurations);
+			JSONObject analysisResult = smoothingAnalysis.executeAnalysisCMD(smoothingConfigurations, preparedData);
 			
 			response.setStatus(202);
 			response.setContentType("application/json");

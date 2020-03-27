@@ -38,9 +38,10 @@ public class RuleBasedController {
 				
 				JSONObject ruleBasedConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 				String drlFileLocation =ruleBasedConfigurations.getJSONObject("data").getString("drlFilePath");
+				String passPhrase = ruleBasedConfigurations.getString("passPhrase");
 				int forecastPeriods = ruleBasedConfigurations.getJSONObject("parameters").getInt("forecastPeriods");
 				//File drlFile = WebInputHandler.getWebFile(drlFilepath,".drl");
-				JSONObject drlJSON = invokeDRLFileService(drlFileLocation);
+				JSONObject drlJSON = invokeDRLFileService(drlFileLocation, passPhrase);
 				File drlFile = CustomFileWriter.createTempFile(drlJSON.getString("drlFile"));
 				JSONObject factors = ruleBasedConfigurations.getJSONObject("factors");
 				AnalysisService analysisService = new AnalysisService();
@@ -74,15 +75,19 @@ public class RuleBasedController {
 	    	//TODO Error HAndling if error is returned
 	    }
 		
-		private JSONObject invokeDRLFileService(String drlFileLocation) throws IOException {
+		private JSONObject invokeDRLFileService(String drlFileLocation, String passPhrase) throws IOException {
 			//Internal Implementation
 			URL url = new URL(drlFileLocation);	
 			//public_html implementation Forecasting
 			//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/LoginServices/LoginService");
 			String contentType = "application/json";
+			JSONObject requestBody = new JSONObject();
+			requestBody.put("username", "ForecastingTool");
+			requestBody.put("password", "forecasting");
+			requestBody.put("passPhrase", passPhrase);
 			RestClient restClient = new RestClient();
 			restClient.setHttpsConnection(url, contentType);
-			return new JSONObject(restClient.postRequest(""));
+			return new JSONObject(restClient.postRequest(requestBody.toString()));
 		}
 
 

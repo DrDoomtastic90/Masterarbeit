@@ -264,6 +264,9 @@ public class SorteDAO {
 	public Map<String, Double> getInventory(Map<String, Sorte> sorteMap, JSONObject configurations) throws ParseException, SQLException {
 		Map<String, Double> inventoryMap = new LinkedHashMap<String, Double>();
 		String datumLetzteZaehlung = getDatumLetzteZaehlung(configurations);
+		if(datumLetzteZaehlung==null) {
+			datumLetzteZaehlung="2001-01-01";
+		}
 		//String toDate = configurations.getJSONObject("data").getString("toDate");
 		String toDate = configurations.getJSONObject("data").getString("to");
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
@@ -360,7 +363,7 @@ public class SorteDAO {
 			calendar.setTime(dateFormat.parse(toDate));
 			calendar.add(Calendar.MONTH, -1);
 			String fromDate = dateFormat.format(calendar.getTime()); 
-			String sql = " Select ab.Datum from SorteVerpacktPaarung svp join GezaehlterBestand ab on ab.VKBez=svp.VKBez where ab.Datum = (Select max(Datum) from GezaehlterBestand where Datum>='" + fromDate + "' and Datum <= '" + toDate + "') Group BY svp.SKBez order by svp.SKBez asc";
+			String sql = " Select ab.Datum from SorteVerpacktPaarung svp join GezaehlterBestand ab on ab.VKBez=svp.VKBez where ab.Datum = (Select max(Datum) from GezaehlterBestand where Datum <= '" + toDate + "') Group BY svp.SKBez order by svp.SKBez asc";
 			Connection connection = dBConnection.checkConnectivity();
 			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);

@@ -20,11 +20,11 @@ import org.json.JSONObject;
 import inputHandler.RestRequestHandler;
 import webClient.RestClient;
 
-@Path("/Daten/Forecasting")
+@Path("/Daten/Forecasting/ARIMA")
 public class ARIMAAdapterController {
 	
 	@POST
-	@Path("/ARIMA")
+	@Path("/DAILY")
 	@Produces(MediaType.APPLICATION_JSON)
 	public void prepareDataARIMA(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		JSONObject responseContent = new JSONObject();

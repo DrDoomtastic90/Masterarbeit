@@ -46,30 +46,15 @@ public class ExponentialSmoothingAnalysis {
 	}
 	
 	
-	private JSONObject trainModel(String inputAggr, String outputAggr, String expSmoothingPath, String filePath, String sorte, int forecastPeriods) throws IOException {
-		String execString ="";
-		switch(inputAggr) {
-		  case "daily":
-			  switch(outputAggr) {
-			  case "daily":
-				execString   = "RScript " + expSmoothingPath + "Train_ExpSmoothing_Day_Day_Week.txt " + filePath + " " + sorte + " " + forecastPeriods;
-				break;
-			  case "weekly": 
-				execString = "RScript " + expSmoothingPath + "Train_ExpSmoothing_Day_Week_Week.txt " + filePath + " " + sorte + " " + forecastPeriods;
-				break;
-			  default:
-				  throw new RuntimeException("Aggregation Invalid");
-			}
-		    break;
-		  default:
-			  throw new RuntimeException("Aggregation Invalid");
-		}
+	private JSONObject trainModel(String inputAggr, String outputAggr, String processingAggr, String expSmoothingPath, String filePath, String sorte, int forecastPeriods) throws IOException {
+		String execString = "RScript " + expSmoothingPath + "Train_ExpSmoothing_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + filePath + " " + sorte + " " + forecastPeriods;
+		
 		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));	
 	}
 	
-	private JSONObject forecastModel(String inputAggr, String outputAggr, String expSmoothingPath, String filePath, String sorte, int forecastPeriods) throws IOException {
-		String execString ="";
+	private JSONObject forecastModel(String inputAggr, String outputAggr, String processingAggr, String expSmoothingPath, String filePath, String sorte, int forecastPeriods) throws IOException {
+		/*String execString ="";
 		System.out.println("SORTE: " + sorte);
 		switch(inputAggr) {
 		  case "daily":
@@ -86,7 +71,9 @@ public class ExponentialSmoothingAnalysis {
 		    break;
 		  default:
 			  throw new RuntimeException("Aggregation Invalid");
-		}
+		}*/
+		String execString = "RScript " + expSmoothingPath + "ExpSmoothing_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + filePath + " " + sorte + " " + forecastPeriods;
+		
 		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));
 	}
@@ -101,17 +88,18 @@ public class ExponentialSmoothingAnalysis {
 		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData");
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData");
-		boolean train = configurations.getJSONObject("parameters").getJSONObject("execution").getBoolean("train");
-		String username = configurations.getString("username");
+		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing");
+		//boolean train = configurations.getJSONObject("parameters").getJSONObject("execution").getBoolean("train");
+		//String username = configurations.getString("username");
 		
-		ExpSmoothingDBConnection.getInstance("ExpSmoothingDB");
-		ExpSmoothingDAO expSmoothingDAO = new ExpSmoothingDAO();
+		//ExpSmoothingDBConnection.getInstance("ExpSmoothingDB");
+		//ExpSmoothingDAO expSmoothingDAO = new ExpSmoothingDAO();
 		for(String sorte : preparedData.keySet()) {
 			String filePath = expPath+"temp\\" + sorte + ".tmp";
 			if(sorte.equals("S11")) {
 				System.out.println("STOP");
 			}
-			JSONObject model = new JSONObject();
+			//JSONObject model = new JSONObject();
 			JSONObject executionResult = new JSONObject();
 			//Input Daily OutputWeekly
 			CustomFileWriter.createFile(filePath, preparedData.getString(sorte));
@@ -124,7 +112,7 @@ public class ExponentialSmoothingAnalysis {
 				//}else {
 					//model = expSmoothingDAO.getModel(username, inputAggr, outputAggr);
 				//}			
-				executionResult = forecastModel(inputAggr, outputAggr, expPath, filePath, sorte, forecastPeriods);
+				executionResult = forecastModel(inputAggr, outputAggr, processingAggr, expPath, filePath, sorte, forecastPeriods);
 				resultValues.put(sorte, executionResult);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block

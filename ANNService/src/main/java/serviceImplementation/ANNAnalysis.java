@@ -49,7 +49,7 @@ public class ANNAnalysis {
 	
 	
 	private JSONObject trainModel(String inputAggr, String outputAggr, String scriptPath, String sourcePath, String sorte, int forecastPeriods) throws IOException {
-		String execString ="";
+		/*String execString ="";
 		switch(inputAggr) {
 		  case "daily":
 			  switch(outputAggr) {
@@ -65,13 +65,14 @@ public class ANNAnalysis {
 		    break;
 		  default:
 			  throw new RuntimeException("Aggregation Invalid");
-		}
+		}*/
+		String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods;
 		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));	
 	}
 	
 	private JSONObject forecastModel(String inputAggr, String outputAggr, String scriptPath, String sourcePath, String sorte, int forecastPeriods, String modelPath) throws IOException {
-		String execString ="";
+		/*String execString ="";
 		System.out.println("SORTE: " + sorte);
 		switch(inputAggr) {
 		  case "daily":
@@ -88,7 +89,8 @@ public class ANNAnalysis {
 		    break;
 		  default:
 			  throw new RuntimeException("Aggregation Invalid");
-		}
+		}*/
+		String execString = "python " + scriptPath + "Exec_FeedForwardNetwork_" + inputAggr + "_" + outputAggr + ".py " + sourcePath + " " + modelPath + " " + sorte + " " + forecastPeriods;
 		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));
 	}
@@ -101,8 +103,8 @@ public class ANNAnalysis {
 		String scriptPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\ANN\\";
 		
 		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
-		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData");
-		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData");
+		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
+		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
 		boolean train = configurations.getJSONObject("parameters").getJSONObject("execution").getBoolean("train");
 		String username = configurations.getString("username");
 		
@@ -145,6 +147,7 @@ public class ANNAnalysis {
 			String contentType = "application/json";
 			JSONObject requestBody = new JSONObject(aNNConfigurations.toString());
 			requestBody.put("username", "ForecastingTool");
+			requestBody.put("password", "forecasting");
 			//String requestBody = kalmanConfigurations.toString();
 			RestClient restClient = new RestClient();
 			restClient.setHttpsConnection(url, contentType);

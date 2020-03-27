@@ -48,9 +48,9 @@ public class KalmanAnalysis {
 	}
 	
 	
-	private JSONObject trainModel(String inputAggr, String outputAggr, String kalmanPath, String filePath, String sorte, int forecastPeriods) throws IOException {
-		String execString ="";
-		switch(inputAggr) {
+	private JSONObject trainModel(String inputAggr, String outputAggr, String processingAggr, String kalmanPath, String filePath, String sorte, int forecastPeriods) throws IOException {
+		/*String execString ="";
+		/*switch(inputAggr) {
 		  case "daily":
 			  switch(outputAggr) {
 			  case "daily":
@@ -66,12 +66,15 @@ public class KalmanAnalysis {
 		  default:
 			  throw new RuntimeException("Aggregation Invalid");
 		}
+		*/
+		String execString = "RScript " + kalmanPath + "Train_Kalman_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + filePath + " " + sorte + " " + forecastPeriods;
+		
 		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));	
 	}
 	
-	private JSONObject forecastModel(String inputAggr, String outputAggr, String kalmanPath, String filePath, String sorte, int forecastPeriods, String model) throws IOException {
-		String execString ="";
+	private JSONObject forecastModel(String inputAggr, String outputAggr, String processingAggr, String kalmanPath, String filePath, String sorte, int forecastPeriods, String model) throws IOException {
+		/*String execString ="";
 		System.out.println("SORTE: " + sorte);
 		switch(inputAggr) {
 		  case "daily":
@@ -88,7 +91,9 @@ public class KalmanAnalysis {
 		    break;
 		  default:
 			  throw new RuntimeException("Aggregation Invalid");
-		}
+		}*/
+		String execString = "RScript " + kalmanPath + "Exec_Kalman_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + filePath + " " + sorte + " " + forecastPeriods + " \"" + JSONObject.valueToString(model) + "\"";
+		
 		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));
 	}
@@ -106,8 +111,9 @@ public class KalmanAnalysis {
 		String kalmanPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Kalman\\";
 		
 		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
-		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData");
-		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData");
+		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
+		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
+		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
 		boolean train = configurations.getJSONObject("parameters").getJSONObject("execution").getBoolean("train");
 		String username = configurations.getString("username");
 		
@@ -125,13 +131,13 @@ public class KalmanAnalysis {
 			
 			try {
 				if(train) {
-				model = trainModel(inputAggr, outputAggr, kalmanPath, filePath, sorte, forecastPeriods);
+				model = trainModel(inputAggr, outputAggr, processingAggr, kalmanPath, filePath, sorte, forecastPeriods);
 					
 					kalmanDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
 				}else {
-					model = kalmanDAO.getModel(username, inputAggr, outputAggr);
+					model = kalmanDAO.getModel(username, inputAggr, outputAggr, sorte);
 				}			
-				executionResult = forecastModel(inputAggr, outputAggr, kalmanPath, filePath, sorte, forecastPeriods, model.toString());
+				executionResult = forecastModel(inputAggr, outputAggr, processingAggr, kalmanPath, filePath, sorte, forecastPeriods, model.toString());
 				resultValues.put(sorte, executionResult);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -211,6 +217,7 @@ public class KalmanAnalysis {
 			String contentType = "application/json";
 			JSONObject requestBody = new JSONObject(kalmanConfigurations.toString());
 			requestBody.put("username", "ForecastingTool");
+			requestBody.put("password", "forecasting");
 			//String requestBody = kalmanConfigurations.toString();
 			RestClient restClient = new RestClient();
 			restClient.setHttpsConnection(url, contentType);

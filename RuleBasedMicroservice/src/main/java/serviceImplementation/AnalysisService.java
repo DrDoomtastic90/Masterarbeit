@@ -71,12 +71,13 @@ public class AnalysisService {
 	public String getPreparedData(JSONObject ruleBasedConfigurations) throws JSONException, IOException {
 		URL url = new URL(ruleBasedConfigurations.getJSONObject("data").getString("provisioningServiceURL"));
 		String contentType = "application/json";
-		String requestBody = ruleBasedConfigurations.toString();
-		//JSONObject requestBody = new JSONObject(aRIMAconfigurations.toString());
-		//requestBody.put("username", "ForecastingTool");
+		JSONObject requestBody = new JSONObject(ruleBasedConfigurations.toString());
+		requestBody.put("username", "ForecastingTool");
+		requestBody.put("password", "forecasting");
+		
 		RestClient restClient = new RestClient();
 		restClient.setHttpsConnection(url, contentType);
-		return restClient.postRequest(requestBody);
+		return restClient.postRequest(requestBody.toString());
 	}
 	
 	
