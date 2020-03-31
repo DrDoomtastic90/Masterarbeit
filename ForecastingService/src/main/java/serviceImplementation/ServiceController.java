@@ -139,6 +139,7 @@ public class ServiceController {
 				jsonConfigurations.put("results", combinedAnalysisResult);
 				jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").put("username", username);
 				jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").put("passPhrase", requestBody.get("passPhrase"));
+				System.out.println(jsonConfigurations);
 				invokeCallbackService(jsonConfigurations);
 				invokeEvaluationService(jsonConfigurations);
 			}

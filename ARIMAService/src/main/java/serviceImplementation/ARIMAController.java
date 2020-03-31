@@ -1,7 +1,6 @@
 package serviceImplementation;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.stream.Collectors;
@@ -18,7 +17,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import inputHandler.RestRequestHandler;
-import outputHandler.CustomFileWriter;
 import serverImplementation.HttpServerARIMA;
 
 @Path("/ARIMAService")
@@ -32,8 +30,7 @@ public class ARIMAController {
 			JSONObject aRIMAConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			ARIMAAnalysis aRIMAAnalysis = new ARIMAAnalysis();
 			JSONObject preparedData = aRIMAAnalysis.getPreparedData(aRIMAConfigurations);
-			//JSONObject analysisResult = aRIMAAnalysis.executeArimaAnalysis(aRIMAConfigurations, preparedData);
-			JSONObject analysisResult = aRIMAAnalysis.executeARIMAAnalysisCMD(aRIMAConfigurations, preparedData);
+			JSONObject analysisResult = aRIMAAnalysis.executeARIMAAnalysis(aRIMAConfigurations, preparedData);
 			
 			response.setStatus(202);
 			response.setContentType("application/json");
@@ -46,7 +43,6 @@ public class ARIMAController {
 			e.printStackTrace();
 			
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -58,6 +54,5 @@ public class ARIMAController {
     	BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
     	String result = stdInput.lines().collect(Collectors.joining());
     	String error = stdError.lines().collect(Collectors.joining());
-    	//TODO Error HAndling if error is returned
     }
 }
