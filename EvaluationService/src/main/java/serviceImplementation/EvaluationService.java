@@ -93,15 +93,16 @@ public class EvaluationService {
     	diffResults.put("Difference", new JSONObject());
     	diffResults.put("MASE", new JSONObject());
 		
-		JSONObject configurations = configAndResults.getJSONObject("forecasting").getJSONObject("Combined");
+		JSONObject configurations = configAndResults.getJSONObject("configurations");
 		JSONObject results = configAndResults.getJSONObject("results");
-		JSONObject loginCredentials = invokeLoginService(configurations);
+		JSONObject loginCredentials = configAndResults.getJSONObject("loginCredentials");
+		loginCredentials = invokeLoginService(loginCredentials);
     	String passPhrase = loginCredentials.getString("passPhrase");
 		configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-    	int forecastPeriods = configAndResults.getJSONObject("forecasting").getJSONObject("Combined").getInt("forecastPeriods");
-    	String startDate = configAndResults.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("to"); 
+    	int forecastPeriods = configurations.getInt("forecastPeriods");
+    	String startDate = configurations.getJSONObject("data").getString("to"); 
 		JSONObject actualResults = new JSONObject();
-    	if(configAndResults.getJSONObject("forecasting").getJSONObject("Combined").getString("aggregationOutputData").toUpperCase().equals("DAILY")) {
+    	if(configurations.getString("aggregationOutputData").toUpperCase().equals("DAILY")) {
     		actualResults= getActualResultsDaily(startDate, forecastPeriods, passPhrase);
     	}else {
     		actualResults = getActualResultsWeekly(startDate, forecastPeriods, passPhrase);

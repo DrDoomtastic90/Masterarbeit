@@ -29,6 +29,10 @@ public class EvaluationController {
 		try {
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			EvaluationService.evaluationCombined(requestBody);
+			response.setStatus(202);
+			response.setContentType("application/json");
+			response.getWriter().write("");
+			response.flushBuffer();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -3,6 +3,7 @@ package serviceImplementation;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 
 import org.json.JSONException;
@@ -18,7 +19,7 @@ public class ARIMAAnalysis {
 	public ARIMAAnalysis() {}	
 		
 	
-	public JSONObject getPreparedData(JSONObject aRIMAconfigurations) throws JSONException, IOException {
+	/*public JSONObject getPreparedData(JSONObject aRIMAconfigurations) throws JSONException, IOException {
 		URL url = new URL(aRIMAconfigurations.getJSONObject("data").getString("provisioningServiceURL"));
 		String contentType = "application/json";
 		
@@ -34,6 +35,30 @@ public class ARIMAAnalysis {
 	}
 	
 	
+	public JSONObject handleOutliers(JSONObject aRIMAConfigurations, JSONObject dataWithOutliers) throws JSONException, IOException {
+		String handlingProcedure = aRIMAConfigurations.getJSONObject("parameters").getJSONObject("outliers").getString("procedure");
+		
+		//Internal Implementation
+		URL url = new URL("http://localhost:" + 8110 + "/OutlierHandlingService/" + handlingProcedure + "Handler");
+		//public_html implementation Forecasting
+		//URL url = new URL("http://wwwlab.cs.univie.ac.at/~matthiasb90/Masterarbeit/ForecastingTool/Services/ForecastingServices/RuleBasedService");
+		String contentType = "application/json";
+		
+		//Create request body and add login credentials
+		JSONObject requestBody = new JSONObject();
+		requestBody.put("configurations", aRIMAConfigurations);
+		requestBody.put("dataset", dataWithOutliers);
+		requestBody.put("username", "ForecastingTool");
+		requestBody.put("password", "forecasting");
+		RestClient restClient = new RestClient();
+		
+		//configure endpoint and connection type
+		restClient.setHttpConnection(url, contentType);
+		return new JSONObject(restClient.postRequest(requestBody.toString())); 
+	}*/
+	
+	
+	
 	//from https://mkyong.com/java/how-to-execute-shell-command-from-java/
 	public JSONObject executeARIMAAnalysis(JSONObject configurations, JSONObject preparedData) throws InterruptedException, IOException {
 	
@@ -42,16 +67,18 @@ public class ARIMAAnalysis {
 		
 		//Get Execution Parameters
 		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
-		double upperLimitOutliers = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
-		double lowerLimitOutliers = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
+		//double upperLimitOutliers = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
+		//double lowerLimitOutliers = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
 		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
-		return executeARIMAAnalysisCMD(aRIMAPath, inputAggr, processingAggr, outputAggr, forecastPeriods, lowerLimitOutliers, upperLimitOutliers, preparedData);
+		//return executeARIMAAnalysisCMD(aRIMAPath, inputAggr, processingAggr, outputAggr, forecastPeriods, lowerLimitOutliers, upperLimitOutliers, preparedData);
+		return executeARIMAAnalysisCMD(aRIMAPath, inputAggr, processingAggr, outputAggr, forecastPeriods, preparedData);
 	}
 	
 	
-	private JSONObject executeARIMAAnalysisCMD(String aRIMAPath, String inputAggr, String processingAggr, String outputAggr, int forecastPeriods, double lowerLimitOutliers, double upperLimitOutliers, JSONObject preparedData) throws IOException {
+	//private JSONObject executeARIMAAnalysisCMD(String aRIMAPath, String inputAggr, String processingAggr, String outputAggr, int forecastPeriods, double lowerLimitOutliers, double upperLimitOutliers, JSONObject preparedData) throws IOException {
+	private JSONObject executeARIMAAnalysisCMD(String aRIMAPath, String inputAggr, String processingAggr, String outputAggr, int forecastPeriods, JSONObject preparedData) throws IOException {
 		//Instantiate result object 
 		JSONObject resultValues = new JSONObject();
 		
@@ -61,8 +88,8 @@ public class ARIMAAnalysis {
 			//create temporary input file (loaded by rscript to handle outliers)
 			String resourcePath = aRIMAPath+"temp\\inputValues_" + targetVariable + ".tmp";
 			CustomFileWriter.createFile(resourcePath, preparedData.getString(targetVariable));
-			handleOutliers(aRIMAPath, resourcePath, targetVariable, inputAggr, processingAggr, outputAggr, forecastPeriods, lowerLimitOutliers, upperLimitOutliers);
-			resourcePath = aRIMAPath + "temp\\inputValuesWOOutlier_" + targetVariable + ".tmp";
+			//handleOutliers(aRIMAPath, resourcePath, targetVariable, inputAggr, processingAggr, outputAggr, forecastPeriods, lowerLimitOutliers, upperLimitOutliers);
+			//resourcePath = aRIMAPath + "temp\\inputValuesWOOutlier_" + targetVariable + ".tmp";
 			
 			
 			//create temporary input file (loaded by foreasting rscript)
@@ -75,11 +102,11 @@ public class ARIMAAnalysis {
 	}
 	
 	
-	private void handleOutliers(String aRIMAPath, String resourcePath, String targetVariable, String inputAggr, String processingAggr, String outputAggr, int forecastPeriods, double lowerLimitsOutliers, double upperLimitsOutliers) throws IOException {
+	/*private void handleOutliers(String aRIMAPath, String resourcePath, String targetVariable, String inputAggr, String processingAggr, String outputAggr, int forecastPeriods, double lowerLimitsOutliers, double upperLimitsOutliers) throws IOException {
 		//Prepare execution String for CMD Execution
 		String execString = "RScript " + aRIMAPath + "OutlierHandling_ARIMAAnalysis_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitsOutliers + " " + upperLimitsOutliers;
 		executeProcessCMD(execString);
-	}
+	}*/
 	
 	
 	private String executeProcessCMD(String execString) throws IOException {

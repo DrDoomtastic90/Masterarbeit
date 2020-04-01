@@ -29,11 +29,12 @@ public class ANNController {
 	@Produces(MediaType.APPLICATION_JSON)
 	public void performARIMAAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
-			
-			JSONObject aNNConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject aNNConfigurations = requestBody.getJSONObject("configurations");
+			JSONObject preparedData = requestBody.getJSONObject("dataset");
+			//JSONObject aNNConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			ANNAnalysis aNNAnalysis = new ANNAnalysis();
-			JSONObject preparedData = aNNAnalysis.getPreparedData(aNNConfigurations);
-			//JSONObject analysisResult = aRIMAAnalysis.executeArimaAnalysis(aRIMAConfigurations, preparedData);
+			//JSONObject preparedData = aNNAnalysis.getPreparedData(aNNConfigurations);
 			JSONObject analysisResult = aNNAnalysis.executeAnalysisCMD(aNNConfigurations, preparedData);
 			
 			response.setStatus(202);

@@ -27,9 +27,14 @@ public class ARIMAController {
 	public void performARIMAAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
 			
-			JSONObject aRIMAConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject aRIMAConfigurations = requestBody.getJSONObject("configurations");
+			JSONObject preparedData = requestBody.getJSONObject("dataset");
 			ARIMAAnalysis aRIMAAnalysis = new ARIMAAnalysis();
-			JSONObject preparedData = aRIMAAnalysis.getPreparedData(aRIMAConfigurations);
+			/*JSONObject preparedData = aRIMAAnalysis.getPreparedData(aRIMAConfigurations);
+			if(aRIMAConfigurations.getJSONObject("parameters").getJSONObject("outliers").getBoolean("handle")) {
+				preparedData =  aRIMAAnalysis.handleOutliers(aRIMAConfigurations, preparedData);
+			}*/
 			JSONObject analysisResult = aRIMAAnalysis.executeARIMAAnalysis(aRIMAConfigurations, preparedData);
 			
 			response.setStatus(202);

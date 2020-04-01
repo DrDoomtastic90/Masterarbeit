@@ -30,8 +30,8 @@ public class DRLFileController {
 	@Produces(MediaType.APPLICATION_JSON)
 	public void getConfigFile(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
-			JSONObject configurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
-			JSONObject loginCredentials = invokeLoginService(configurations);
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject loginCredentials = invokeLoginService(requestBody);
 			if(loginCredentials.getBoolean("isAuthorized")) {
 	        	File drlFile = getFile("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\ForecastingRulesBantel.drl");
 	        	String content = FileUtils.readFileToString(drlFile, StandardCharsets.UTF_8);

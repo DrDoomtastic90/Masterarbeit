@@ -36,18 +36,23 @@ public class RuleBasedController {
 		public void performRuleBasedAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 			try {
 				
-				JSONObject ruleBasedConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
-				String drlFileLocation =ruleBasedConfigurations.getJSONObject("data").getString("drlFilePath");
-				String passPhrase = ruleBasedConfigurations.getString("passPhrase");
+				//JSONObject ruleBasedConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+				JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+				JSONObject ruleBasedConfigurations = requestBody.getJSONObject("configurations");
+				JSONObject worldFacts = requestBody.getJSONObject("dataset");
+				JSONObject drlJSON = requestBody.getJSONObject("drlFile");
+				//String drlFileLocation =ruleBasedConfigurations.getJSONObject("data").getString("drlFilePath");
+				//String passPhrase = ruleBasedConfigurations.getString("passPhrase");
 				int forecastPeriods = ruleBasedConfigurations.getJSONObject("parameters").getInt("forecastPeriods");
 				//File drlFile = WebInputHandler.getWebFile(drlFilepath,".drl");
-				JSONObject drlJSON = invokeDRLFileService(drlFileLocation, passPhrase);
+				//JSONObject drlJSON = invokeDRLFileService(drlFileLocation, passPhrase);
+				
 				File drlFile = CustomFileWriter.createTempFile(drlJSON.getString("drlFile"));
 				JSONObject factors = ruleBasedConfigurations.getJSONObject("factors");
 				AnalysisService analysisService = new AnalysisService();
-				String preparedData;
-				preparedData = analysisService.getPreparedData(ruleBasedConfigurations);	
-				JSONObject worldFacts = new JSONObject(preparedData);
+				//String preparedData;
+				//preparedData = analysisService.getPreparedData(ruleBasedConfigurations);	
+				//JSONObject worldFacts = new JSONObject(preparedData);
 				analysisService.prepareForecasting(drlFile, factors);
 				JSONObject analysisResult = analysisService.analyseWorld(worldFacts, forecastPeriods);
 				//Write JSON File to File System

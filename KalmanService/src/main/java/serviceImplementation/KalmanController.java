@@ -31,9 +31,14 @@ public class KalmanController {
 	@Produces(MediaType.APPLICATION_JSON)
 	public void performKalmanAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
-			JSONObject kalmanConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject kalmanConfigurations = requestBody.getJSONObject("configurations");
+			JSONObject preparedData = requestBody.getJSONObject("dataset");
+					
+			//JSONObject kalmanConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			KalmanAnalysis kalmanAnalysis = new KalmanAnalysis();
-			JSONObject preparedData = kalmanAnalysis.getPreparedData(kalmanConfigurations);
+			//JSONObject preparedData = kalmanAnalysis.getPreparedData(kalmanConfigurations);
 			JSONObject analysisResult = kalmanAnalysis.executeAnalysisCMDNeu(kalmanConfigurations, preparedData);
 			
 			response.setStatus(202);

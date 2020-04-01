@@ -29,8 +29,12 @@ public class ANNAdapterController {
 	public void prepareDataARIMA(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		JSONObject responseContent = new JSONObject();
 		try {
-			JSONObject configurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
-			JSONObject loginCredentials = invokeLoginService(configurations);
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject configurations = requestBody.getJSONObject("configurations");
+			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials"); 
+			loginCredentials = invokeLoginService(loginCredentials);
+			//JSONObject configurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			//JSONObject loginCredentials = invokeLoginService(configurations);
 			if(loginCredentials.getBoolean("isAuthorized")) {
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
 				responseContent = ANNPreparation.prepareDailyDataset(configurations);
