@@ -34,7 +34,7 @@ public class ANNPreparation extends Analysis {
 
 	public static JSONObject prepareDailyDataSet(String kNo, JSONObject configurations) throws JSONException, FileNotFoundException, ClassNotFoundException, SQLException, ParseException {
 		PreparationDAO daoAnalysis = new PreparationDAO(configurations.getString("passPhrase"));
-		boolean campaigns = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
+		//boolean campaigns = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
 		Map<String,Map<String,Double>> dailyAggregatedData = DataAggregator.aggregateSorteDataDaily(kNo, configurations, daoAnalysis);
 		//Consideration of Last YEar values not implemented yet
 		//double valueLastYear =0;

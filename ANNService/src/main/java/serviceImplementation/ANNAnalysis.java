@@ -48,7 +48,7 @@ public class ANNAnalysis {
 	}
 	
 	
-	private JSONObject trainModel(String inputAggr, String outputAggr, String scriptPath, String sourcePath, String sorte, int forecastPeriods) throws IOException {
+	private JSONObject trainModel(String inputAggr, String outputAggr, String scriptPath, String sourcePath, String sorte, int forecastPeriods, JSONObject network) throws IOException {
 		/*String execString ="";
 		switch(inputAggr) {
 		  case "daily":
@@ -66,7 +66,12 @@ public class ANNAnalysis {
 		  default:
 			  throw new RuntimeException("Aggregation Invalid");
 		}*/
-		String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods;
+		String networktype = network.getString("networkType");
+		int amountInputNodes = network.getInt("amountInputNodes");
+		int amountOutputNodes = network.getInt("amountOutputNodes");
+		int amountHiddenNodes = network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getInt("ammountNodes");
+		String transformationFunction = network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getString("transformationFunction");
+		String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods + " " + transformationFunction + " " + networktype +  " " + amountInputNodes + " " + amountHiddenNodes + " " + amountOutputNodes;
 		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));	
 	}
@@ -102,6 +107,7 @@ public class ANNAnalysis {
 		JSONObject resultValues = new JSONObject();
 		String scriptPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\ANN\\";
 		
+		JSONObject network = configurations.getJSONObject("parameters").getJSONObject("network");
 		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
@@ -125,7 +131,7 @@ public class ANNAnalysis {
 			
 			try {
 				if(train) {
-					model = trainModel(inputAggr, outputAggr, scriptPath, sourcePath, sorte, forecastPeriods);
+					model = trainModel(inputAggr, outputAggr, scriptPath, sourcePath, sorte, forecastPeriods, network);
 					aNNDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
 				}else {
 					model = aNNDAO.getModel(username, inputAggr, outputAggr, sorte);
