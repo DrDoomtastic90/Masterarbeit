@@ -17,10 +17,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import inputHandler.RestRequestHandler;
-import serverImplementation.HttpServerOutlierHandling;
+import serverImplementation.HttpServerCampaignHandling;
 
-@Path("/OutlierHandlingService")
-public class OutlierHandlingController {
+@Path("/CampaignHandlingService")
+public class CampaignHandlingController {
 	
 	@POST
 	@Path("/LimitHandler")
@@ -28,17 +28,40 @@ public class OutlierHandlingController {
 	public void performLimitHandling(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
-			JSONObject dataWithOutliers = requestBody.getJSONObject("dataset");
+			JSONObject dataset = requestBody.getJSONObject("dataset");
 			JSONObject configurations = requestBody.getJSONObject("configurations");
 			
-			OutlierHandler outlierHandler = new OutlierHandler();
-			JSONObject dataWithoutOutliers = outlierHandler.limitHandler(configurations, dataWithOutliers);
+			CampaignHandler outlierHandler = new CampaignHandler();
+			JSONObject dataWithoutOutliers = outlierHandler.limitHandler(configurations, dataset);
 			response.setStatus(202);
 			response.setContentType("application/json");
 			response.getWriter().write(dataWithoutOutliers.toString());
 			response.flushBuffer();
-			if(HttpServerOutlierHandling.isAutomaticShutdown()) {
-				HttpServerOutlierHandling.attemptShutdown();
+			if(HttpServerCampaignHandling.isAutomaticShutdown()) {
+				HttpServerCampaignHandling.attemptShutdown();
+			}
+		} catch (JSONException | IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@POST
+	@Path("/IdentificationHandler")
+	@Produces(MediaType.APPLICATION_JSON)
+	public void performIdentification(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+		try {
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject dataset = requestBody.getJSONObject("dataset");
+			JSONObject configurations = requestBody.getJSONObject("configurations");
+			
+			CampaignHandler outlierHandler = new CampaignHandler();
+			JSONObject dataWithoutOutliers = outlierHandler.identificationHandler(configurations, dataset);
+			response.setStatus(202);
+			response.setContentType("application/json");
+			response.getWriter().write(dataWithoutOutliers.toString());
+			response.flushBuffer();
+			if(HttpServerCampaignHandling.isAutomaticShutdown()) {
+				HttpServerCampaignHandling.attemptShutdown();
 			}
 		} catch (JSONException | IOException e) {
 			e.printStackTrace();
@@ -51,17 +74,17 @@ public class OutlierHandlingController {
 	public void performARIMAAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
-			JSONObject dataWithOutliers = requestBody.getJSONObject("dataset");
+			JSONObject dataset = requestBody.getJSONObject("dataset");
 			JSONObject configurations = requestBody.getJSONObject("configurations");
 			
-			OutlierHandler outlierHandler = new OutlierHandler();
-			JSONObject dataWithoutOutliers = outlierHandler.aRIMAHandler(configurations, dataWithOutliers);
+			CampaignHandler outlierHandler = new CampaignHandler();
+			JSONObject dataWithoutOutliers = outlierHandler.aRIMAHandler(configurations, dataset);
 			response.setStatus(202);
 			response.setContentType("application/json");
 			response.getWriter().write(dataWithoutOutliers.toString());
 			response.flushBuffer();
-			if(HttpServerOutlierHandling.isAutomaticShutdown()) {
-				HttpServerOutlierHandling.attemptShutdown();
+			if(HttpServerCampaignHandling.isAutomaticShutdown()) {
+				HttpServerCampaignHandling.attemptShutdown();
 			}
 		} catch (JSONException | IOException e) {
 			e.printStackTrace();
@@ -77,14 +100,14 @@ public class OutlierHandlingController {
 			JSONObject dataWithOutliers = requestBody.getJSONObject("dataset");
 			JSONObject configurations = requestBody.getJSONObject("configurations");
 			
-			OutlierHandler outlierHandler = new OutlierHandler();
+			CampaignHandler outlierHandler = new CampaignHandler();
 			JSONObject dataWithoutOutliers = outlierHandler.exponentialSmoothingHandler(configurations, dataWithOutliers);
 			response.setStatus(202);
 			response.setContentType("application/json");
 			response.getWriter().write(dataWithoutOutliers.toString());
 			response.flushBuffer();
-			if(HttpServerOutlierHandling.isAutomaticShutdown()) {
-				HttpServerOutlierHandling.attemptShutdown();
+			if(HttpServerCampaignHandling.isAutomaticShutdown()) {
+				HttpServerCampaignHandling.attemptShutdown();
 			}
 		} catch (JSONException | IOException e) {
 			e.printStackTrace();

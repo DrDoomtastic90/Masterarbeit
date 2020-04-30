@@ -17,7 +17,7 @@ public class BantelDBConnection extends SQLiteConnection{
 		}
 		return singleton;
 	}
-	public static BantelDBConnection getInstance() {
+	public BantelDBConnection getInstance() {
 		return singleton;
 	}
 	public void close() throws SQLException {

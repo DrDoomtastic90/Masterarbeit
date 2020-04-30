@@ -17,6 +17,7 @@ import javax.ws.rs.core.MediaType;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import errorHandler.UniqueConstraintException;
 import inputHandler.RestRequestHandler;
 import webClient.RestClient;
 
@@ -32,11 +33,18 @@ public class ARIMAAdapterController {
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			JSONObject configurations = requestBody.getJSONObject("configurations");
 			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials"); 
+			
+			//Verify user access permission
 			loginCredentials = invokeLoginService(loginCredentials);
 			if(loginCredentials.getBoolean("isAuthorized")) {
+				//provide passphrase for encrypted DB
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-				responseContent = ARIMAPreparation.sorteAnalysisDaily(configurations);
+				
+				//prepare data for forecasting
+				responseContent = ARIMAPreparation.getSorteDataDaily(configurations);
 				System.out.println(responseContent.toString());
+				
+				//return prepared data to caller
 				response.setContentType("application/json");
 				response.setStatus(202);
 				response.getWriter().write(responseContent.toString());
@@ -53,6 +61,57 @@ public class ARIMAAdapterController {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UniqueConstraintException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	@POST
+	@Path("/DailySales")
+	@Produces(MediaType.APPLICATION_JSON)
+	public void getSalesDataDaily(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+		JSONObject responseContent = new JSONObject();
+		try {
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject configurations = requestBody.getJSONObject("configurations");
+			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials"); 
+			
+			//Verify user access permission
+			loginCredentials = invokeLoginService(loginCredentials);
+			if(loginCredentials.getBoolean("isAuthorized")) {
+				//provide passphrase for encrypted DB
+				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
+				
+				//prepare data for forecasting
+				responseContent = ARIMAPreparation.getSalesDataWeekly(configurations);
+				System.out.println(responseContent.toString());
+				
+				//return prepared data to caller
+				response.setContentType("application/json");
+				response.setStatus(202);
+				response.getWriter().write(responseContent.toString());
+				response.flushBuffer();
+			}
+			System.out.println("STOP");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

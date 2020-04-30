@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -23,14 +24,14 @@ import webClient.RestClient;
 public class ConfigFileController {
 	
 	@POST
-	@Path("/ConfigFile")
+	@Path("/ConfigFile/{filename}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public void getConfigFile(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+	public void getConfigFile(@Context HttpServletRequest request, @Context HttpServletResponse response, @PathParam("filename") String filename) {
 		try {
 			JSONObject configurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			JSONObject loginCredentials = invokeLoginService(configurations);
 			if(loginCredentials.getBoolean("isAuthorized")) {
-	        	File configFile = getConfigurations("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\Bantel_config.xml");
+	        	File configFile = getConfigurations("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\" + filename + ".xml");
 				JSONObject jsonConfigurations = WebInputHandler.convertXMLToJSON(configFile).getJSONObject("configuration");
 				response.setContentType("application/json");
 				response.setStatus(202);

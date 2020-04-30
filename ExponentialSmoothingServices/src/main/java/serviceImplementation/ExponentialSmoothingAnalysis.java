@@ -40,8 +40,8 @@ public class ExponentialSmoothingAnalysis {
 		while ((resultString = errorStream.readLine()) != null) {
 			error.append(resultString + "\n");
 		}
-		System.out.println(output);
-		System.out.println(error);
+		//System.out.println(output);
+		//System.out.println(error);
 		return output.toString();
 	}
 	

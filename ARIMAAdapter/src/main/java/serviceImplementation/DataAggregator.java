@@ -10,16 +10,16 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import dBConnections.AnalysisDAO;
+import dBConnections.PreparationDAO;
 
 public class DataAggregator {
-	public static Map<String, String> getSortenPKBezMapping(AnalysisDAO daoAnalysis) throws SQLException {
+	public static Map<String, String> getSortenPKBezMapping(PreparationDAO daoAnalysis) throws SQLException {
 		Map<String, String> sortePKBezMap = daoAnalysis.getSortePKBezMapping();
 		return sortePKBezMap;
 
 	}
 
-	public static Map<String, Map<String, Datastruct>> aggregateSorteDataDaily(String kNo, JSONObject configurations, AnalysisDAO daoAnalysis) throws JSONException, SQLException {
+	public static Map<String, Map<String, Datastruct>> aggregateSorteDataDaily(String kNo, JSONObject configurations, PreparationDAO daoAnalysis) throws JSONException, SQLException {
 		Map<String, String> sortePKBezMap = getSortenPKBezMapping(daoAnalysis);
 		Map<String, Map<String, Datastruct>> dailyDataAllPKBEZ = daoAnalysis.getDataDaily(kNo, configurations);
 		Map<String, Map<String, Datastruct>> aggregatedDataAllSorte = new LinkedHashMap<String, Map<String, Datastruct>>();

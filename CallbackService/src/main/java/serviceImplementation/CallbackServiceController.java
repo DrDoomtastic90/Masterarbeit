@@ -34,7 +34,7 @@ public class CallbackServiceController {
 		
 		@POST
 		@Produces(MediaType.APPLICATION_JSON)
-		public void performRuleBasedAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+		public void performCallback(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 
 			try {
 				JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);

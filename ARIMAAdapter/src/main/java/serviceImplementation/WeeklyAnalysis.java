@@ -14,7 +14,8 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import dBConnections.AnalysisDAO;
+import dBConnections.BantelDBConnection;
+import dBConnections.PreparationDAO;
 import errorHandler.UniqueConstraintException;
 
 
@@ -44,8 +45,11 @@ public class WeeklyAnalysis extends Analysis{
 
 	public void WeeklyAnalysisAllCustomers(JSONObject configurations) throws JSONException, ClassNotFoundException, SQLException {
 		try {
-			AnalysisDAO daoAnalysis = new AnalysisDAO(configurations.getString("passPhrase"));
-			List<String> kNoList = daoAnalysis.getAllKNo();
+			//setup DB Connection for data access
+			String passPhrase = configurations.getString("passPhrase");
+			PreparationDAO preparationDAO = new PreparationDAO(BantelDBConnection.getInstance(passPhrase));
+			
+			List<String> kNoList = preparationDAO.getAllKNo();
 			for (String kNo : kNoList) {
 				weeklyAnalysis(kNo, configurations);
 			}
@@ -56,8 +60,11 @@ public class WeeklyAnalysis extends Analysis{
 	}
 
 	public Map<String, Map<String, Datastruct>> getWeeklyData(String kNo, JSONObject configurations/* String fromDate, String toDate*/) throws JSONException, ClassNotFoundException, SQLException {
-		AnalysisDAO daoAnalysis = new AnalysisDAO(configurations.getString("passPhrase"));
-		Map<String, Map<String, Datastruct>> dailyAnalysis = daoAnalysis.getDataDaily(kNo, configurations /*fromDate, toDate*/);		
+		//setup DB Connection for data access
+		String passPhrase = configurations.getString("passPhrase");
+		PreparationDAO preparationDAO = new PreparationDAO(BantelDBConnection.getInstance(passPhrase));
+		
+		Map<String, Map<String, Datastruct>> dailyAnalysis = preparationDAO.getDataDaily(kNo, configurations /*fromDate, toDate*/);		
 		Map<String, Map<String, Datastruct>>weeklyAnalysis= aggregateDataWeekly(dailyAnalysis);	
 		return weeklyAnalysis;
 	}
@@ -70,7 +77,7 @@ public class WeeklyAnalysis extends Analysis{
 	}
 
 	private static void createWeeklyCSV(String pKBez, List<Datastruct> dataSet, boolean campaigns, String kNo, boolean nA) {
-		String content = AnalysisDAO.dataToCSVString(dataSet, false, campaigns);
+		String content = PreparationDAO.dataToCSVString(dataSet, false, campaigns);
 		String analysis = "";
 		if (campaigns) {
 			analysis = "WeeklyAnalysisCampaigns";

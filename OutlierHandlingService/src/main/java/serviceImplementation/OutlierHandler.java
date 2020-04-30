@@ -15,6 +15,36 @@ public class OutlierHandler {
 	
 	public OutlierHandler() {}	
 		
+	public JSONObject limitHandler(JSONObject configurations, JSONObject dataWithOutliers) throws JSONException, IOException {
+		
+		//Instantiate result object 
+		JSONObject resultValues = new JSONObject();
+		
+		//Get Execution Parameters
+		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
+		double upperLimitOutliers = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
+		double lowerLimitOutliers = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
+		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
+		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
+		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
+		
+		//Initialize Path Variables
+		String handlerPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\DataProvisioningServices\\outlierHandler\\";
+				
+
+		
+		//Execute Analysis for each target variable
+		for(String targetVariable : dataWithOutliers.keySet()) {
+			
+			//create temporary input file (loaded by rscript to handle outliers)
+			String resourcePath = handlerPath+"temp\\inputValues_" + targetVariable + ".tmp";
+			CustomFileWriter.createFile(resourcePath, dataWithOutliers.getString(targetVariable));
+			String execString = "RScript " + handlerPath + "OutlierHandling_ARIMAAnalysis_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitOutliers + " " + upperLimitOutliers;
+			String resultString = executeProcessCMD(execString);
+			resultValues.put(targetVariable, resultString);
+		}
+		return resultValues;
+	}
 	
 	public JSONObject aRIMAHandler(JSONObject configurations, JSONObject dataWithOutliers) throws JSONException, IOException {
 	
@@ -72,39 +102,10 @@ public class OutlierHandler {
 			String resourcePath = handlerPath+"temp\\inputValues_" + targetVariable + ".tmp";
 			CustomFileWriter.createFile(resourcePath, dataWithOutliers.getString(targetVariable));
 			String execString = "RScript " + handlerPath + "OutlierHandling_ExpSmoothingAnalysis_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitOutliers + " " + upperLimitOutliers;
-			JSONObject executionResult = new JSONObject(executeProcessCMD(execString));
-			resultValues.put(targetVariable, executionResult);
-		}
-		return resultValues;
-	}
-	
-	public JSONObject linearRegression(JSONObject configurations, JSONObject dataWithOutliers) throws JSONException, IOException {
-		
-		//Instantiate result object 
-		JSONObject resultValues = new JSONObject();
-		
-		//Get Execution Parameters
-		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
-		double upperLimitOutliers = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
-		double lowerLimitOutliers = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
-		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
-		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
-		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
-		
-		//Initialize Path Variables
-		String handlerPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\DataProvisioningServices\\outlierHandler\\";
-				
-
-		
-		//Execute Analysis for each target variable
-		for(String targetVariable : dataWithOutliers.keySet()) {
-			
-			//create temporary input file (loaded by rscript to handle outliers)
-			String resourcePath = handlerPath+"temp\\inputValues_" + targetVariable + ".tmp";
-			CustomFileWriter.createFile(resourcePath, dataWithOutliers.getString(targetVariable));
-			String execString = "RScript " + handlerPath + "OutlierHandling_LinearRegressionAnalysis_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitOutliers + " " + upperLimitOutliers;
-			JSONObject executionResult = new JSONObject(executeProcessCMD(execString));
-			resultValues.put(targetVariable, executionResult);
+			String resultString = executeProcessCMD(execString);
+			resultValues.put(targetVariable, resultString);
+			//JSONObject executionResult = new JSONObject(executeProcessCMD(execString));
+			//resultValues.put(targetVariable, executionResult);
 		}
 		return resultValues;
 	}

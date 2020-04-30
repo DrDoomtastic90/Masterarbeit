@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.rosuda.JRI.REXP;
@@ -48,7 +49,7 @@ public class KalmanAnalysis {
 	}
 	
 	
-	private JSONObject trainModel(String inputAggr, String outputAggr, String processingAggr, String kalmanPath, String filePath, String sorte, int forecastPeriods) throws IOException {
+	private JSONObject trainModel(String inputAggr, String outputAggr, String processingAggr, String kalmanPath, String filePath, String sorte, int forecastPeriods,  JSONArray factors) throws IOException {
 		/*String execString ="";
 		/*switch(inputAggr) {
 		  case "daily":
@@ -67,7 +68,24 @@ public class KalmanAnalysis {
 			  throw new RuntimeException("Aggregation Invalid");
 		}
 		*/
-		String execString = "RScript " + kalmanPath + "Train_Kalman_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + filePath + " " + sorte + " " + forecastPeriods;
+		//Get Factors
+		StringBuilder factorStringBuilder = new StringBuilder();
+		boolean first = true;
+		
+		for(int i = 0; i < factors.length(); ++i) {
+			JSONObject factor = factors.getJSONObject(i);
+			String content = factor.getString("content");
+			if(first) {
+				factorStringBuilder.append(content);
+				first=false;
+			}else {
+				factorStringBuilder.append(",");
+				factorStringBuilder.append(content);
+			}
+		}
+		String factorsString = factorStringBuilder.toString();
+		
+		String execString = "RScript " + kalmanPath + "Train_Kalman_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + filePath + " " + sorte + " " + forecastPeriods + " " + factorsString;
 		
 		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));	
@@ -114,6 +132,7 @@ public class KalmanAnalysis {
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
 		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
+		JSONArray factors = configurations.getJSONObject("factors").getJSONArray("independentVariable");
 		boolean train = configurations.getJSONObject("parameters").getJSONObject("execution").getBoolean("train");
 		String username = configurations.getString("username");
 		
@@ -131,7 +150,7 @@ public class KalmanAnalysis {
 			
 			try {
 				if(train) {
-				model = trainModel(inputAggr, outputAggr, processingAggr, kalmanPath, filePath, sorte, forecastPeriods);
+				model = trainModel(inputAggr, outputAggr, processingAggr, kalmanPath, filePath, sorte, forecastPeriods, factors);
 					
 					kalmanDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
 				}else {

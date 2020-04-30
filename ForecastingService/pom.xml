@@ -57,6 +57,13 @@
 			<artifactId>jackson-databind</artifactId>
 			<version>2.10.0.pr1</version>
 		</dependency>
+		
+		<!-- SQLITE -->
+		<dependency>
+			<groupId>io.github.willena</groupId>
+			<artifactId>sqlite-jdbc</artifactId>
+			<version>3.28.0</version>
+		</dependency>
 
 		<!-- JUNIT -->
 		<dependency>
@@ -87,5 +94,11 @@
 			<version>1.6</version>
 		</dependency>
 		
+		<!--  Apache Commons Math -->
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-math3</artifactId>
+		    <version>3.6.1</version>
+		</dependency>
 	</dependencies>
 </project>

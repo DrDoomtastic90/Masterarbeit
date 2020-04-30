@@ -38,7 +38,7 @@ public class SQLiteConnection implements DBConnection{
 		return singleton;
 	}
 	
-	public static DBConnection getInstance() {
+	public DBConnection getInstance() {
 		return singleton;
 	}
 	

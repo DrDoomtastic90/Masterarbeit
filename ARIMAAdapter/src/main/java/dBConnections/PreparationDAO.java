@@ -24,16 +24,16 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 
-public class AnalysisDAO {
+public class PreparationDAO {
 	DBConnection dBConnection = null;
 
-	public AnalysisDAO(String passPhrase) throws ClassNotFoundException {
-		dBConnection = BantelDBConnection.getInstance(passPhrase);
+	public PreparationDAO(DBConnection dBConnection) throws ClassNotFoundException {
+		this.dBConnection = dBConnection;
 	}
 
 
-	public AnalysisDAO() {
-		dBConnection = BantelDBConnection.getInstance();
+	public PreparationDAO() {
+		dBConnection = dBConnection.getInstance();
 	}
 
 	private boolean checkAktion(String lSNo, int posNo) throws UniqueConstraintException, SQLException {
@@ -141,6 +141,130 @@ public class AnalysisDAO {
 				+ pKBez + "' and ls.Datum>='" + fromDate + "' and ls.Datum <= '" + toDate + "' order by ls.Datum asc";
 		return getData(pKBez, sql, fromDate, toDate/*, nA*/);
 	}
+	
+
+	
+
+	public Map<String,Map<String, Datastruct>> initializePreparedDataMap(String fromDate, String toDate) throws SQLException{
+		Map<String, Map<String, Datastruct>> dataDailySorteAll = new LinkedHashMap<String, Map<String, Datastruct>>();
+		ArrayList<String> sKBezList = getAllSKBez();
+		for(String sKBez : sKBezList) {
+			Map<String, Datastruct> emptyDatesMap = createEmptyMapOfDates(fromDate, toDate);
+			dataDailySorteAll.put(sKBez, emptyDatesMap);
+		}
+		return dataDailySorteAll;
+	}
+	
+	public Map<String, Map<String, Double>> getSalesDataDailySorte(String fromDate, String toDate) throws UniqueConstraintException, SQLException {
+		Statement statement = null;
+		ResultSet resultSet = null;
+		Map<String, Map<String, Double>> salesDataDailySorteAll = new LinkedHashMap<String, Map<String, Double>>();
+		Connection connection = dBConnection.checkConnectivity();
+		try {
+			statement = connection.createStatement();
+			String sql = "SELECT ls.Datum, svp.skbez, sum(pos.menge*kart.menge) from SorteVerpacktPaarung svp join  VerpacktEndproduktPaarung vep on svp.vkbez=vep.vkbez join EndproduktKartonagePaarung ekp on ekp.pkbez=vep.pkbez join Kartonagen kart on kart.verpID=ekp.VerpID left join LS_Positionen pos on vep.pkbez=pos.pkbez left join Lieferscheine ls on pos.LS_No = ls.LS_NO where ls.Datum>='" + fromDate + "' and ls.Datum <= '" + toDate + "' group by ls.datum, svp.skbez order by ls.Datum asc";
+			resultSet = statement.executeQuery(sql);
+			while (resultSet.next()) {
+				String lieferdatum = resultSet.getString(1);
+				String sorte = resultSet.getString(2);
+				double menge = resultSet.getDouble(3);
+				
+				if(!salesDataDailySorteAll.containsKey(sorte)) {
+					Map<String, Double> dateValueMap = new LinkedHashMap<String, Double>();
+					salesDataDailySorteAll.put(sorte, dateValueMap);
+				}
+				salesDataDailySorteAll.get(sorte).put(lieferdatum, menge);
+			}
+		} finally {
+			if (connection != null) {
+				try {
+					statement.close();
+					resultSet.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return salesDataDailySorteAll;
+	}
+	
+	
+	public Map<String, Map<String, Double>> getCampaignsDataDailySorte(String fromDate, String toDate) throws UniqueConstraintException, SQLException {
+		Statement statement = null;
+		ResultSet resultSet = null;
+		Map<String, Map<String, Double>> salesDataDailySorteAll = new LinkedHashMap<String, Map<String, Double>>();
+		Connection connection = dBConnection.checkConnectivity();
+		try {
+			statement = connection.createStatement();
+			String sql = "Select akt.LieferDatum, svp.SKBez, sum(akt.Menge) from SorteVerpacktPaarung svp join VerpacktEndproduktPaarung vep on svp.vkbez=vep.vkbez left join Aktionen akt on vep.pkbez=akt.pkbez where akt.LieferDatum>='" + fromDate + "' and akt.LieferDatum <= '" + toDate + "' group by akt.LieferDatum order by svp.skbez desc";
+			resultSet = statement.executeQuery(sql);
+			while (resultSet.next()) {
+				String lieferdatum = resultSet.getString(1);
+				String sorte = resultSet.getString(2);
+				double menge = resultSet.getDouble(3);
+				
+				if(!salesDataDailySorteAll.containsKey(sorte)) {
+					Map<String, Double> dateValueMap = new LinkedHashMap<String, Double>();
+					salesDataDailySorteAll.put(sorte, dateValueMap);
+				}
+				salesDataDailySorteAll.get(sorte).put(lieferdatum, menge);
+			}
+		} finally {
+			if (connection != null) {
+				try {
+					statement.close();
+					resultSet.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return salesDataDailySorteAll;
+	}
+		
+	public ArrayList<String> getAllSKBez() throws SQLException{
+		Statement statement = null;
+		ResultSet resultSet = null;
+		ArrayList<String> sKBezList = new ArrayList<String>();
+		Connection connection = dBConnection.checkConnectivity();
+		try {
+			statement = connection.createStatement();
+			String sql = "SELECT ks.SKBez from kaesesorten ks order by ks.SKBez desc";
+			resultSet = statement.executeQuery(sql);
+			while (resultSet.next()) {
+				String sKBez = resultSet.getString(1);
+				sKBezList.add(sKBez);
+			}
+		} finally {
+			if (connection != null) {
+				try {
+					statement.close();
+					resultSet.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return sKBezList;
+	}
+	
+	
+	
+
+	public static Map<String, Datastruct> createEmptyMapOfDates(String fromDate, String toDate) {
+		LocalDate startDate = LocalDate.parse(fromDate);
+		LocalDate endDate = LocalDate.parse(toDate);
+		Map<String, Datastruct> dailyValues = new LinkedHashMap<String, Datastruct>();
+		while (!startDate.isAfter(endDate)) {
+			Datastruct datastruct = new Datastruct();
+			dailyValues.put(startDate.toString(), datastruct);
+			startDate = startDate.plusDays(1);
+	
+		}
+		return dailyValues;
+	}
+
+	
 
 	public Map<String, Datastruct> getData(String pKBez, String sql, String fromDateString, String toDateString) throws UniqueConstraintException, SQLException {
 		Statement statement = null;
@@ -381,6 +505,35 @@ public class AnalysisDAO {
 			}
 		}
 		return dailyData;
+	}
+	
+	public JSONObject getSalesAmountsDaily(String fromDate, String toDate) throws SQLException{
+		Statement statement = null;
+		ResultSet resultSet = null;
+		JSONObject salesamounts = new  JSONObject();
+		String sql= "select svp.skbez, sum(pos.menge * kart.menge/pv.ProdFaktor) As Menge From Lieferscheine ls \r\n" + 
+				"join LS_Positionen pos on ls.ls_No = pos.LS_No \r\n" + 
+				"left join VerpacktEndproduktPaarung vep on vep.pkbez=pos.pkbez \r\n" + 
+				"join  SorteVerpacktPaarung svp on svp.vkbez=vep.vkbez \r\n" + 
+				"join EndproduktKartonagePaarung ekp on ekp.pkbez = vep.pkbez \r\n" + 
+				"join VerpacktKartonagePaarung vkp on vkp.vkbez = vep.vkbez \r\n" + 
+				"join ProdukteVerpackt pv on pv.vkbez = vep.vkbez \r\n" + 
+				"join Kartonagen kart on kart.verpID = ekp.verpID \r\n" + 
+				"where ls.Datum>='" + fromDate + "' and ls.Datum <= '" + toDate + "' \r\n" + 
+				"group by svp.skbez \r\n" + 
+				"order by svp.skbez asc";
+		Connection connection = dBConnection.checkConnectivity();
+		try {
+			statement = connection.createStatement();
+			resultSet = statement.executeQuery(sql);
+			while (resultSet.next()) {
+				String skbez = resultSet.getString(1);
+				salesamounts.put(skbez, resultSet.getDouble(2));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return salesamounts;
 	}
 
 	

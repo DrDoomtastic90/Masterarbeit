@@ -28,7 +28,7 @@ public class ExponentialSmoothingController {
 	
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
-	public void performKalmanAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+	public void performExponentialSmoothingAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
 			
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
