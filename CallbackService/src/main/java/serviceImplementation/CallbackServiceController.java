@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,10 +18,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-
+import dBConnections.CallbackDAO;
+import dBConnections.CallbackDBConnection;
 import inputHandler.RestRequestHandler;
 import inputHandler.WebInputHandler;
 import outputHandler.CustomFileWriter;
@@ -39,11 +42,24 @@ public class CallbackServiceController {
 			try {
 				JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 				JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials"); 
+				JSONObject configurations = requestBody.getJSONObject("configurations"); 
+				JSONObject forecastResults = requestBody.getJSONObject("results");
 				loginCredentials = invokeLoginService(loginCredentials);
 				//JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 				//JSONObject loginCredentials = invokeLoginService(requestBody.getJSONObject("forecasting").getJSONObject("Combined"));
 				if(loginCredentials.getBoolean("isAuthorized")) {
+					
+					CallbackDBConnection.getInstance("CallbackDB");
+					CallbackDAO callbackDAO = new CallbackDAO();
+							
+					if(forecastResults.has("ARIMAResult")) {
+						JSONObject aRIMAConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ARIMA");
+						JSONObject aRIMAResult = forecastResults.getJSONObject("ARIMAResult");
+						callbackDAO.writeForecastResultsToDB(aRIMAConfigurations, "ARIMA", aRIMAResult);
+					}
 				
+					
+					
 					String filePath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\Result.json";
 					CustomFileWriter.createFile(filePath, requestBody.getJSONObject("results").toString());
 					response.setStatus(202);
@@ -62,6 +78,9 @@ public class CallbackServiceController {
 			} catch (JSONException | IOException e) {
 				e.printStackTrace();
 				
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 		
