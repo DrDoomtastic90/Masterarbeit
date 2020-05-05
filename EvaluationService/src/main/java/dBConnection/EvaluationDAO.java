@@ -1,11 +1,14 @@
 package dBConnection;
 
 import java.sql.Connection;
+
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 
 
 public class EvaluationDAO {
@@ -20,6 +23,7 @@ public class EvaluationDAO {
 		dBConnection = BantelDBConnection.getInstance();
 	}
 
+	
 	public JSONObject getSalesAmounts(String fromDate, String toDate) throws SQLException{
 		Statement statement = null;
 		ResultSet resultSet = null;
