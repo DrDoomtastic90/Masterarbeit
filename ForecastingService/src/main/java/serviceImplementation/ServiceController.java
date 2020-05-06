@@ -1,5 +1,6 @@
 package serviceImplementation;
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -12,6 +13,18 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -24,6 +37,9 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.container.Suspended;
 
 import org.apache.commons.validator.routines.UrlValidator;
 import org.json.JSONArray;
@@ -33,12 +49,15 @@ import org.json.JSONObject;
 
 import inputHandler.RestRequestHandler;
 import inputHandler.WebInputHandler;
+import jdk.jfr.ContentType;
 import outputHandler.CustomFileWriter;
 import webClient.RestClient;
 
 
 @Path("/ForecastingServices")
 public class ServiceController {
+	static  int concurrentThreads = 0;
+
 	
 	@GET
 	@Path("/RuleBasedService")
@@ -91,6 +110,52 @@ public class ServiceController {
 		}
 	}
 	
+	private Callable<JSONObject> getJSONCallable(JSONObject executionRun) {
+	    return () -> {
+	    	return executionRun;
+	   };
+	}
+	
+	private Callable<JSONObject> taskPrep(JSONObject executionRun, JSONObject jsonConfigurations, JSONObject loginCredentials, JSONObject loginCredentialsCustomerSystem) {
+	    return () -> {
+	    	JSONObject executionResult = new JSONObject();
+			try {
+        		//String to = executionRuns.getJSONObject(i). getString("to");
+        		//String from = executionRuns.getJSONObject(i).getString("from");
+        		String to = executionRun.getString("to");
+        		String from = executionRun.getString("from");
+        		JSONObject configurations = new JSONObject(jsonConfigurations, JSONObject.getNames(jsonConfigurations));
+        		configurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("to", to);
+        		configurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("from", from);
+        		
+        		//execute procedures
+        		
+			//try {
+				executionResult = performCombinedAnalysis(loginCredentials, loginCredentialsCustomerSystem, configurations);
+				//combinedAnalysisResults.put(to, executionResult); 
+			//} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				//e.printStackTrace();
+			//}catch(ExecutionException e) {
+				//e.printStackTrace();	
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	    	return executionResult;
+	   };
+	}
+
+	
 	@GET
 	@Path("/CombinedServices/Multi")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -118,18 +183,125 @@ public class ServiceController {
 	        	
 	        	//Run procedures for each provided date
 				JSONArray executionRuns = requestBody.getJSONArray("executionRuns");
-	        	for(int i = 0; i<executionRuns.length();i++) {
+				//final ScheduledExecutorService executorService2 = Executors.newScheduledThreadPool(executionRuns.length());
+				//List<Callable<JSONObject>> callableList = new ArrayList<Callable<JSONObject>>();
+				concurrentThreads=0;
+				/*StreamSupport.stream(executionRuns.spliterator(), false).forEach(stream->{
+					try {
+						concurrentThreads+=1;
+						System.out.println("Concurrent Thread Number " + concurrentThreads + " executed!");
+						TimeUnit.SECONDS.sleep(3*concurrentThreads);
+						executorService2.schedule(taskPrep((JSONObject)stream, jsonConfigurations, loginCredentials, loginCredentialsCustomerSystem), 0,  TimeUnit.SECONDS);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} 
+					
+				});*/
+				
+				for(int i = 0; i<executionRuns.length();i++) {
+					concurrentThreads+=1;
+					try {
+						TimeUnit.SECONDS.sleep(3*concurrentThreads);
+						JSONObject multiRequestBody = new JSONObject();
+						multiRequestBody.put("configurations",jsonConfigurations);
+						multiRequestBody.put("loginCredentialsCustomerSystem",loginCredentialsCustomerSystem);
+						multiRequestBody.put("loginCredentials",loginCredentials);
+						serviceURL = "https://localhost:443/ForecastingTool/ForecastingServices/CombinedServices";
+						invokeHTTPSService(serviceURL, multiRequestBody);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+									}
+				//executorService2.shutdown();
+				
+				//Parallel Execution (Leads to concurrent error in R)
+				/*TimeUnit.SECONDS.sleep(20);
+				StreamSupport.stream(executionRuns.spliterator(), false).parallel().forEach(stream->{
+					callableList.add(getJSONCallable((JSONObject)stream));
+				});
+
+				final ExecutorService executorService = Executors.newFixedThreadPool(executionRuns.length());
+				
+				executorService.invokeAll(callableList).stream().forEach(stream->{
+					JSONObject executionRun;
+					try {
+						executionRun = stream.get();
+		        		//String to = executionRuns.getJSONObject(i). getString("to");
+		        		//String from = executionRuns.getJSONObject(i).getString("from");
+		        		String to = executionRun.getString("to");
+		        		String from = executionRun.getString("from");
+		        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("to", to);
+		        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("from", from);
+		        		
+		        		//execute procedures
+		        		JSONObject executionResult;
+					//try {
+						executionResult = performCombinedAnalysis(loginCredentials, loginCredentialsCustomerSystem, jsonConfigurations);
+						combinedAnalysisResults.put(to, executionResult); 
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}catch(ExecutionException e) {
+						e.printStackTrace();	
+					} catch (ClassNotFoundException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (ParseException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+				});
+*/
+				//NOT CONCURRENT!!
+				/*
+				StreamSupport.stream(executionRuns.spliterator(), false).parallel().forEach(stream->{
+				//final ExecutorService executorService = Executors.newFixedThreadPool(executionRunsJSONArray.length());
+				//executorService.invokeAll(callables).stream().forEach(stream->{
+	        	//for(int i = 0; i<executionRuns.length();i++) {
 		        	//set dates (overwrites configfile dates)
-	        		String to = executionRuns.getJSONObject(i). getString("to");
-	        		String from = executionRuns.getJSONObject(i).getString("from");
+					JSONObject executionRun = (JSONObject) stream;
+	        		//String to = executionRuns.getJSONObject(i). getString("to");
+	        		//String from = executionRuns.getJSONObject(i).getString("from");
+	        		String to = executionRun.getString("to");
+	        		String from = executionRun.getString("from");
 	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("to", to);
 	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("from", from);
 	        		
 	        		//execute procedures
-	        		JSONObject executionResult = performCombinedAnalysis(loginCredentials, loginCredentialsCustomerSystem, jsonConfigurations);
-	        		combinedAnalysisResults.put(to, executionResult); 
-	        	}
-	        	
+	        		JSONObject executionResult;
+					try {
+						executionResult = performCombinedAnalysis(loginCredentials, loginCredentialsCustomerSystem, jsonConfigurations);
+						combinedAnalysisResults.put(to, executionResult); 
+			        	System.out.println(new Date());
+					} catch (ClassNotFoundException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (ParseException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	        		
+				});
+	        	//}
+	        	System.out.println("Ende Im Gelände");
+*/
+				//Manually invoked
+				/*
 	        	//only for thesis purpose. Initializes service call from Bantel GmbH
 	        	if(requestBody.getBoolean("evaluation")) {
 		    		JSONObject evaluationRequestBody = new JSONObject();
@@ -143,25 +315,36 @@ public class ServiceController {
 		    		//evaluationRequestBody.put("results", combinedAnalysisResults);
 		    		//evaluationRequestBody.put("configurations", jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined"));
 
-	        	}
+	        	}*/
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
+	@POST
+	@Path("{parameter: |CombinedServices}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public void initializeCombinedAnalysisSingleRun2(@Context HttpServletRequest request, @Suspended final AsyncResponse asyncResponse) throws ClassNotFoundException, IOException, SQLException, ParseException {
+		JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+		JSONObject jsonConfigurations = requestBody.getJSONObject("configurations");
+		JSONObject loginCredentialsCustomerSystem = requestBody.getJSONObject("loginCredentialsCustomerSystem");
+		JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
+    	//Return asyn response
+		ResponseBuilder rBuild = Response.status(202);
+		//rBuild.type(MediaType.APPLICATION_JSON);
+		JSONObject responseMessage = new JSONObject();
+		responseMessage.put("result", "Request Successfully Received. Result will be returned as soon as possible!");
+		rBuild.entity(responseMessage.toString());
+		asyncResponse.resume(rBuild.build());
+		performCombinedAnalysis(loginCredentials, loginCredentialsCustomerSystem, jsonConfigurations);
+		//Return asyn response
+    	
+	}
 	
 	@GET
 	@Path("{parameter: |CombinedServices}")
@@ -185,7 +368,9 @@ public class ServiceController {
 	        	JSONObject jsonConfigurations =  invokeHTTPSService(serviceURL, loginCredentialsCustomerSystem);       	
 	        	
 	        	//Return asyn response
-	        	asyncResponse.resume("Request Successfully Received. Result will be returned as soon as possible!");
+	        	 ResponseBuilder rBuild = Response.status(202);
+	        	 rBuild.type(MediaType.APPLICATION_JSON).entity("Request Successfully Received. Result will be returned as soon as possible!").build();
+	        	asyncResponse.resume(rBuild);
 	        	
 	        	//execute procedures
 	        	JSONObject combinedAnalysisResult = performCombinedAnalysis(loginCredentials, loginCredentialsCustomerSystem, jsonConfigurations);  
@@ -314,7 +499,10 @@ public class ServiceController {
 		
 		//return result
 		invokeHTTPSService(callbackServiceURL, callBackRequestBody);
+		concurrentThreads-=1;
+		System.out.println(concurrentThreads);
 		return combinedAnalysisResult;
+		
 	}
 	
 	

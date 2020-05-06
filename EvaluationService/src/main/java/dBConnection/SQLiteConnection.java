@@ -55,4 +55,11 @@ public class SQLiteConnection implements DBConnection{
 		connection=null;
 		singleton = null;
 	}
+	
+	public String getPassphrase() {
+		return passPhrase;
+	}
+	public String getDBLocation() {
+		return dbLocation;
+	}
 }

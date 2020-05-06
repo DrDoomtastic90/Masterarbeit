@@ -45,8 +45,10 @@ public class CallbackDAO {
 		double campaignLowerLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("lowerLimit");
 		double campaignUpperLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("upperLimit");
 		String campaignProcedure = configurations.getJSONObject("parameters").getJSONObject("campaigns").getString("procedure");
+		boolean campaignEnabled = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
 		double outlierLowerLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
 		double outlierUpperLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
+		boolean outlierEnabled = configurations.getJSONObject("parameters").getJSONObject("outliers").getBoolean("handle");
 		String outlierProcedure = configurations.getJSONObject("parameters").getJSONObject("outliers").getString("procedure");
 		
 		Statement statement = null;
@@ -61,10 +63,12 @@ public class CallbackDAO {
 				"AND DataConsideratedFromDate = '"+ from + "' " + 
 				"AND CampaignLowerLimit = '"+ campaignLowerLimit + "' " + 
 				"AND CampaignUpperLimit = '"+ campaignUpperLimit + "' " + 
-				"AND CampaignProcedure = '"+ campaignProcedure + "' " + 
+				"AND CampaignProcedure = '"+ campaignProcedure + "' " +
+				"AND CampaignEnabled = '"+ campaignEnabled + "'" +
 				"AND OutlierLowerLimit = '"+ outlierLowerLimit + "' " + 
 				"AND OutlierUpperLimit = '"+ outlierUpperLimit + "' " + 
 				"AND OutlierProcedure = '"+ outlierProcedure + "'" +
+				"AND OutlierEnabled = '"+ outlierEnabled + "'" +
 				"Order By ForecastID desc limit 1";
 		Connection connection = dbConnection.checkConnectivity();
 		try {

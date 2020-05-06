@@ -18,7 +18,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import dBConnection.CallbackDBConnection;
 import dBConnection.EvaluationDAO;
+import dBConnection.EvaluationDBConnection;
 import inputHandler.RestRequestHandler;
 import webClient.RestClient;
 
@@ -134,7 +136,12 @@ public class EvaluationController {
 				JSONObject preparedResults = EvaluationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials);
 				
 				//Evaluation MAE evaluation service from forecasting tool => Outsource to separate ForecastingTool service
-				EvaluationService.evaluationMAE(preparedResults);
+				JSONObject evaluationResult = EvaluationService.evaluationMAE(preparedResults);
+				
+				//Store result
+				EvaluationDBConnection.getInstance("EvaluationDB");
+				EvaluationDAO evaluationDAO = new EvaluationDAO();
+				evaluationDAO.writeEvaluationResultsToDB(evaluationResult, configurations, "ARIMA", "MAE");
 			}
 			
 			

@@ -20,6 +20,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import dBConnection.BantelDAO;
 import dBConnection.CallbackDAO;
 import dBConnection.CallbackDBConnection;
 import dBConnection.EvaluationDAO;
@@ -134,11 +135,14 @@ public class EvaluationService {
 					periodResults.put("MEPercentage", deviation/actualDemand);
 					periodResults.put("MAE", ABSDeviation);
 					periodResults.put("MAEPercentage", ABSDeviation/actualDemand);
+					periodResults.put("forecastResult", forecastResult);
+					periodResults.put("actualDemand", actualDemand);
 					totalDeviationForecastPeriods.put("ME", (totalDeviationForecastPeriods.getDouble("ME") + periodResults.getDouble("ME"))/2);
 					totalDeviationForecastPeriods.put("MEPercentage", (totalDeviationForecastPeriods.getDouble("MEPercentage") + periodResults.getDouble("MEPercentage"))/2);
 					totalDeviationForecastPeriods.put("MAE", (totalDeviationForecastPeriods.getDouble("MAE") + periodResults.getDouble("MAE"))/2);
 					totalDeviationForecastPeriods.put("MAEPercentage", (totalDeviationForecastPeriods.getDouble("MAEPercentage") + periodResults.getDouble("MAEPercentage"))/2);
 				}
+				
 				totalDeviationObservationPeriod.put("ME", (totalDeviationObservationPeriod.getDouble("ME") + totalDeviationForecastPeriods.getDouble("ME"))/2);
 				totalDeviationObservationPeriod.put("MEPercentage", (totalDeviationObservationPeriod.getDouble("MEPercentage") + totalDeviationForecastPeriods.getDouble("MEPercentage"))/2);
 				totalDeviationObservationPeriod.put("MAE", (totalDeviationObservationPeriod.getDouble("MAE") + totalDeviationForecastPeriods.getDouble("MAE"))/2);
@@ -192,7 +196,7 @@ public class EvaluationService {
 	
 	public static JSONObject getActualResultsWeekly(String toDate, int forecastPeriods, String passPhrase) throws SQLException, ParseException, ClassNotFoundException {
 		JSONObject actualResults = new JSONObject();
-		EvaluationDAO evaluationDAO = new EvaluationDAO(passPhrase);
+		BantelDAO evaluationDAO = new BantelDAO(passPhrase);
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
 		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
 		calendar.setFirstDayOfWeek(Calendar.MONDAY);
@@ -213,7 +217,7 @@ public class EvaluationService {
 	
 	public static JSONObject getActualResultsDaily(String toDate, int forecastPeriods, String passPhrase) throws SQLException, ParseException, ClassNotFoundException {
 		JSONObject actualResults = new JSONObject();
-		EvaluationDAO evaluationDAO = new EvaluationDAO(passPhrase);
+		BantelDAO evaluationDAO = new BantelDAO(passPhrase);
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
 		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
 		calendar.setFirstDayOfWeek(Calendar.MONDAY);
