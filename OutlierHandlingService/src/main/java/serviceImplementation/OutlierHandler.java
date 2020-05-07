@@ -70,7 +70,7 @@ public class OutlierHandler {
 			//create temporary input file (loaded by rscript to handle outliers)
 			String resourcePath = handlerPath+"temp\\inputValues_" + targetVariable + ".tmp";
 			CustomFileWriter.createFile(resourcePath, dataWithOutliers.getString(targetVariable));
-			String execString = "RScript " + handlerPath + "OutlierHandling_ARIMAAnalysis_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitOutliers + " " + upperLimitOutliers;
+			String execString = "RScript " + handlerPath + "OutlierHandling_ARIMAAnalysis_" + inputAggr + "_" + inputAggr + "_" + inputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitOutliers + " " + upperLimitOutliers;
 			String resultString = executeProcessCMD(execString);
 			resultValues.put(targetVariable, resultString);
 		}

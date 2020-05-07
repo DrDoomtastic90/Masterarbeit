@@ -48,8 +48,10 @@ public class CallbackDAO {
 		double campaignLowerLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("lowerLimit");
 		double campaignUpperLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("upperLimit");
 		String campaignProcedure = configurations.getJSONObject("parameters").getJSONObject("campaigns").getString("procedure");
+		boolean campaignEnabled = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
 		double outlierLowerLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
 		double outlierUpperLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
+		boolean outlierEnabled = configurations.getJSONObject("parameters").getJSONObject("outliers").getBoolean("handle");
 		String outlierProcedure = configurations.getJSONObject("parameters").getJSONObject("outliers").getString("procedure");
 		
 		
@@ -57,8 +59,8 @@ public class CallbackDAO {
 				+ "VALUES('" + to + "','" + serviceName + "','" + forecastResult + "','" + forecastPeriods + "','" + aggregationInputData + "','" + aggregationProcessing + "','" + aggregationOutputData + "','" + from + "',"
 						+ "'" + campaignLowerLimit + "','" + campaignUpperLimit + "','" + campaignProcedure + "','" + outlierLowerLimit + "','" + outlierUpperLimit + "','" + outlierProcedure + "','" + externalRegressors + "')"; 
 		*/
-		String sql = "INSERT INTO ForecastResults('ForecastDate','ForecastProcedure', 'ForecastResult','ExecutionPeriods','AggregationInputData','AggregationProcessing','AggregationOutputData','DataConsideratedFromDate','CampaignLowerLimit','CampaignUpperLimit','CampaignProcedure','OutlierLowerLimit','OutlierUpperLimit','OutlierProcedure','ExternalRegressors') "
-				+ "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		String sql = "INSERT INTO ForecastResults('ForecastDate','ForecastProcedure', 'ForecastResult','ExecutionPeriods','AggregationInputData','AggregationProcessing','AggregationOutputData','DataConsideratedFromDate','CampaignLowerLimit','CampaignUpperLimit','CampaignProcedure', 'CampaignEnabled','OutlierLowerLimit','OutlierUpperLimit','OutlierProcedure', 'OutlierEnabled','ExternalRegressors') "
+				+ "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		try (Connection connection = dbConnection.checkConnectivity();
 	        		PreparedStatement pstmt = connection.prepareStatement(sql)) {
 			pstmt.setString(1, to);
@@ -72,10 +74,12 @@ public class CallbackDAO {
 			pstmt.setDouble(9, campaignLowerLimit);
 			pstmt.setDouble(10, campaignUpperLimit);
 			pstmt.setString(11, campaignProcedure);
-			pstmt.setDouble(12, outlierLowerLimit);
-			pstmt.setDouble(13, outlierUpperLimit);
-			pstmt.setString(14, outlierProcedure);
-	        pstmt.setString(15, externalRegressors);
+			pstmt.setBoolean(12, campaignEnabled);
+			pstmt.setDouble(13, outlierLowerLimit);
+			pstmt.setDouble(14, outlierUpperLimit);
+			pstmt.setString(15, outlierProcedure);
+			pstmt.setBoolean(16, outlierEnabled);
+	        pstmt.setString(17, externalRegressors);
 	        pstmt.executeUpdate();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
