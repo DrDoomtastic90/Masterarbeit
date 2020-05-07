@@ -18,6 +18,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import dBConnection.EvaluationDAO;
+import dBConnection.EvaluationDBConnection;
 import inputHandler.RestRequestHandler;
 import webClient.RestClient;
 
@@ -83,6 +85,7 @@ public class EvaluationPreparationController {
 	//Simulates evaluation of ForecastResults for BAntel GmbH
 	public void evaluateResultsBantelCombined(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
+			JSONObject preparedData = new JSONObject();
 			JSONObject forecastResults = new JSONObject();
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
@@ -104,30 +107,36 @@ public class EvaluationPreparationController {
 				configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
 				forecastResults.put("ARIMA", EvaluationPreparationService.getForecastResultsMulti(configurations, executionRuns, "ARIMA"));
-				JSONObject preparedResults = EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials);
+				preparedData.put("ARIMA", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));
 				
 				//Evaluation MAE evaluation service from forecasting tool => Outsource to separate ForecastingTool service
 				//JSONObject evaluationResult = EvaluationPreparationService.evaluationMAE(preparedResults);
 				
-				//Update LoginCredentials to Call ForecastingTool Service
-				loginCredentials.put("username", "BantelGmbH");
-				loginCredentials.put("password", "bantel");
-
-
-				JSONObject evaluationRequestBody = new JSONObject();
-				serviceURL = "https://localhost:" + 443 + "/ForecastingTool/EvaluationService/Combined";
-				evaluationRequestBody.put("evaluationResults", preparedResults);
-				evaluationRequestBody.put("loginCredentials", loginCredentials);		
-				evaluationRequestBody.put("configurations", jsonConfigurations);	
-				
-				//return result
-				JSONObject evaluationResult = invokeHTTPSService(serviceURL, evaluationRequestBody);
-				System.out.println(evaluationResult.toString());
+						
+			
 			}
 			
+			//Update LoginCredentials to Call ForecastingTool Service
+			loginCredentials.put("username", "BantelGmbH");
+			loginCredentials.put("password", "bantel");		
 			
+			JSONObject evaluationRequestBody = new JSONObject();
+			serviceURL = "https://localhost:" + 443 + "/ForecastingTool/EvaluationService/Combined/Excel";
+			evaluationRequestBody.put("evaluationResults", preparedData);
+			evaluationRequestBody.put("loginCredentials", loginCredentials);		
+			evaluationRequestBody.put("configurations", jsonConfigurations);	
+			
+			//return result
+			JSONObject evaluationResult = invokeHTTPSService(serviceURL, evaluationRequestBody);
+			System.out.println(evaluationResult.toString());
 			//JSONObject preparedResults = EvaluationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials);
 			
+			//Store result
+			EvaluationDBConnection.getInstance("EvaluationDB");
+			EvaluationDAO evaluationDAO = new EvaluationDAO();
+			for(String procedureName : evaluationResult.keySet()) {
+				evaluationDAO.writeEvaluationResultsToDB(evaluationResult.getJSONObject(procedureName), jsonConfigurations.getJSONObject("forecasting").getJSONObject(procedureName), procedureName, "MAE");
+			}
 			
 			response.setStatus(202);
 			response.setContentType("application/json");

@@ -111,7 +111,7 @@ public class EvaluationController {
 	@Path("/Combined")
 	@Produces(MediaType.APPLICATION_JSON)
 	//Simulates evaluation of ForecastResults for BAntel GmbH
-	public void evaluateResultsBantelCombined(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+	public void evaluateResultsCombined(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
 			JSONObject evaluationResult = new JSONObject();
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
@@ -125,13 +125,13 @@ public class EvaluationController {
 			
 			
         	//overwrite forecasting specific configurations with shared combined parameters
-        	JSONObject combinedConfigurations = configurations.getJSONObject("forecasting").getJSONObject("Combined");
+        	//JSONObject combinedConfigurations = configurations.getJSONObject("forecasting").getJSONObject("Combined");
 			
         	
 			loginCredentials = EvaluationService.invokeLoginService(loginCredentials);
 			
 			if(configurations.getJSONObject("forecasting").getJSONObject("ARIMA").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
-				JSONObject aRIMAConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ARIMA");
+				//JSONObject aRIMAConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ARIMA");
 				
 				
 				/*configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
@@ -141,13 +141,15 @@ public class EvaluationController {
 				*/
 				
 				//Evaluation MAE evaluation service from forecasting tool => Outsource to separate ForecastingTool service
-				evaluationResult.put("ARIMA", EvaluationService.evaluationMAE(evaluationResults));
+				evaluationResult.put("ARIMA", EvaluationService.evaluationMAE(evaluationResults.getJSONObject("ARIMA")));
 				
 				//Store result
-				EvaluationDBConnection.getInstance("EvaluationDB");
+				/*EvaluationDBConnection.getInstance("EvaluationDB");
 				EvaluationDAO evaluationDAO = new EvaluationDAO();
 				evaluationDAO.writeEvaluationResultsToDB(evaluationResult.getJSONObject("ARIMA"), aRIMAConfigurations, "ARIMA", "MAE");
+				*/
 			}
+			
 			
 			
 			//JSONObject preparedResults = EvaluationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials);
@@ -174,6 +176,47 @@ public class EvaluationController {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	@POST
+	@Path("/Combined/Excel")
+	@Produces(MediaType.APPLICATION_JSON)
+	//Simulates evaluation of ForecastResults for BAntel GmbH
+	public void evaluateResultsCombinedExcel(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+		try {
+			JSONObject evaluationResult = new JSONObject();
+			JSONObject requestBody;
+
+			requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+
+			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
+			JSONObject configurations = requestBody.getJSONObject("configurations");
+			JSONObject evaluationResults = requestBody.getJSONObject("evaluationResults");
+
+			loginCredentials = EvaluationService.invokeLoginService(loginCredentials);
+			
+			if(configurations.getJSONObject("forecasting").getJSONObject("ARIMA").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+
+				JSONObject aRIMAEvaluationResult = EvaluationService.evaluationMAE(evaluationResults.getJSONObject("ARIMA"));
+				EvaluationService.writeEvaluationResultsToExcelFile(aRIMAEvaluationResult, "ARIMA");
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	private JSONObject invokeHTTPSService(String serviceURL, JSONObject requestBody) throws IOException {

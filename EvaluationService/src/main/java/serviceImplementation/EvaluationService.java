@@ -1,5 +1,8 @@
 package serviceImplementation;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.Connection;
@@ -16,6 +19,12 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.util.CellReference;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbookFactory;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -152,6 +161,78 @@ public class EvaluationService {
 			totalDeviationTargetVariable.put("MAEPercentage", (totalDeviationTargetVariable.getDouble("MAEPercentage") + totalDeviationObservationPeriod.getDouble("MAEPercentage"))/2);
 		}
 		return procedureResults;
+	}
+	
+	
+	private static XSSFRow retrieveRow(XSSFSheet sheet, int rowIndex) {
+		if(sheet.getRow(rowIndex) != null){
+			return sheet.getRow(rowIndex);
+		}else {
+			return sheet.createRow(rowIndex);
+		}
+	}
+	
+	private static void writeValueToCell(XSSFSheet sheet, int rowIndex, int colIndex, double value) {
+		XSSFRow row = retrieveRow(sheet, rowIndex);
+		Cell cell =row.createCell(colIndex);
+		cell.setCellValue(value);
+	}
+	private static void writeValueToCell(XSSFSheet sheet, int rowIndex, int colIndex, String value) {
+		XSSFRow row = retrieveRow(sheet, rowIndex);
+		Cell cell =row.createCell(colIndex);
+		cell.setCellValue(value);
+	}
+	
+	public static void writeEvaluationResultsToExcelFile(JSONObject evaluationResults, String procedure) throws FileNotFoundException, IOException {
+		XSSFWorkbook workbook = new XSSFWorkbook();        
+		String targetPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\";
+		String filename = procedure + "_Evaluation.xlsx";
+		
+		for(String targetVariableName : evaluationResults.keySet()) {
+			JSONObject targetVariableResult = evaluationResults.getJSONObject(targetVariableName);
+			XSSFSheet sheet = workbook.createSheet(targetVariableName);
+			//XSSFSheet sheet = wb.getSheet("Produktübersicht");
+			XSSFRow row = null;
+			int baseRowIndex = 3;
+			int baseColIndex = CellReference.convertColStringToIndex("C");
+			int rowIndex = 0;
+			int colIndex = 0;
+			for(String dateString : targetVariableResult.keySet()) {
+				colIndex = baseColIndex;
+				int dateRowIndex = baseRowIndex;
+				JSONObject dateResult = targetVariableResult.getJSONObject(dateString);
+				for(String period : dateResult.keySet()) {
+					rowIndex = baseRowIndex + 1;				
+					JSONObject periodResult = dateResult.getJSONObject(period);
+					double actualDemand = periodResult.getDouble("actualDemand");
+					double forecastResult = periodResult.getDouble("forecastResult");
+					double mAE = periodResult.getDouble("MAE");
+					double mE = periodResult.getDouble("ME");
+					double mAEPercentage = periodResult.getDouble("MAEPercentage");
+					double mEPercentage = periodResult.getDouble("MEPercentage");
+					
+					writeValueToCell(sheet, dateRowIndex, colIndex, dateString);		
+					writeValueToCell(sheet, rowIndex, colIndex, period);
+					rowIndex+=1;
+					writeValueToCell(sheet, rowIndex, colIndex, actualDemand);
+					rowIndex+=1;
+					writeValueToCell(sheet, rowIndex, colIndex, forecastResult);
+					rowIndex+=1;
+					writeValueToCell(sheet, rowIndex, colIndex, mAE);
+					rowIndex+=1;
+					writeValueToCell(sheet, rowIndex, colIndex, mE);
+					rowIndex+=1;
+					writeValueToCell(sheet, rowIndex, colIndex, mAEPercentage);
+					rowIndex+=1;
+					writeValueToCell(sheet, rowIndex, colIndex, mEPercentage);
+					colIndex+=1;				
+				}
+			}
+			baseRowIndex = rowIndex + 2;
+		}
+		try (FileOutputStream outputStream = new FileOutputStream(targetPath+filename)) {
+            workbook.write(outputStream);
+		}
 	}
 		
 	
