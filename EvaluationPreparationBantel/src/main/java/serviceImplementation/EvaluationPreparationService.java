@@ -20,68 +20,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-
-import dBConnection.EvaluationDAO;
+import dBConnection.BantelDAO;
+import dBConnection.CallbackDAO;
+import dBConnection.CallbackDBConnection;
 import outputHandler.CustomFileWriter;
 import webClient.RestClient;
 
 
-public class EvaluationService {
+public class EvaluationPreparationService {
 
-	private static JSONObject evaluationMAE(JSONObject actualResults, JSONObject forecastingResults) {
-		JSONObject diffSKBez = new JSONObject();
-		for(String skbez : forecastingResults.keySet()) {
-			JSONObject skbezResults = forecastingResults.getJSONObject(skbez);
-			JSONObject diffKW = new JSONObject();
-			int counter = 0;
-			double maeSum = 0;
-			for(String kw : skbezResults.keySet()) {
-				if(actualResults.getJSONObject(kw).has(skbez)){
-					double diff = skbezResults.getDouble(kw) - actualResults.getJSONObject(kw).getDouble(skbez);
-					diffKW.put(kw, diff);
-					counter = counter + 1;
-					maeSum = maeSum + Math.abs(diff);
-				}else {
-					diffKW.put(kw, 0);
-				}
-			}
-			//To not devide by 0
-			if(counter <= 0) {
-				counter = 1;
-			}
-			double mae = maeSum / counter;
-			diffKW.put("MAE", mae);
-			diffSKBez.put(skbez, diffKW);
-		}
-		return diffSKBez;
-	}
-	
-	private static JSONObject evaluationSMAE(JSONObject alternativeForecastingResult, JSONObject benchmarkResult) {
-		JSONObject maseResults = new JSONObject();
-		int counter = 0;
-		double maseSum = 0;
-		for(String skbez : alternativeForecastingResult.keySet()) {
-			double altMAE = alternativeForecastingResult.getJSONObject(skbez).getDouble("MAE");
-			double benchMAE = Math.abs(benchmarkResult.getJSONObject(skbez).getDouble("1"));
-			double mase = 0;
-			if(benchMAE<=0) {
-				benchMAE=1;
-			}	
-			mase = Math.abs(altMAE/benchMAE);
-		
-			maseResults.put(skbez, mase);
-			maseSum = maseSum + mase;
-			counter = counter + 1;
-		}
-		//To not devide by 0
-		if(counter <= 0) {
-			counter = 1;
-		}
-		
-		double smaeTot = maseSum / counter;
-		maseResults.put("SMAETot",smaeTot);
-		return maseResults;
-	}
 	
 	
 	public static JSONObject invokeLoginService(JSONObject requestBody) throws IOException {
@@ -92,13 +39,7 @@ public class EvaluationService {
 		return new JSONObject(restClient.postRequest(requestBody.toString()));
 	}
 	
-	private static double calculateMeanError(double forecastResult, double actualDemand) {
-		return actualDemand-forecastResult;
-	}
-	
-	private static double calculateMeanAbsoluteError(double forecastResult, double actualDemand) {
-		return Math.abs(actualDemand-forecastResult);
-	}
+/*
 	public static JSONObject evaluationMAE(JSONObject procedureResults) throws SQLException, ParseException, ClassNotFoundException, IOException {	
 		JSONObject totalDeviationTargetVariable = new JSONObject();
 		totalDeviationTargetVariable.put("ME", 0);
@@ -154,45 +95,9 @@ public class EvaluationService {
 		return procedureResults;
 	}
 		
+	*/
+
 	
-	/*public static void evaluationCombined(JSONObject configAndResults) throws SQLException, ParseException, ClassNotFoundException, IOException {
-		JSONObject diffResults = new JSONObject();
-    	diffResults.put("Difference", new JSONObject());
-    	diffResults.put("MASE", new JSONObject());
-		
-		JSONObject configurations = configAndResults.getJSONObject("configurations");
-		JSONObject results = configAndResults.getJSONObject("results");
-		JSONObject loginCredentials = configAndResults.getJSONObject("loginCredentials");
-		loginCredentials = invokeLoginService(loginCredentials);
-    	String passPhrase = loginCredentials.getString("passPhrase");
-		configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-    	int forecastPeriods = configurations.getInt("forecastPeriods");
-    	String startDate = configurations.getJSONObject("data").getString("to"); 
-		JSONObject actualResults = new JSONObject();
-    	if(configurations.getString("aggregationOutputData").toUpperCase().equals("DAILY")) {
-    		actualResults= getActualResultsDaily(startDate, forecastPeriods, passPhrase);
-    	}else {
-    		actualResults = getActualResultsWeekly(startDate, forecastPeriods, passPhrase);
-    	}
-    	CustomFileWriter.createJSON("D:/Arbeit/Bantel/Masterarbeit/Implementierung/Bantel/Daten/Actual_RESULT.json", actualResults.toString());
-    	
-    	for(String procedureName : results.keySet()) {
-    		JSONObject procedureResult = results.getJSONObject(procedureName);
-    		diffResults.getJSONObject("Difference").put(procedureName, evaluationMAE(actualResults, procedureResult));
-    	}
-    	if(diffResults.getJSONObject("Difference").has("ExpSmoothingResult")) {
-    		JSONObject benchmarkResult = diffResults.getJSONObject("Difference").getJSONObject("ExpSmoothingResult");
-    		for(String procedureName : diffResults.getJSONObject("Difference").keySet()) {
-        		JSONObject alternativeResult = diffResults.getJSONObject("Difference").getJSONObject(procedureName);
-        		diffResults.getJSONObject("MASE").put("MASE_"+ procedureName, evaluationSMAE(benchmarkResult, alternativeResult));
-        	}
-    	}
-    	
-    	System.out.println(diffResults);
-    	CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Evaluation\\EvaluationResults.json", diffResults.toString());
-	}*/
-	
-	/*
 	public static JSONObject getActualResultsWeekly(String toDate, int forecastPeriods, String passPhrase) throws SQLException, ParseException, ClassNotFoundException {
 		JSONObject actualResults = new JSONObject();
 		BantelDAO evaluationDAO = new BantelDAO(passPhrase);
@@ -212,9 +117,9 @@ public class EvaluationService {
 			actualResults.put(Integer.toString(counter), evaluationDAO.getSalesAmounts(fromDate, toDate));
 		}
 		return actualResults;
-	}*/
+	}
 	
-	/*public static JSONObject getActualResultsDaily(String toDate, int forecastPeriods, String passPhrase) throws SQLException, ParseException, ClassNotFoundException {
+	public static JSONObject getActualResultsDaily(String toDate, int forecastPeriods, String passPhrase) throws SQLException, ParseException, ClassNotFoundException {
 		JSONObject actualResults = new JSONObject();
 		BantelDAO evaluationDAO = new BantelDAO(passPhrase);
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
@@ -231,10 +136,10 @@ public class EvaluationService {
 			actualResults.put(Integer.toString(counter), evaluationDAO.getSalesAmounts(fromDate, toDate));
 		}
 		return actualResults;
-	}*/
+	}
 	
 	//Function of Bantel GmbH To get all ARIMA ForecastResults
-	/*public static JSONObject getForecastResultsMulti(JSONObject configurations, JSONArray executionRuns, String procedureName) throws SQLException, ParseException, ClassNotFoundException {
+	public static JSONObject getForecastResultsMulti(JSONObject configurations, JSONArray executionRuns, String procedureName) throws SQLException, ParseException, ClassNotFoundException {
 		JSONObject forecastResults = new JSONObject();
 		CallbackDBConnection.getInstance("CallbackDB");
 		CallbackDAO callbackDAO = new CallbackDAO();
@@ -246,9 +151,9 @@ public class EvaluationService {
     		
 		return forecastResults;
 	}
-	*/
 	
-	/*
+	
+	
 	public static JSONObject prepareEvaluationBantel(JSONObject forecastResult, JSONObject configurations, JSONObject loginCredentials) throws JSONException, ClassNotFoundException, SQLException, ParseException {
 		JSONObject actualDemand = new JSONObject();
 		String passPhrase = loginCredentials.getString("passPhrase");
@@ -286,6 +191,12 @@ public class EvaluationService {
 	        			evaluationAttributes.put("forecastResult", result);
 	        			evaluationAttributes.put("demand", demand);
 	        			
+	        			/*JSONObject evaluationStructuredPeriodResult = new JSONObject();
+	        			evaluationStructuredPeriodResult.put("forecastResult", result);
+	        			evaluationStructuredPeriodResult.put("demand", actualDemand.getJSONObject(dateString).getDouble(period));
+	        			evaluationStructuredVariableResult.put(targetVariableName, evaluationStructuredPeriodResult);
+	        			evaluationStructuredResults.put(period, evaluationStructuredVariableResult);*/
+	        			
 	        		}
         			if(!evaluationStructuredResults.has(targetVariableName)) {
         				evaluationStructuredResults.put(targetVariableName, new JSONObject());
@@ -297,7 +208,8 @@ public class EvaluationService {
 		}
 		return evaluationStructuredResults;
 	}	
-	*/
+	
+	//DELETE
 	/*
 	public static JSONObject prepareEvaluationBantelv1(JSONObject combinedAnalysisResults, JSONObject configurations, JSONObject loginCredentials) throws JSONException, ClassNotFoundException, SQLException, ParseException {
 		JSONObject actualDemand = new JSONObject();
@@ -329,6 +241,7 @@ public class EvaluationService {
 	        			evaluationAttributes.put("forecastResult", result);
 	        			evaluationAttributes.put("demand", actualDemand.getJSONObject(dateString).getJSONObject(period).getDouble(procedureName));
 	        			
+
 	        			
 	        		}
         		}

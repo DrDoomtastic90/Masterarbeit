@@ -200,6 +200,10 @@ public class ServiceController {
 				});*/
 				
 				for(int i = 0; i<executionRuns.length();i++) {
+					String to = executionRuns.getJSONObject(i). getString("to");
+	        		String from = executionRuns.getJSONObject(i).getString("from");
+	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("to", to);
+	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("from", from);
 					concurrentThreads+=1;
 					try {
 						TimeUnit.SECONDS.sleep(3*concurrentThreads);
@@ -301,21 +305,22 @@ public class ServiceController {
 	        	System.out.println("Ende Im Gelände");
 */
 				//Manually invoked
-				/*
+				
 	        	//only for thesis purpose. Initializes service call from Bantel GmbH
 	        	if(requestBody.getBoolean("evaluation")) {
-		    		JSONObject evaluationRequestBody = new JSONObject();
-		    		evaluationRequestBody.put("loginCredentials", loginCredentialsCustomerSystem);
-		    		evaluationRequestBody.put("executionRuns", executionRuns);
-		    		serviceURL = "http://localhost:" + 8110 + "/EvaluationService/BantelGmBH";
-		    		invokeHTTPService(serviceURL, evaluationRequestBody);
+		    		JSONObject evaluationPreparationRequestBody = new JSONObject();
+		    		evaluationPreparationRequestBody.put("loginCredentials", loginCredentialsCustomerSystem);
+		    		evaluationPreparationRequestBody.put("executionRuns", executionRuns);
+		    		evaluationPreparationRequestBody.put("procedure", "Combined");
+		    		serviceURL = "http://localhost:" + 9800 + "/EvaluationPreparationService/BantelGmbH/Combined";
+		    		invokeHTTPService(serviceURL, evaluationPreparationRequestBody);
 	    	
 		    		
 		    		//evaluationRequestBody.put("loginCredentials", loginCredentialsCustomerSystem);
 		    		//evaluationRequestBody.put("results", combinedAnalysisResults);
 		    		//evaluationRequestBody.put("configurations", jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined"));
 
-	        	}*/
+	        	}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();

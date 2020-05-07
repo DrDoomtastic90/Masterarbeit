@@ -64,11 +64,11 @@ public class CallbackDAO {
 				"AND CampaignLowerLimit = '"+ campaignLowerLimit + "' " + 
 				"AND CampaignUpperLimit = '"+ campaignUpperLimit + "' " + 
 				"AND CampaignProcedure = '"+ campaignProcedure + "' " +
-				"AND CampaignEnabled = '"+ campaignEnabled + "'" +
+				"AND CampaignEnabled = '"+ (campaignEnabled ? 1 : 0) + "'" +
 				"AND OutlierLowerLimit = '"+ outlierLowerLimit + "' " + 
 				"AND OutlierUpperLimit = '"+ outlierUpperLimit + "' " + 
 				"AND OutlierProcedure = '"+ outlierProcedure + "'" +
-				"AND OutlierEnabled = '"+ outlierEnabled + "'" +
+				"AND OutlierEnabled = '"+ (outlierEnabled ? 1 : 0) + "'" +
 				"Order By ForecastID desc limit 1";
 		Connection connection = dbConnection.checkConnectivity();
 		try {
