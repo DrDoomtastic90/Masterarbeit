@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.concurrent.TimeUnit;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -70,6 +71,8 @@ public class ARIMAAnalysis {
 		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
 		//double upperLimitOutliers = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
 		//double lowerLimitOutliers = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
+		String todateString = configurations.getJSONObject("data").getString("to");
+		String fromdateString = configurations.getJSONObject("data").getString("from");
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
 		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
@@ -78,12 +81,12 @@ public class ARIMAAnalysis {
 			factors = configurations.getJSONObject("factors").getJSONArray("independentVariable");
 		}
 		//return executeARIMAAnalysisCMD(aRIMAPath, inputAggr, processingAggr, outputAggr, forecastPeriods, lowerLimitOutliers, upperLimitOutliers, preparedData);
-		return executeARIMAAnalysisCMD(aRIMAPath, inputAggr, processingAggr, outputAggr, forecastPeriods, preparedData, factors);
+		return executeARIMAAnalysisCMD(aRIMAPath, inputAggr, processingAggr, outputAggr, forecastPeriods, preparedData, factors, fromdateString, todateString);
 	}
 	
 	
 	//private JSONObject executeARIMAAnalysisCMD(String aRIMAPath, String inputAggr, String processingAggr, String outputAggr, int forecastPeriods, double lowerLimitOutliers, double upperLimitOutliers, JSONObject preparedData) throws IOException {
-	private JSONObject executeARIMAAnalysisCMD(String aRIMAPath, String inputAggr, String processingAggr, String outputAggr, int forecastPeriods, JSONObject preparedData, JSONArray factors) throws IOException {
+	private JSONObject executeARIMAAnalysisCMD(String aRIMAPath, String inputAggr, String processingAggr, String outputAggr, int forecastPeriods, JSONObject preparedData, JSONArray factors, String fromdateString, String todateString) throws IOException, InterruptedException {
 		//Instantiate result object 
 		JSONObject resultValues = new JSONObject();
 		
@@ -108,8 +111,9 @@ public class ARIMAAnalysis {
 		for(String targetVariable : preparedData.keySet()) {
 			
 			//create temporary input file (loaded by rscript to handle outliers)
-			String resourcePath = aRIMAPath+"temp\\inputValues_" + targetVariable + ".tmp";
+			String resourcePath = aRIMAPath+"temp\\inputValues_" + fromdateString + "_" + todateString + "_" + targetVariable + ".tmp";
 			CustomFileWriter.createFile(resourcePath, preparedData.getString(targetVariable));
+			TimeUnit.SECONDS.sleep(2);
 			//handleOutliers(aRIMAPath, resourcePath, targetVariable, inputAggr, processingAggr, outputAggr, forecastPeriods, lowerLimitOutliers, upperLimitOutliers);
 			//resourcePath = aRIMAPath + "temp\\inputValuesWOOutlier_" + targetVariable + ".tmp";
 			
@@ -129,6 +133,8 @@ public class ARIMAAnalysis {
 		String execString = "RScript " + aRIMAPath + "OutlierHandling_ARIMAAnalysis_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitsOutliers + " " + upperLimitsOutliers;
 		executeProcessCMD(execString);
 	}*/
+	
+	
 	
 	
 	private String executeProcessCMD(String execString) throws IOException {

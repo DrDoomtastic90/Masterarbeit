@@ -85,6 +85,8 @@ public class ExponentialSmoothingAnalysis {
 		JSONObject resultValues = new JSONObject();
 		String expPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\ExpSmoothing\\";
 		
+		String todateString = configurations.getJSONObject("data").getString("to");
+		String fromdateString = configurations.getJSONObject("data").getString("from");
 		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData");
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData");
@@ -94,15 +96,15 @@ public class ExponentialSmoothingAnalysis {
 		
 		//ExpSmoothingDBConnection.getInstance("ExpSmoothingDB");
 		//ExpSmoothingDAO expSmoothingDAO = new ExpSmoothingDAO();
-		for(String sorte : preparedData.keySet()) {
-			String filePath = expPath+"temp\\" + sorte + ".tmp";
-			if(sorte.equals("S11")) {
+		for(String targetVariable : preparedData.keySet()) {
+			String filePath = expPath+"temp\\" + fromdateString + "_" + todateString + "_" + targetVariable + ".tmp";
+			if(targetVariable.equals("S11")) {
 				System.out.println("STOP");
 			}
 			//JSONObject model = new JSONObject();
 			JSONObject executionResult = new JSONObject();
 			//Input Daily OutputWeekly
-			CustomFileWriter.createFile(filePath, preparedData.getString(sorte));
+			CustomFileWriter.createFile(filePath, preparedData.getString(targetVariable));
 			
 			try {
 				//if(train) {
@@ -112,8 +114,8 @@ public class ExponentialSmoothingAnalysis {
 				//}else {
 					//model = expSmoothingDAO.getModel(username, inputAggr, outputAggr);
 				//}			
-				executionResult = forecastModel(inputAggr, outputAggr, processingAggr, expPath, filePath, sorte, forecastPeriods);
-				resultValues.put(sorte, executionResult);
+				executionResult = forecastModel(inputAggr, outputAggr, processingAggr, expPath, filePath, targetVariable, forecastPeriods);
+				resultValues.put(targetVariable, executionResult);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

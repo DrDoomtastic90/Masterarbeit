@@ -206,7 +206,8 @@ public class ServiceController {
 	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("from", from);
 					concurrentThreads+=1;
 					try {
-						TimeUnit.SECONDS.sleep(3*concurrentThreads);
+						//TimeUnit.SECONDS.sleep(30*concurrentThreads);
+						TimeUnit.SECONDS.sleep(i);
 						JSONObject multiRequestBody = new JSONObject();
 						multiRequestBody.put("configurations",jsonConfigurations);
 						multiRequestBody.put("loginCredentialsCustomerSystem",loginCredentialsCustomerSystem);
@@ -307,7 +308,7 @@ public class ServiceController {
 				//Manually invoked
 				
 	        	//only for thesis purpose. Initializes service call from Bantel GmbH
-	        	if(requestBody.getBoolean("evaluation")) {
+	        	/*if(requestBody.getBoolean("evaluation")) {
 		    		JSONObject evaluationPreparationRequestBody = new JSONObject();
 		    		evaluationPreparationRequestBody.put("loginCredentials", loginCredentialsCustomerSystem);
 		    		evaluationPreparationRequestBody.put("executionRuns", executionRuns);
@@ -320,7 +321,7 @@ public class ServiceController {
 		    		//evaluationRequestBody.put("results", combinedAnalysisResults);
 		    		//evaluationRequestBody.put("configurations", jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined"));
 
-	        	}
+	        	}*/
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -610,6 +611,11 @@ public class ServiceController {
 		JSONObject drlJSON = invokeHTTPSService(drlFileService, loginCredentialsCustomerSystem);
 		ruleBasedRequestBody.put("drlFile", drlJSON);
 		
+		//Write perpared data to file
+		String forecastDate = ruleBasedConfigurations.getJSONObject("data").getString("to");
+		filename = forecastDate + "_" + filename+ "_Prep";	
+		CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+		
 		//Outlier Handling - not applicable for rulebased forecasting
 		//prepare request body for forecasting service call
 		
@@ -707,7 +713,8 @@ public class ServiceController {
 		kalmanRequestBody.put("dataset", preparedData);
 		
 		//Write perpared data to file
-		filename = filename+ "_Prep";	
+		String forecastDate = kalmanConfigurations.getJSONObject("data").getString("to");
+		filename = forecastDate + "_" + filename + "_Prep";	
 		CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		
 		//perform campaign handling
@@ -765,8 +772,9 @@ public class ServiceController {
 		JSONObject preparedData = invokeHTTPSService(serviceURL, expSmoothingRequestBody);
 		expSmoothingRequestBody.put("dataset", preparedData);
 		
-		//Write perpared data to file
-		filename = filename+ "_Prep";	
+		//Write perpared data to fil
+		String forecastDate = expSmoothingConfigurations.getJSONObject("data").getString("to");
+		filename = forecastDate + "_" + filename + "_Prep";	
 		CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 				
 		//perform campaign handling
@@ -823,6 +831,11 @@ public class ServiceController {
 		String serviceURL = aNNConfigurations.getJSONObject("data").getString("provisioningServiceURL");
 		JSONObject preparedData = invokeHTTPSService(serviceURL, aNNRequestBody);
 		aNNRequestBody.put("dataset", preparedData);
+		
+		//Write perpared data to file
+		String forecastDate = aNNConfigurations.getJSONObject("data").getString("to");
+		filename = forecastDate + "_" + filename + "_Prep";	
+		CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		
 		//perform outlier handling
 		//Not needed in case of neural networks
