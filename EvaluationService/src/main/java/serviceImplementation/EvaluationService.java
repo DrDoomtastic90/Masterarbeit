@@ -14,12 +14,16 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
+import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -115,50 +119,64 @@ public class EvaluationService {
 		totalDeviationTargetVariable.put("MAE", 0);
 		totalDeviationTargetVariable.put("MAEPercentage", 0);
 		for(String targetVariableName : procedureResults.keySet()) {
-			JSONObject totalDeviationObservationPeriod = new JSONObject();
+			JSONObject totalDeviationConfiguration = new JSONObject();
+			totalDeviationConfiguration.put("ME", 0);
+			totalDeviationConfiguration.put("MEPercentage", 0);
+			totalDeviationConfiguration.put("MAE", 0);
+			totalDeviationConfiguration.put("MAEPercentage", 0);
 			JSONObject targetVariableResults = procedureResults.getJSONObject(targetVariableName);
-			totalDeviationObservationPeriod.put("ME", 0);
-			totalDeviationObservationPeriod.put("MEPercentage", 0);
-			totalDeviationObservationPeriod.put("MAE", 0);
-			totalDeviationObservationPeriod.put("MAEPercentage", 0);
+
 			for(String forecastDate : targetVariableResults.keySet()) {	
-				JSONObject forecastDateResults = targetVariableResults.getJSONObject(forecastDate);
-				JSONObject totalDeviationForecastPeriods = new JSONObject();
-				totalDeviationForecastPeriods.put("ME", 0);
-				totalDeviationForecastPeriods.put("MEPercentage", 0);
-				totalDeviationForecastPeriods.put("MAE", 0);
-				totalDeviationForecastPeriods.put("MAEPercentage", 0);
-				for(String period : forecastDateResults.keySet()) {
-					JSONObject periodResults = forecastDateResults.getJSONObject(period);
-					double forecastResult = periodResults.getDouble("forecastResult");
-					double actualDemand = periodResults.getDouble("demand");
-					if(actualDemand == 0) {
-						//hilfsmethode => Implementierung get all demands set to lowest non 0 demand
-						actualDemand = 1;
-					}
-					double deviation = calculateMeanError(forecastResult, actualDemand);
-					double ABSDeviation = calculateMeanAbsoluteError(forecastResult, actualDemand);
-					periodResults.put("ME", deviation);
-					periodResults.put("MEPercentage", deviation/actualDemand);
-					periodResults.put("MAE", ABSDeviation);
-					periodResults.put("MAEPercentage", ABSDeviation/actualDemand);
-					periodResults.put("forecastResult", forecastResult);
-					periodResults.put("actualDemand", actualDemand);
-					totalDeviationForecastPeriods.put("ME", (totalDeviationForecastPeriods.getDouble("ME") + periodResults.getDouble("ME"))/2);
-					totalDeviationForecastPeriods.put("MEPercentage", (totalDeviationForecastPeriods.getDouble("MEPercentage") + periodResults.getDouble("MEPercentage"))/2);
-					totalDeviationForecastPeriods.put("MAE", (totalDeviationForecastPeriods.getDouble("MAE") + periodResults.getDouble("MAE"))/2);
-					totalDeviationForecastPeriods.put("MAEPercentage", (totalDeviationForecastPeriods.getDouble("MAEPercentage") + periodResults.getDouble("MAEPercentage"))/2);
-				}
+				JSONObject totalDeviationObservationPeriod = new JSONObject();
+				totalDeviationObservationPeriod.put("ME", 0);
+				totalDeviationObservationPeriod.put("MEPercentage", 0);
+				totalDeviationObservationPeriod.put("MAE", 0);
+				totalDeviationObservationPeriod.put("MAEPercentage", 0);
+				JSONObject forecastingConfigurations = targetVariableResults.getJSONObject(forecastDate);
 				
-				totalDeviationObservationPeriod.put("ME", (totalDeviationObservationPeriod.getDouble("ME") + totalDeviationForecastPeriods.getDouble("ME"))/2);
-				totalDeviationObservationPeriod.put("MEPercentage", (totalDeviationObservationPeriod.getDouble("MEPercentage") + totalDeviationForecastPeriods.getDouble("MEPercentage"))/2);
-				totalDeviationObservationPeriod.put("MAE", (totalDeviationObservationPeriod.getDouble("MAE") + totalDeviationForecastPeriods.getDouble("MAE"))/2);
-				totalDeviationObservationPeriod.put("MAEPercentage", (totalDeviationObservationPeriod.getDouble("MAEPercentage") + totalDeviationForecastPeriods.getDouble("MAEPercentage"))/2);
+				for(String configuration : forecastingConfigurations.keySet()) {	
+					JSONObject forecastDateResults = forecastingConfigurations.getJSONObject(configuration);
+					JSONObject totalDeviationForecastPeriods = new JSONObject();
+					totalDeviationForecastPeriods.put("ME", 0);
+					totalDeviationForecastPeriods.put("MEPercentage", 0);
+					totalDeviationForecastPeriods.put("MAE", 0);
+					totalDeviationForecastPeriods.put("MAEPercentage", 0);
+					for(String period : forecastDateResults.keySet()) {
+						JSONObject periodResults = forecastDateResults.getJSONObject(period);
+						double forecastResult = periodResults.getDouble("forecastResult");
+						double actualDemand = periodResults.getDouble("demand");
+						if(actualDemand == 0) {
+							//hilfsmethode => Implementierung get all demands set to lowest non 0 demand
+							actualDemand = 1;
+						}
+						double deviation = calculateMeanError(forecastResult, actualDemand);
+						double ABSDeviation = calculateMeanAbsoluteError(forecastResult, actualDemand);
+						periodResults.put("ME", deviation);
+						periodResults.put("MEPercentage", deviation/actualDemand);
+						periodResults.put("MAE", ABSDeviation);
+						periodResults.put("MAEPercentage", ABSDeviation/actualDemand);
+						periodResults.put("forecastResult", forecastResult);
+						periodResults.put("actualDemand", actualDemand);
+						totalDeviationForecastPeriods.put("ME", (totalDeviationForecastPeriods.getDouble("ME") + periodResults.getDouble("ME"))/2);
+						totalDeviationForecastPeriods.put("MEPercentage", (totalDeviationForecastPeriods.getDouble("MEPercentage") + periodResults.getDouble("MEPercentage"))/2);
+						totalDeviationForecastPeriods.put("MAE", (totalDeviationForecastPeriods.getDouble("MAE") + periodResults.getDouble("MAE"))/2);
+						totalDeviationForecastPeriods.put("MAEPercentage", (totalDeviationForecastPeriods.getDouble("MAEPercentage") + periodResults.getDouble("MAEPercentage"))/2);
+					}
+				
+					totalDeviationObservationPeriod.put("ME", (totalDeviationObservationPeriod.getDouble("ME") + totalDeviationForecastPeriods.getDouble("ME"))/2);
+					totalDeviationObservationPeriod.put("MEPercentage", (totalDeviationObservationPeriod.getDouble("MEPercentage") + totalDeviationForecastPeriods.getDouble("MEPercentage"))/2);
+					totalDeviationObservationPeriod.put("MAE", (totalDeviationObservationPeriod.getDouble("MAE") + totalDeviationForecastPeriods.getDouble("MAE"))/2);
+					totalDeviationObservationPeriod.put("MAEPercentage", (totalDeviationObservationPeriod.getDouble("MAEPercentage") + totalDeviationForecastPeriods.getDouble("MAEPercentage"))/2);
+				}
+				totalDeviationConfiguration.put("ME", (totalDeviationConfiguration.getDouble("ME") + totalDeviationObservationPeriod.getDouble("ME"))/2);
+				totalDeviationConfiguration.put("MEPercentage", (totalDeviationConfiguration.getDouble("MEPercentage") + totalDeviationObservationPeriod.getDouble("MEPercentage"))/2);
+				totalDeviationConfiguration.put("MAE", (totalDeviationConfiguration.getDouble("MAE") + totalDeviationObservationPeriod.getDouble("MAE"))/2);
+				totalDeviationConfiguration.put("MAEPercentage", (totalDeviationConfiguration.getDouble("MAEPercentage") + totalDeviationObservationPeriod.getDouble("MAEPercentage"))/2);
 			}
-			totalDeviationTargetVariable.put("ME", (totalDeviationTargetVariable.getDouble("ME") + totalDeviationObservationPeriod.getDouble("ME"))/2);
-			totalDeviationTargetVariable.put("MEPercentage", (totalDeviationTargetVariable.getDouble("MEPercentage") + totalDeviationObservationPeriod.getDouble("MEPercentage"))/2);
-			totalDeviationTargetVariable.put("MAE", (totalDeviationTargetVariable.getDouble("MAE") + totalDeviationObservationPeriod.getDouble("MAE"))/2);
-			totalDeviationTargetVariable.put("MAEPercentage", (totalDeviationTargetVariable.getDouble("MAEPercentage") + totalDeviationObservationPeriod.getDouble("MAEPercentage"))/2);
+			totalDeviationTargetVariable.put("ME", (totalDeviationTargetVariable.getDouble("ME") + totalDeviationConfiguration.getDouble("ME"))/2);
+			totalDeviationTargetVariable.put("MEPercentage", (totalDeviationTargetVariable.getDouble("MEPercentage") + totalDeviationConfiguration.getDouble("MEPercentage"))/2);
+			totalDeviationTargetVariable.put("MAE", (totalDeviationTargetVariable.getDouble("MAE") + totalDeviationConfiguration.getDouble("MAE"))/2);
+			totalDeviationTargetVariable.put("MAEPercentage", (totalDeviationTargetVariable.getDouble("MAEPercentage") + totalDeviationConfiguration.getDouble("MAEPercentage"))/2);
 		}
 		return procedureResults;
 	}
@@ -172,67 +190,236 @@ public class EvaluationService {
 		}
 	}
 	
-	private static void writeValueToCell(XSSFSheet sheet, int rowIndex, int colIndex, double value) {
+	private static Cell writeValueToCell(XSSFSheet sheet, int rowIndex, int colIndex, double value) {
 		XSSFRow row = retrieveRow(sheet, rowIndex);
 		Cell cell =row.createCell(colIndex);
 		cell.setCellValue(value);
+		return cell;
 	}
 	private static void writeValueToCell(XSSFSheet sheet, int rowIndex, int colIndex, String value) {
 		XSSFRow row = retrieveRow(sheet, rowIndex);
 		Cell cell =row.createCell(colIndex);
+		//System.out.println(colIndex + ","+rowIndex+":"+value);
 		cell.setCellValue(value);
 	}
 	
-	public static void writeEvaluationResultsToExcelFile(JSONObject evaluationResults, String procedure) throws FileNotFoundException, IOException {
+	private static void initializeHeaders(XSSFSheet sheet, JSONObject targetVariableResult) {
+		//XSSFSheet sheet = wb.getSheet("Produktübersicht");
+		int baseRowIndex = 3;
+		int baseColIndex = CellReference.convertColStringToIndex("B");		
+		int numberOfConfigurations = targetVariableResult.length();
+		int rowIndex = baseRowIndex;
+		int colIndex = baseColIndex;
+		writeValueToCell(sheet, rowIndex, colIndex, "ForecastDate");
+		rowIndex+=1;
+		writeValueToCell(sheet, rowIndex, colIndex, "Period");
+		rowIndex+=1;
+		writeValueToCell(sheet, rowIndex, colIndex, "Actual Demand");
+		rowIndex+=(2+numberOfConfigurations);
+		writeValueToCell(sheet, rowIndex, colIndex, "ForecastDate");
+		rowIndex+=1;
+		writeValueToCell(sheet, rowIndex, colIndex, "Period");
+		rowIndex+=(2+numberOfConfigurations);
+		writeValueToCell(sheet, rowIndex, colIndex, "ForecastDate");
+		rowIndex+=1;
+		writeValueToCell(sheet, rowIndex, colIndex, "Period");
+		rowIndex+=(2+numberOfConfigurations);
+		writeValueToCell(sheet, rowIndex, colIndex, "ForecastDate");
+		rowIndex+=1;
+		writeValueToCell(sheet, rowIndex, colIndex, "Period");
+		rowIndex+=(2+numberOfConfigurations);
+		writeValueToCell(sheet, rowIndex, colIndex, "ForecastDate");
+		rowIndex+=1;
+		writeValueToCell(sheet, rowIndex, colIndex, "Period");
+		sheet.autoSizeColumn(colIndex);
+		baseColIndex +=1;
+		rowIndex = baseRowIndex;
+		int i = 0;
+		for(String configuration : targetVariableResult.keySet()) {
+			rowIndex += 3;
+			writeValueToCell(sheet, rowIndex, colIndex, configuration);
+			rowIndex+=(3+numberOfConfigurations);
+			writeValueToCell(sheet, rowIndex, colIndex, configuration);
+			rowIndex+=(3+numberOfConfigurations);
+			writeValueToCell(sheet, rowIndex, colIndex, configuration);
+			rowIndex+=(3+numberOfConfigurations);
+			writeValueToCell(sheet, rowIndex, colIndex, configuration);
+			rowIndex+=(3+numberOfConfigurations);
+			writeValueToCell(sheet, rowIndex, colIndex, configuration);
+			i += 1;
+			rowIndex = baseRowIndex + i;
+		}
+	
+	}
+	
+	private static JSONObject sortJSONObject(JSONObject evaluationResults){
+		JSONObject unsortedResult = new JSONObject();
+		JSONObject sortedTargetVariable;
+		JSONObject sortedDateResult;
+		JSONObject sortedConfiguration;
+		JSONObject sortedPeriod;
+		ArrayList<String> dateList = new ArrayList<String>();
+		boolean first = true;
+		for(String targetVariableName : evaluationResults.keySet()) {
+			JSONObject targetVariableResult = evaluationResults.getJSONObject(targetVariableName);
+			for(String configuration : targetVariableResult.keySet()) {
+				JSONObject configurationResult = targetVariableResult.getJSONObject(configuration);
+				for(String dateString : configurationResult.keySet()) {
+					if(first) {
+						dateList.add(dateString);
+					}
+					JSONObject dateResult = configurationResult.getJSONObject(dateString);
+					for(String period : dateResult.keySet()) {
+						JSONObject periodResult = dateResult.getJSONObject(period);
+						if(!unsortedResult.has(targetVariableName)) {
+							sortedTargetVariable = new JSONObject();
+							unsortedResult.put(targetVariableName, sortedTargetVariable);
+						}else {
+							sortedTargetVariable = unsortedResult.getJSONObject(targetVariableName);
+						}
+						if(!sortedTargetVariable.has(dateString)) {
+							sortedDateResult = new JSONObject();
+							sortedTargetVariable.put(dateString, sortedDateResult);
+						}else {
+							sortedDateResult = sortedTargetVariable.getJSONObject(dateString);
+						}
+						if(!sortedDateResult.has(configuration)) {
+							sortedConfiguration = new JSONObject();
+							sortedDateResult.put(configuration, sortedConfiguration);
+						}else {
+							sortedConfiguration = sortedDateResult.getJSONObject(configuration);
+						}
+						
+						if(!sortedConfiguration.has(period)) {
+							sortedConfiguration.put(period, periodResult);
+						}
+					}
+				}
+				first = false;
+			}
+		}
+		return unsortedResult;
+	}
+	
+	public static File writeEvaluationResultsToExcelFile(JSONObject evaluationResults, String procedure) throws FileNotFoundException, IOException {
 		XSSFWorkbook workbook = new XSSFWorkbook();        
 		String targetPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\";
 		String filename = procedure + "_Evaluation.xlsx";
-		
-		for(String targetVariableName : evaluationResults.keySet()) {
-			JSONObject targetVariableResult = evaluationResults.getJSONObject(targetVariableName);
-			XSSFSheet sheet = workbook.createSheet(targetVariableName);
-			//XSSFSheet sheet = wb.getSheet("Produktübersicht");
-			XSSFRow row = null;
-			int baseRowIndex = 3;
-			int baseColIndex = CellReference.convertColStringToIndex("C");
-			int rowIndex = 0;
-			int colIndex = 0;
-			for(String dateString : targetVariableResult.keySet()) {
-				colIndex = baseColIndex;
-				int dateRowIndex = baseRowIndex;
-				JSONObject dateResult = targetVariableResult.getJSONObject(dateString);
-				for(String period : dateResult.keySet()) {
-					rowIndex = baseRowIndex + 1;				
-					JSONObject periodResult = dateResult.getJSONObject(period);
-					double actualDemand = periodResult.getDouble("actualDemand");
-					double forecastResult = periodResult.getDouble("forecastResult");
-					double mAE = periodResult.getDouble("MAE");
-					double mE = periodResult.getDouble("ME");
-					double mAEPercentage = periodResult.getDouble("MAEPercentage");
-					double mEPercentage = periodResult.getDouble("MEPercentage");
-					
-					writeValueToCell(sheet, dateRowIndex, colIndex, dateString);		
-					writeValueToCell(sheet, rowIndex, colIndex, period);
-					rowIndex+=1;
-					writeValueToCell(sheet, rowIndex, colIndex, actualDemand);
-					rowIndex+=1;
-					writeValueToCell(sheet, rowIndex, colIndex, forecastResult);
-					rowIndex+=1;
-					writeValueToCell(sheet, rowIndex, colIndex, mAE);
-					rowIndex+=1;
-					writeValueToCell(sheet, rowIndex, colIndex, mE);
-					rowIndex+=1;
-					writeValueToCell(sheet, rowIndex, colIndex, mAEPercentage);
-					rowIndex+=1;
-					writeValueToCell(sheet, rowIndex, colIndex, mEPercentage);
-					colIndex+=1;				
+		 File file = new File(targetPath+filename);
+
+		//JSONObject sortedResult = sortJSONObject(evaluationResults);
+		JSONObject sortedResult = evaluationResults;
+		ArrayList<String> dateList = new ArrayList<String>();
+		boolean first = true;
+		for(String targetVariableName : sortedResult.keySet()) {
+			for(String configuration : sortedResult.getJSONObject(targetVariableName).keySet()) {
+				if(first) {
+					for(String dateString : sortedResult.getJSONObject(targetVariableName).getJSONObject(configuration).keySet()) {
+						dateList.add(dateString);
+					}
 				}
+				first=false;
 			}
-			baseRowIndex = rowIndex + 2;
 		}
-		try (FileOutputStream outputStream = new FileOutputStream(targetPath+filename)) {
+		 Collections.sort(dateList);		
+		for(String targetVariableName : sortedResult.keySet()) {
+			XSSFSheet sheet = workbook.createSheet(targetVariableName);
+			JSONObject targetVariableResult = sortedResult.getJSONObject(targetVariableName);
+			initializeHeaders(sheet, targetVariableResult);
+			
+			
+			//XSSFSheet sheet = wb.getSheet("Produktübersicht");
+			int baseRowIndex = 3;
+			int baseColIndex = CellReference.convertColStringToIndex("C");		
+			int numberOfConfigurations = targetVariableResult.length();
+			int rowIndex = baseRowIndex;
+			int colIndex = baseColIndex;
+			Cell cell = null;
+			
+			CellStyle stylePercentage = workbook.createCellStyle();
+			stylePercentage.setDataFormat(workbook.createDataFormat().getFormat(BuiltinFormats.getBuiltinFormat( 10 )));
+			
+			
+			first = true;
+			for(String configuration : targetVariableResult.keySet()) {
+				JSONObject configurationResult = targetVariableResult.getJSONObject(configuration);		
+				colIndex = baseColIndex;
+				
+					for(String dateString : dateList) {
+						
+					//for(String dateString : configurationResult.keySet()) {
+					
+						int dateRowIndex = baseRowIndex;
+						JSONObject dateResult = configurationResult.getJSONObject(dateString);
+						for(String period : dateResult.keySet()) {
+							rowIndex = baseRowIndex;			
+							JSONObject periodResult = dateResult.getJSONObject(period);
+							double actualDemand = periodResult.getDouble("actualDemand");
+							double forecastResult = periodResult.getDouble("forecastResult");
+							double mE = periodResult.getDouble("ME");
+							double mAE = periodResult.getDouble("MAE");
+							double mEPercentage = periodResult.getDouble("MEPercentage");
+							double mAEPercentage = periodResult.getDouble("MAEPercentage");
+							if(first) {
+								writeValueToCell(sheet, rowIndex, colIndex, dateString);
+								rowIndex+=1;
+								writeValueToCell(sheet, rowIndex, colIndex, period);
+								rowIndex+=1;
+								writeValueToCell(sheet, rowIndex, colIndex, actualDemand);
+								rowIndex+=(1+numberOfConfigurations+1);
+								for(int i = 0; i<4;i++) {	
+									writeValueToCell(sheet, rowIndex, colIndex, dateString);
+									rowIndex+=1;
+									writeValueToCell(sheet, rowIndex, colIndex, period);
+									rowIndex+=(1+numberOfConfigurations+1);
+								}
+							}
+							rowIndex=baseRowIndex+3;
+							writeValueToCell(sheet, rowIndex, colIndex, forecastResult);
+							rowIndex+=(numberOfConfigurations+3);
+							writeValueToCell(sheet, rowIndex, colIndex, mE);
+							rowIndex+=(numberOfConfigurations+3);
+							writeValueToCell(sheet, rowIndex, colIndex, mAE);
+							rowIndex+=(numberOfConfigurations+3);
+							cell = writeValueToCell(sheet, rowIndex, colIndex, mEPercentage);
+							cell.setCellStyle(stylePercentage);
+							rowIndex+=(numberOfConfigurations+3);
+							cell = writeValueToCell(sheet, rowIndex, colIndex, mAEPercentage);	
+							cell.setCellStyle(stylePercentage);
+							sheet.autoSizeColumn(colIndex);
+							colIndex = colIndex + 1;
+						}
+								
+						/*}else {
+							rowIndex+=1;
+							rowIndex+=1;
+							writeValueToCell(sheet, rowIndex, colIndex, forecastResult);
+							rowIndex+=(3+numberOfConfigurations);
+							writeValueToCell(sheet, rowIndex, colIndex, mE);
+							rowIndex+=(3+numberOfConfigurations);
+							writeValueToCell(sheet, rowIndex, colIndex, mAE);
+							rowIndex+=(3+numberOfConfigurations);	
+							writeValueToCell(sheet, rowIndex, colIndex, mEPercentage);
+							rowIndex+=(3+numberOfConfigurations);
+							writeValueToCell(sheet, rowIndex, colIndex, mAEPercentage);
+						}*/
+						
+						//colIndex+=1;				
+					}
+					first = false;
+					
+				
+				colIndex = baseColIndex;
+				baseRowIndex = baseRowIndex + 1;
+			}
+			
+		}
+		
+		try (FileOutputStream outputStream = new FileOutputStream(file)) {
             workbook.write(outputStream);
 		}
+		workbook.close();
+		return file;
 	}
 		
 	

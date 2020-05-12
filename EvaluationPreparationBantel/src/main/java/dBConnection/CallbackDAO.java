@@ -26,7 +26,7 @@ public class CallbackDAO {
 		dbConnection = CallbackDBConnection.getInstance();
 	}
 	
-	public JSONObject getForecastResult(JSONObject configurations, String procedureName, String from, String to) throws SQLException {
+	public JSONObject getForecastResult(JSONObject configurations, JSONObject consideratedConfigurations, String procedureName, String from, String to) throws SQLException {
 		JSONObject forecastResults= new JSONObject();
 		String externalRegressors = "";
 		ArrayList<String> independentVariableList = new ArrayList<String>();
@@ -51,31 +51,104 @@ public class CallbackDAO {
 		boolean outlierEnabled = configurations.getJSONObject("parameters").getJSONObject("outliers").getBoolean("handle");
 		String outlierProcedure = configurations.getJSONObject("parameters").getJSONObject("outliers").getString("procedure");
 		
+		
+		String sqlSelect = "select ForecastID, ForecastResult, CampaignEnabled,  CampaignProcedure, CampaignLowerLimit, CampaignUpperLimit, OutlierEnabled, OutlierProcedure, OutlierLowerLimit, OutlierUpperLimit ";
+		String sqlFrom = "from ForecastResults ";
+		String sqlWhereClause = "where ForecastID in (select max(ForecastID) from ForecastResults " +
+				"where ForecastDate = '" + to + "'" + 
+				" AND ForecastProcedure = '"+ procedureName + "'" + 
+				" AND ExecutionPeriods='" + forecastPeriods + "'" + 
+				" AND AggregationInputData = '"+ aggregationInputData + "'" + 
+				" AND AggregationProcessing='"+ aggregationProcessing + "'" + 
+				" AND AggregationOutputData = '"+ aggregationOutputData + "'" + 
+				" AND DataConsideratedFromDate = '"+ from + "' " +
+				" AND ExternalRegressors = '"+ externalRegressors + "' ";
+		String sqlGroupByClause = "Group By CampaignEnabled, CampaignProcedure, CampaignLowerLimit, CampaignUpperLimit, OutlierEnabled, OutlierProcedure, OutlierLowerLimit, OutlierUpperLimit";
+		
+		if(consideratedConfigurations.has("campaignHandling")) {
+			sqlWhereClause = sqlWhereClause + " AND CampaignEnabled = '"+ (consideratedConfigurations.getBoolean("campaignHandling") ? 1 : 0) + "'";
+			if(consideratedConfigurations.has("limitCampaign")) {
+				if(consideratedConfigurations.getBoolean("campaignHandling") && consideratedConfigurations.getBoolean("limitCampaign")) {
+					sqlWhereClause = sqlWhereClause + " AND CampaignLowerLimit = '"+ campaignLowerLimit + "' ";
+					sqlWhereClause = sqlWhereClause + " AND CampaignUpperLimit = '"+ campaignUpperLimit + "' " ;
+				}
+			}
+			if(consideratedConfigurations.has("campaignProcedure")) {
+				if(consideratedConfigurations.getBoolean("campaignProcedure")) {
+					sqlWhereClause = sqlWhereClause + " AND CampaignProcedure = '"+ campaignProcedure + "'";
+				}
+			}
+		} else {
+			if(consideratedConfigurations.has("limitCampaign")) {
+				if(consideratedConfigurations.getBoolean("limitCampaign")) {
+					sqlWhereClause = sqlWhereClause + " AND CampaignLowerLimit = '"+ campaignLowerLimit + "' ";
+					sqlWhereClause = sqlWhereClause + " AND CampaignUpperLimit = '"+ campaignUpperLimit + "' " ;
+				}
+			}
+			if(consideratedConfigurations.has("campaignProcedure")) {
+				if(consideratedConfigurations.getBoolean("campaignProcedure")) {
+					sqlWhereClause = sqlWhereClause + " AND CampaignProcedure = '"+ campaignProcedure + "'";
+				}
+			}
+		}
+
+		if(consideratedConfigurations.has("outlierHandling")) {
+			sqlWhereClause = sqlWhereClause + " AND OutlierEnabled = '"+ (consideratedConfigurations.getBoolean("outlierHandling") ? 1 : 0) + "'";
+			if(consideratedConfigurations.has("limitOutlier")) {
+				if(consideratedConfigurations.getBoolean("outlierHandling") && consideratedConfigurations.getBoolean("limitOutlier")) {
+					sqlWhereClause = sqlWhereClause + " AND OutlierLowerLimit = '"+ outlierLowerLimit + "' ";
+					sqlWhereClause = sqlWhereClause + " AND OutlierUpperLimit = '"+ outlierUpperLimit + "' " ;
+				}
+			}
+			if(consideratedConfigurations.has("outlierProcedure")) {
+				if(consideratedConfigurations.getBoolean("outlierProcedure")) {
+					sqlWhereClause = sqlWhereClause + " AND OutlierProcedure = '"+ outlierProcedure + "'";
+					
+				}
+			}
+		}else {
+			if(consideratedConfigurations.has("limitOutlier")) {
+				if(consideratedConfigurations.getBoolean("limitOutlier")) {
+					sqlWhereClause = sqlWhereClause + " AND OutlierLowerLimit = '"+ outlierLowerLimit + "' ";
+					sqlWhereClause = sqlWhereClause + " AND OutlierUpperLimit = '"+ outlierUpperLimit + "' " ;
+				}
+			}
+			if(consideratedConfigurations.has("outlierProcedure")) {
+				if(consideratedConfigurations.getBoolean("outlierProcedure")) {
+					sqlWhereClause = sqlWhereClause + " AND OutlierProcedure = '"+ outlierProcedure + "'";
+					
+				}
+			}
+		}
+		
+		
+		sqlWhereClause = sqlWhereClause + sqlGroupByClause + ")";
+		String sql = sqlSelect + sqlFrom + sqlWhereClause + " Order By ForecastID desc";
 		Statement statement = null;
 		ResultSet resultSet = null;
-		String sql= "select ForecastResult from ForecastResults where " + 
-				"ForecastDate = '" + to + "' " + 
-				"AND ForecastProcedure = '"+ procedureName + "' " + 
-				"AND ExecutionPeriods='" + forecastPeriods + "' " + 
-				"AND AggregationInputData = '"+ aggregationInputData + "' " + 
-				"AND AggregationProcessing='"+ aggregationProcessing + "' " + 
-				"AND AggregationOutputData = '"+ aggregationOutputData + "' " + 
-				"AND DataConsideratedFromDate = '"+ from + "' " + 
-				"AND CampaignLowerLimit = '"+ campaignLowerLimit + "' " + 
-				"AND CampaignUpperLimit = '"+ campaignUpperLimit + "' " + 
-				"AND CampaignProcedure = '"+ campaignProcedure + "' " +
-				"AND CampaignEnabled = '"+ (campaignEnabled ? 1 : 0) + "'" +
-				"AND OutlierLowerLimit = '"+ outlierLowerLimit + "' " + 
-				"AND OutlierUpperLimit = '"+ outlierUpperLimit + "' " + 
-				"AND OutlierProcedure = '"+ outlierProcedure + "'" +
-				"AND OutlierEnabled = '"+ (outlierEnabled ? 1 : 0) + "'" +
-				"Order By ForecastID desc limit 1";
 		Connection connection = dbConnection.checkConnectivity();
 		try {
 			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
 			while (resultSet.next()) {
-				forecastResults = new JSONObject(resultSet.getString(1));
+				JSONObject singleForecastResult =  new JSONObject(resultSet.getString(2));
+				String configuration = "P";
+				if(resultSet.getBoolean(3)) {
+					configuration = configuration + "_" + resultSet.getString(4);
+					configuration = configuration + "_" + resultSet.getString(5);
+					configuration = configuration + "_" + resultSet.getString(6);
+				}else {
+					configuration = configuration + "_NONE_X_X";
+				}
+				if(resultSet.getBoolean(7)) {
+					configuration = configuration + "_" + resultSet.getString(8);
+					configuration = configuration + "_" + resultSet.getString(9);
+					configuration = configuration + "_" + resultSet.getString(10);
+				}else {
+					configuration = configuration + "_NONE_X_X";
+				}
+				configuration = configuration + "_" + externalRegressors;
+				forecastResults.put(configuration,singleForecastResult);
 			}
 			
 		} catch (SQLException e) {

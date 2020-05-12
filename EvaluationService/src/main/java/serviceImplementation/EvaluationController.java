@@ -1,9 +1,12 @@
 package serviceImplementation;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.Base64;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -13,6 +16,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -182,24 +187,36 @@ public class EvaluationController {
 	@Path("/Combined/Excel")
 	@Produces(MediaType.APPLICATION_JSON)
 	//Simulates evaluation of ForecastResults for BAntel GmbH
-	public void evaluateResultsCombinedExcel(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+	public Response evaluateResultsCombinedExcel(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+		File file = null;
+		String fileString = null;
+		String fileName = null;
+		JSONObject aRIMAEvaluationResult = null;
+		JSONObject evaluationResults = new JSONObject();
 		try {
-			JSONObject evaluationResult = new JSONObject();
+			
+			
 			JSONObject requestBody;
 
 			requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 
 			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
 			JSONObject configurations = requestBody.getJSONObject("configurations");
-			JSONObject evaluationResults = requestBody.getJSONObject("evaluationResults");
+			JSONObject forecastResults = requestBody.getJSONObject("forecastResults");
 
 			loginCredentials = EvaluationService.invokeLoginService(loginCredentials);
 			
 			if(configurations.getJSONObject("forecasting").getJSONObject("ARIMA").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 
-				JSONObject aRIMAEvaluationResult = EvaluationService.evaluationMAE(evaluationResults.getJSONObject("ARIMA"));
-				EvaluationService.writeEvaluationResultsToExcelFile(aRIMAEvaluationResult, "ARIMA");
+				aRIMAEvaluationResult = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ARIMA"));
+				evaluationResults.put("ARIMA", aRIMAEvaluationResult);
+				file = EvaluationService.writeEvaluationResultsToExcelFile(aRIMAEvaluationResult, "ARIMA");
+				fileName = file.getName();
+				byte[] bytes = Files.readAllBytes(file.toPath());   
+				fileString = new String(Base64.getEncoder().encode(bytes));
 			}
+			
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -216,6 +233,23 @@ public class EvaluationController {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		//rBuild.type(MediaType.APPLICATION_JSON);
+		ResponseBuilder rBuild = null;
+		JSONObject responseMessage = new JSONObject();
+		if(file!=null) {
+			rBuild = Response.status(202);
+			responseMessage.put("result", "Request Successfully Received. Result will be returned as soon as possible!");
+			responseMessage.put("fileName",fileName);
+			responseMessage.put("fileString",fileString);
+			responseMessage.put("evaluationResults", evaluationResults);
+			rBuild.entity(responseMessage.toString());
+		}else {
+			rBuild = Response.status(400);
+			responseMessage.put("result", "Request could not be handled!");
+			rBuild.entity(responseMessage.toString());
+		}
+		return rBuild.build();
 		
 	}
 	

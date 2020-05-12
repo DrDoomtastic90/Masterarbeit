@@ -139,14 +139,14 @@ public class EvaluationPreparationService {
 	}
 	
 	//Function of Bantel GmbH To get all ARIMA ForecastResults
-	public static JSONObject getForecastResultsMulti(JSONObject configurations, JSONArray executionRuns, String procedureName) throws SQLException, ParseException, ClassNotFoundException {
+	public static JSONObject getForecastResultsMulti(JSONObject configurations, JSONObject consideratedConfigurations, JSONArray executionRuns, String procedureName) throws SQLException, ParseException, ClassNotFoundException {
 		JSONObject forecastResults = new JSONObject();
 		CallbackDBConnection.getInstance("CallbackDB");
 		CallbackDAO callbackDAO = new CallbackDAO();
     	for(int i = 0; i<executionRuns.length();i++) {
     		String to = executionRuns.getJSONObject(i). getString("to");
     		String from = executionRuns.getJSONObject(i).getString("from");
-    		forecastResults.put(to, callbackDAO.getForecastResult(configurations, procedureName, from, to));
+    		forecastResults.put(to, callbackDAO.getForecastResult(configurations, consideratedConfigurations, procedureName, from, to));
     	}
     		
 		return forecastResults;
@@ -167,7 +167,7 @@ public class EvaluationPreparationService {
 			
 			
 			for(String dateString : procedureResults.keySet()) {
-				JSONObject targetVariableResults = procedureResults.getJSONObject(dateString);
+				JSONObject forecastingConfigurations = procedureResults.getJSONObject(dateString);
 				
 				//get actual demand for specific date if not already retrieved
 				if(!actualDemand.has(dateString)) {
@@ -177,32 +177,52 @@ public class EvaluationPreparationService {
 			    		actualDemand.put(dateString, getActualResultsWeekly(dateString, forecastPeriods, passPhrase));
 			    	}
 				}
-
-    			for(String targetVariableName : targetVariableResults.keySet()) {
-        			JSONObject periodResults = targetVariableResults.getJSONObject(targetVariableName);
-        			for(String period : periodResults.keySet()) {
-        				JSONObject evaluationAttributes = new JSONObject();
-	        			double result = periodResults.getDouble(period);
-	        			double demand = 0;
-	        			if(actualDemand.getJSONObject(dateString).getJSONObject(period).has(targetVariableName)) {
-	        				demand = actualDemand.getJSONObject(dateString).getJSONObject(period).getDouble(targetVariableName);
-	        			}
-	        			periodResults.put(period, evaluationAttributes);
-	        			evaluationAttributes.put("forecastResult", result);
-	        			evaluationAttributes.put("demand", demand);
-	        			
-	        			/*JSONObject evaluationStructuredPeriodResult = new JSONObject();
-	        			evaluationStructuredPeriodResult.put("forecastResult", result);
-	        			evaluationStructuredPeriodResult.put("demand", actualDemand.getJSONObject(dateString).getDouble(period));
-	        			evaluationStructuredVariableResult.put(targetVariableName, evaluationStructuredPeriodResult);
-	        			evaluationStructuredResults.put(period, evaluationStructuredVariableResult);*/
-	        			
+				for(String configuration: forecastingConfigurations.keySet()) {
+					JSONObject targetVariableResults = forecastingConfigurations.getJSONObject(configuration);
+					for(String targetVariableName : targetVariableResults.keySet()) {
+	        			JSONObject periodResults = targetVariableResults.getJSONObject(targetVariableName);
+	        			JSONObject structuredConfigurations = new JSONObject();
+	        			JSONObject structuredPeriod;
+	        			for(String period : periodResults.keySet()) {
+	        				JSONObject evaluationAttributes = new JSONObject();
+		        			double result = periodResults.getDouble(period);
+		        			double demand = 0;
+		        			if(actualDemand.getJSONObject(dateString).getJSONObject(period).has(targetVariableName)) {
+		        				demand = actualDemand.getJSONObject(dateString).getJSONObject(period).getDouble(targetVariableName);
+		        			}
+		        			periodResults.put(period, evaluationAttributes);
+		        			evaluationAttributes.put("forecastResult", result);
+		        			evaluationAttributes.put("demand", demand);
+		        			
+		        			/*JSONObject evaluationStructuredPeriodResult = new JSONObject();
+		        			evaluationStructuredPeriodResult.put("forecastResult", result);
+		        			evaluationStructuredPeriodResult.put("demand", actualDemand.getJSONObject(dateString).getDouble(period));
+		        			evaluationStructuredVariableResult.put(targetVariableName, evaluationStructuredPeriodResult);
+		        			evaluationStructuredResults.put(period, evaluationStructuredVariableResult);*/
+		        			if(evaluationStructuredResults.has(targetVariableName)) {
+		        				structuredConfigurations = evaluationStructuredResults.getJSONObject(targetVariableName);
+		        			}else {
+		        				structuredConfigurations = new JSONObject();
+		        				evaluationStructuredResults.put(targetVariableName, structuredConfigurations);
+		        			}
+		        			if(structuredConfigurations.has(configuration)) {
+		        				structuredPeriod = structuredConfigurations.getJSONObject(configuration);
+		        			}else {
+		        				structuredPeriod = new JSONObject();
+		        				structuredConfigurations.put(configuration, structuredPeriod);
+		        			}
+		        			structuredPeriod.put(dateString, periodResults);
+		        			
+		        			//structuredConfigurations.getJSONObject(configuration).put(dateString, periodResults);	
+		        		}
+	        		/*	if(evaluationStructuredResults.has(targetVariableName)) {
+	        				evaluationStructuredResults.get(targetVariableName, new JSONObject());
+	        			}*//*
+	        			//evaluationStructuredResults.getJSONObject(targetVariableName).put(configuration, structuredConfigurations);
+	        			evaluationStructuredResults.get(targetVariableName).put(structuredConfigurations); */
 	        		}
-        			if(!evaluationStructuredResults.has(targetVariableName)) {
-        				evaluationStructuredResults.put(targetVariableName, new JSONObject());
-        			}
-        			evaluationStructuredResults.getJSONObject(targetVariableName).put(dateString, periodResults);	
-        		}
+				}
+    			
     			
 			}
 		}

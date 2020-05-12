@@ -1,9 +1,12 @@
 package serviceImplementation;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.Base64;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -89,6 +92,8 @@ public class EvaluationPreparationController {
 			JSONObject forecastResults = new JSONObject();
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
+			JSONObject consideratedConfigurations = requestBody.getJSONObject("consideratedConfigurations");
+			
 			JSONArray executionRuns = requestBody.getJSONArray("executionRuns");
 			String serviceURL = "https://localhost:9100/Daten/ConfigFile/Bantel_config";        		     
         	JSONObject jsonConfigurations =  invokeHTTPSService(serviceURL, loginCredentials);  
@@ -106,7 +111,7 @@ public class EvaluationPreparationController {
 				
 				configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-				forecastResults.put("ARIMA", EvaluationPreparationService.getForecastResultsMulti(configurations, executionRuns, "ARIMA"));
+				forecastResults.put("ARIMA", EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ARIMA"));
 				preparedData.put("ARIMA", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));
 				
 				//Evaluation MAE evaluation service from forecasting tool => Outsource to separate ForecastingTool service
@@ -122,25 +127,31 @@ public class EvaluationPreparationController {
 			
 			JSONObject evaluationRequestBody = new JSONObject();
 			serviceURL = "https://localhost:" + 443 + "/ForecastingTool/EvaluationService/Combined/Excel";
-			evaluationRequestBody.put("evaluationResults", preparedData);
+			evaluationRequestBody.put("forecastResults", preparedData);
 			evaluationRequestBody.put("loginCredentials", loginCredentials);		
 			evaluationRequestBody.put("configurations", jsonConfigurations);	
 			
 			//return result
-			JSONObject evaluationResult = invokeHTTPSService(serviceURL, evaluationRequestBody);
-			System.out.println(evaluationResult.toString());
+			JSONObject evaluationResponse = invokeHTTPSService(serviceURL, evaluationRequestBody);
+			String fileString = evaluationResponse.getString("fileString");
+			String fileName = evaluationResponse.getString("fileName");
+			JSONObject evaluationResults = evaluationResponse.getJSONObject("evaluationResults");
+			convertByteToFile(fileString, fileName);
+			System.out.println(evaluationResponse.get("result").toString());
 			//JSONObject preparedResults = EvaluationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials);
 			
 			//Store result
 			EvaluationDBConnection.getInstance("EvaluationDB");
 			EvaluationDAO evaluationDAO = new EvaluationDAO();
-			for(String procedureName : evaluationResult.keySet()) {
-				evaluationDAO.writeEvaluationResultsToDB(evaluationResult.getJSONObject(procedureName), jsonConfigurations.getJSONObject("forecasting").getJSONObject(procedureName), procedureName, "MAE");
+			for(String procedureName : evaluationResults.keySet()) {
+				evaluationDAO.writeEvaluationResultsToDB(evaluationResults.getJSONObject(procedureName), jsonConfigurations.getJSONObject("forecasting").getJSONObject(procedureName), procedureName, "MAE");
 			}
 			
 			response.setStatus(202);
 			response.setContentType("application/json");
-			response.getWriter().write("");
+			JSONObject responseContent = new JSONObject();
+			responseContent.put("Result", "DONE");
+			response.getWriter().write(responseContent.toString());
 			response.flushBuffer();
 		
 		} catch (IOException e) {
@@ -159,6 +170,18 @@ public class EvaluationPreparationController {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	//from https://stackoverflow.com/questions/18599985/send-file-inside-jsonobject-to-rest-webservice
+	 //Convert a Base64 string and create a file
+	private static final void convertByteToFile(String fileString, String filename) throws IOException{
+		byte[] bytes = Base64.getDecoder().decode(fileString);
+		String targetPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\";
+		File file = new File(targetPath+"BANTEL_"+filename);
+		FileOutputStream fop = new FileOutputStream(file);
+		fop.write(bytes);
+		fop.flush();
+		fop.close();
 	}
 	
 	private JSONObject invokeHTTPSService(String serviceURL, JSONObject requestBody) throws IOException {
