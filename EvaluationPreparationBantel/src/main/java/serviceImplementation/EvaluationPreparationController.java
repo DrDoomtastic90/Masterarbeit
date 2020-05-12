@@ -106,19 +106,41 @@ public class EvaluationPreparationController {
 			loginCredentials = EvaluationPreparationService.invokeLoginService(loginCredentials);
 			
 			if(jsonConfigurations.getJSONObject("forecasting").getJSONObject("ARIMA").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
-				JSONObject configurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ARIMA");
-				
-				
+				JSONObject configurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ARIMA");	
 				configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-				forecastResults.put("ARIMA", EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ARIMA"));
+				//forecastResults.put("ARIMA", EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ARIMA"));
+				forecastResults = EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ARIMA");
 				preparedData.put("ARIMA", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));
-				
-				//Evaluation MAE evaluation service from forecasting tool => Outsource to separate ForecastingTool service
-				//JSONObject evaluationResult = EvaluationPreparationService.evaluationMAE(preparedResults);
-				
-						
-			
+			}
+			if(jsonConfigurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject configurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing");		
+				configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
+				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
+				//forecastResults.put("ExpSmoothing", EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ExpSmoothing"));
+				forecastResults = EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ExpSmoothing");
+				preparedData.put("ExpSmoothing", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));
+			}
+			if(jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject configurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman");		
+				configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
+				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
+				forecastResults.put("Kalman", EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "Kalman"));
+				preparedData.put("Kalman", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));
+			}
+			if(jsonConfigurations.getJSONObject("forecasting").getJSONObject("ANN").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject configurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ANN");		
+				configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
+				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
+				forecastResults.put("ANN", EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ANN"));
+				preparedData.put("ANN", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));
+			}
+			if(jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject configurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased");		
+				configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
+				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
+				forecastResults.put("ruleBased", EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ruleBased"));
+				preparedData.put("ruleBased", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));
 			}
 			
 			//Update LoginCredentials to Call ForecastingTool Service
@@ -133,18 +155,23 @@ public class EvaluationPreparationController {
 			
 			//return result
 			JSONObject evaluationResponse = invokeHTTPSService(serviceURL, evaluationRequestBody);
-			String fileString = evaluationResponse.getString("fileString");
-			String fileName = evaluationResponse.getString("fileName");
 			JSONObject evaluationResults = evaluationResponse.getJSONObject("evaluationResults");
-			convertByteToFile(fileString, fileName);
-			System.out.println(evaluationResponse.get("result").toString());
-			//JSONObject preparedResults = EvaluationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials);
-			
-			//Store result
+			//Store results
 			EvaluationDBConnection.getInstance("EvaluationDB");
 			EvaluationDAO evaluationDAO = new EvaluationDAO();
+			
+			System.out.println(evaluationResponse.get("result").toString());
+			
 			for(String procedureName : evaluationResults.keySet()) {
-				evaluationDAO.writeEvaluationResultsToDB(evaluationResults.getJSONObject(procedureName), jsonConfigurations.getJSONObject("forecasting").getJSONObject(procedureName), procedureName, "MAE");
+				JSONObject procedureResult = evaluationResults.getJSONObject(procedureName);
+				JSONObject mAE = procedureResult.getJSONObject("MAE");
+				evaluationDAO.writeEvaluationResultsToDB(mAE, jsonConfigurations.getJSONObject("forecasting").getJSONObject(procedureName), procedureName, "MAE");
+				
+				String fileName = procedureResult.getString("fileName");
+				String fileContentString = procedureResult.getString("fileContentString");
+				convertByteToFile(fileContentString, fileName);
+				//JSONObject preparedResults = EvaluationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials);
+				
 			}
 			
 			response.setStatus(202);

@@ -154,6 +154,9 @@ public class EvaluationController {
 				evaluationDAO.writeEvaluationResultsToDB(evaluationResult.getJSONObject("ARIMA"), aRIMAConfigurations, "ARIMA", "MAE");
 				*/
 			}
+			if(configurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				evaluationResult.put("ExpSmoothing", EvaluationService.evaluationMAE(evaluationResults.getJSONObject("ExpSmoothing")));
+			}
 			
 			
 			
@@ -189,9 +192,8 @@ public class EvaluationController {
 	//Simulates evaluation of ForecastResults for BAntel GmbH
 	public Response evaluateResultsCombinedExcel(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		File file = null;
-		String fileString = null;
+		String fileContentString = null;
 		String fileName = null;
-		JSONObject aRIMAEvaluationResult = null;
 		JSONObject evaluationResults = new JSONObject();
 		try {
 			
@@ -207,13 +209,32 @@ public class EvaluationController {
 			loginCredentials = EvaluationService.invokeLoginService(loginCredentials);
 			
 			if(configurations.getJSONObject("forecasting").getJSONObject("ARIMA").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
-
-				aRIMAEvaluationResult = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ARIMA"));
-				evaluationResults.put("ARIMA", aRIMAEvaluationResult);
-				file = EvaluationService.writeEvaluationResultsToExcelFile(aRIMAEvaluationResult, "ARIMA");
+				JSONObject aRIMAEvaluation = new JSONObject();
+				JSONObject aRIMAEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ARIMA"));
+				
+				file = EvaluationService.writeEvaluationResultsToExcelFile(aRIMAEvaluationMAE, "ARIMA");
 				fileName = file.getName();
 				byte[] bytes = Files.readAllBytes(file.toPath());   
-				fileString = new String(Base64.getEncoder().encode(bytes));
+				fileContentString = new String(Base64.getEncoder().encode(bytes));
+				
+				aRIMAEvaluation.put("MAE", aRIMAEvaluationMAE);
+				aRIMAEvaluation.put("fileName",fileName);
+				aRIMAEvaluation.put("fileContentString",fileContentString);
+				evaluationResults.put("ARIMA", aRIMAEvaluation);
+			}
+			if(configurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject expSmoothingEvaluation = new JSONObject();
+				JSONObject expSmoothingEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ExpSmoothing"));			
+				
+				file = EvaluationService.writeEvaluationResultsToExcelFile(expSmoothingEvaluationMAE, "ExponentialSmoothing");
+				fileName = file.getName();
+				byte[] bytes = Files.readAllBytes(file.toPath());   
+				fileContentString = new String(Base64.getEncoder().encode(bytes));
+				
+				expSmoothingEvaluation.put("MAE", expSmoothingEvaluationMAE);
+				expSmoothingEvaluation.put("fileName",fileName);
+				expSmoothingEvaluation.put("fileContentString",fileContentString);
+				evaluationResults.put("ExponentialSmoothing", expSmoothingEvaluation);
 			}
 			
 			
@@ -240,8 +261,6 @@ public class EvaluationController {
 		if(file!=null) {
 			rBuild = Response.status(202);
 			responseMessage.put("result", "Request Successfully Received. Result will be returned as soon as possible!");
-			responseMessage.put("fileName",fileName);
-			responseMessage.put("fileString",fileString);
 			responseMessage.put("evaluationResults", evaluationResults);
 			rBuild.entity(responseMessage.toString());
 		}else {

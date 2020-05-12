@@ -161,10 +161,10 @@ public class EvaluationPreparationService {
 		String aggregationOutputData = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
 		JSONObject evaluationStructuredResults = new JSONObject();
 		
-		for(String procedureName : forecastResult.keySet()) {
+		//for(String procedureName : forecastResult.keySet()) {
 			//get procedure Results for specific date
-			JSONObject procedureResults = forecastResult.getJSONObject(procedureName);
-			
+			//JSONObject procedureResults = forecastResult.getJSONObject(procedureName);
+			JSONObject procedureResults = forecastResult;
 			
 			for(String dateString : procedureResults.keySet()) {
 				JSONObject forecastingConfigurations = procedureResults.getJSONObject(dateString);
@@ -225,7 +225,7 @@ public class EvaluationPreparationService {
     			
     			
 			}
-		}
+		//}
 		return evaluationStructuredResults;
 	}	
 	
