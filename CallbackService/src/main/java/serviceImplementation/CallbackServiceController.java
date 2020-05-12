@@ -57,6 +57,11 @@ public class CallbackServiceController {
 						JSONObject aRIMAResult = forecastResults.getJSONObject("ARIMAResult");
 						callbackDAO.writeForecastResultsToDB(aRIMAConfigurations, "ARIMA", aRIMAResult);
 					}
+					if(forecastResults.has("ExpSmoothingResult")) {
+						JSONObject expSmoothingConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing");
+						JSONObject expSmoothingResult = forecastResults.getJSONObject("ExpSmoothingResult");
+						callbackDAO.writeForecastResultsToDB(expSmoothingConfigurations, "ExpSmoothing", expSmoothingResult);
+					}
 				
 					
 					
