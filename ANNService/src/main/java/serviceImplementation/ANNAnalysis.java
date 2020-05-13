@@ -69,7 +69,7 @@ public class ANNAnalysis {
 		String networktype = network.getString("networkType");
 		int amountInputNodes = network.getInt("amountInputNodes");
 		int amountOutputNodes = network.getInt("amountOutputNodes");
-		int amountHiddenNodes = network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getInt("ammountNodes");
+		int amountHiddenNodes = network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getInt("amountNodes");
 		String transformationFunction = network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getString("transformationFunction");
 		String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods + " " + transformationFunction + " " + networktype +  " " + amountInputNodes + " " + amountHiddenNodes + " " + amountOutputNodes;
 		System.out.println(execString);
@@ -116,30 +116,29 @@ public class ANNAnalysis {
 		
 		ANNDBConnection.getInstance("ANNDB");
 		ANNDAO aNNDAO = new ANNDAO();
-		for(String sorte : preparedData.keySet()) {
-			if(sorte.equals("S11")) {
-				System.out.println("STOP");
-			}
+		for(String targetVariable : preparedData.keySet()) {
 			JSONObject model = new JSONObject();
 			JSONObject executionResult = new JSONObject();
 			//Input Daily OutputWeekly
-			String sourcePath = scriptPath+"temp\\" + sorte + ".tmp";
+			String sourcePath = scriptPath+"temp\\" + targetVariable + ".tmp";
 			String modelPath = scriptPath+"temp\\network.xml";
-			String targetPath = scriptPath+"temp\\" + sorte + "_result.tmp";
-			JSONArray dataset = preparedData.getJSONArray(sorte);
+			String targetPath = scriptPath+"temp\\" + targetVariable + "_result.tmp";
+			JSONArray dataset = preparedData.getJSONArray(targetVariable);
 			CustomFileWriter.createFile(sourcePath, dataset.toString());
 			
 			try {
 				if(train) {
-					model = trainModel(inputAggr, outputAggr, scriptPath, sourcePath, sorte, forecastPeriods, network);
-					aNNDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
+					model = trainModel(inputAggr, outputAggr, scriptPath, sourcePath, targetVariable, forecastPeriods, network);
+					aNNDAO.storeModel(configurations, "ANN", username, model, targetVariable);
+					//aNNDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
 				}else {
-					model = aNNDAO.getModel(username, inputAggr, outputAggr, sorte);
+					//model = aNNDAO.getModel(username, inputAggr, outputAggr, sorte);
+					model = aNNDAO.getModel(configurations, "ANN", username, targetVariable);
 				}
 				CustomFileWriter.createFile(modelPath, model.getString("model"));
-				executionResult = forecastModel(inputAggr, outputAggr, scriptPath, sourcePath, sorte, forecastPeriods, modelPath);
+				executionResult = forecastModel(inputAggr, outputAggr, scriptPath, sourcePath, targetVariable, forecastPeriods, modelPath);
 				CustomFileWriter.createFile(targetPath, executionResult.toString());
-				resultValues.put(sorte, executionResult);
+				resultValues.put(targetVariable, executionResult);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

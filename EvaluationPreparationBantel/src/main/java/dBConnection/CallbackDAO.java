@@ -27,7 +27,7 @@ public class CallbackDAO {
 	}
 	
 	public JSONObject getForecastResult(JSONObject configurations, JSONObject consideratedConfigurations, String procedureName, String from, String to) throws SQLException {
-		JSONObject forecastResults= new JSONObject();
+		JSONObject forecastResults= null;
 		String externalRegressors = "";
 		ArrayList<String> independentVariableList = new ArrayList<String>();
 		if(configurations.getJSONObject("factors").has("independentVariable")) {
@@ -38,18 +38,45 @@ public class CallbackDAO {
 			externalRegressors = independentVariableList.toString();
 		}
 		
-		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
-		String aggregationInputData = configurations.getJSONObject("parameters").getString("aggregationInputData");
-		String aggregationProcessing = configurations.getJSONObject("parameters").getString("aggregationProcessing");
-		String aggregationOutputData = configurations.getJSONObject("parameters").getString("aggregationOutputData");
-		double campaignLowerLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("lowerLimit");
-		double campaignUpperLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("upperLimit");
-		String campaignProcedure = configurations.getJSONObject("parameters").getJSONObject("campaigns").getString("procedure");
-		boolean campaignEnabled = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
-		double outlierLowerLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
-		double outlierUpperLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
-		boolean outlierEnabled = configurations.getJSONObject("parameters").getJSONObject("outliers").getBoolean("handle");
-		String outlierProcedure = configurations.getJSONObject("parameters").getJSONObject("outliers").getString("procedure");
+		int forecastPeriods = 1;
+		if(configurations.getJSONObject("parameters").has("forecastPeriods")) {
+			forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
+		}
+		String aggregationInputData = null;
+		String aggregationProcessing = null;
+		String aggregationOutputData = null;
+		
+		if(configurations.getJSONObject("parameters").has("aggregationInputData")) {
+			aggregationInputData = configurations.getJSONObject("parameters").getString("aggregationInputData");
+		}
+		if(configurations.getJSONObject("parameters").has("aggregationProcessing")) {
+			aggregationProcessing = configurations.getJSONObject("parameters").getString("aggregationProcessing");
+		}
+		if(configurations.getJSONObject("parameters").has("aggregationOutputData")) {
+			aggregationOutputData = configurations.getJSONObject("parameters").getString("aggregationOutputData");
+		}
+		
+		double campaignLowerLimit = 0;
+		double campaignUpperLimit = 0;
+		String campaignProcedure = "None";
+		boolean campaignEnabled = false;
+		if(configurations.getJSONObject("parameters").has("campaigns")) {
+			campaignLowerLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("lowerLimit");
+			campaignUpperLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("upperLimit");
+			campaignProcedure = configurations.getJSONObject("parameters").getJSONObject("campaigns").getString("procedure");
+			campaignEnabled = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
+		}
+		
+		double outlierLowerLimit = 0;
+		double outlierUpperLimit = 0;
+		String outlierProcedure = "None";
+		boolean outlierEnabled = false;
+		if(configurations.getJSONObject("parameters").has("outliers")) {
+			outlierLowerLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
+			outlierUpperLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
+			outlierEnabled = configurations.getJSONObject("parameters").getJSONObject("outliers").getBoolean("handle");
+			outlierProcedure = configurations.getJSONObject("parameters").getJSONObject("outliers").getString("procedure");
+		}
 		
 		
 		String sqlSelect = "select ForecastID, ForecastResult, CampaignEnabled,  CampaignProcedure, CampaignLowerLimit, CampaignUpperLimit, OutlierEnabled, OutlierProcedure, OutlierLowerLimit, OutlierUpperLimit ";
@@ -58,12 +85,15 @@ public class CallbackDAO {
 				"where ForecastDate = '" + to + "'" + 
 				" AND ForecastProcedure = '"+ procedureName + "'" + 
 				" AND ExecutionPeriods='" + forecastPeriods + "'" + 
-				" AND AggregationInputData = '"+ aggregationInputData + "'" + 
-				" AND AggregationProcessing='"+ aggregationProcessing + "'" + 
+				" AND AggregationInputData = '"+ aggregationInputData + "'" +  
 				" AND AggregationOutputData = '"+ aggregationOutputData + "'" + 
 				" AND DataConsideratedFromDate = '"+ from + "' " +
 				" AND ExternalRegressors = '"+ externalRegressors + "' ";
-		String sqlGroupByClause = "Group By CampaignEnabled, CampaignProcedure, CampaignLowerLimit, CampaignUpperLimit, OutlierEnabled, OutlierProcedure, OutlierLowerLimit, OutlierUpperLimit";
+		String sqlGroupByClause = " Group By CampaignEnabled, CampaignProcedure, CampaignLowerLimit, CampaignUpperLimit, OutlierEnabled, OutlierProcedure, OutlierLowerLimit, OutlierUpperLimit";
+		
+		if(consideratedConfigurations.has("AggregationProcessing") && aggregationProcessing != null) {
+			sqlWhereClause = sqlWhereClause + " AND AggregationProcessing='"+ aggregationProcessing + "'";
+		}
 		
 		if(consideratedConfigurations.has("campaignHandling")) {
 			sqlWhereClause = sqlWhereClause + " AND CampaignEnabled = '"+ (consideratedConfigurations.getBoolean("campaignHandling") ? 1 : 0) + "'";
@@ -130,7 +160,12 @@ public class CallbackDAO {
 		try {
 			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
+			boolean first = true;
 			while (resultSet.next()) {
+				if(first) {
+					forecastResults = new JSONObject();
+					first = false;
+				}
 				JSONObject singleForecastResult =  new JSONObject(resultSet.getString(2));
 				String configuration = "P";
 				if(resultSet.getBoolean(3)) {

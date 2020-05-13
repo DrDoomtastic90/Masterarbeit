@@ -71,16 +71,17 @@ public class KalmanAnalysis {
 		//Get Factors
 		StringBuilder factorStringBuilder = new StringBuilder();
 		boolean first = true;
-		
-		for(int i = 0; i < factors.length(); ++i) {
-			JSONObject factor = factors.getJSONObject(i);
-			String content = factor.getString("content");
-			if(first) {
-				factorStringBuilder.append(content);
-				first=false;
-			}else {
-				factorStringBuilder.append(",");
-				factorStringBuilder.append(content);
+		if(factors!=null) {
+			for(int i = 0; i < factors.length(); ++i) {
+				JSONObject factor = factors.getJSONObject(i);
+				String content = factor.getString("content");
+				if(first) {
+					factorStringBuilder.append(content);
+					first=false;
+				}else {
+					factorStringBuilder.append(",");
+					factorStringBuilder.append(content);
+				}
 			}
 		}
 		String factorsString = factorStringBuilder.toString();
@@ -116,14 +117,7 @@ public class KalmanAnalysis {
 		return new JSONObject(executeProcessCMD(execString));
 	}
 	
-	
-	public KalmanAnalysis() {
-		rEngine = Rengine.getMainEngine();
-		if(rEngine == null) {
-			rEngine = new Rengine(new String[] { "–no-save" }, false, null);
-		}
-	}
-	
+		
 	public JSONObject executeAnalysisCMDNeu(JSONObject configurations, JSONObject preparedData) throws SQLException, ClassNotFoundException {
 		JSONObject resultValues = new JSONObject();
 		String kalmanPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Kalman\\";
@@ -132,32 +126,32 @@ public class KalmanAnalysis {
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
 		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
-		JSONArray factors = configurations.getJSONObject("factors").getJSONArray("independentVariable");
+		JSONArray factors = null;
+		if(configurations.getJSONObject("factors").has("independentVariable")){
+				factors = configurations.getJSONObject("factors").getJSONArray("independentVariable");
+		}
 		boolean train = configurations.getJSONObject("parameters").getJSONObject("execution").getBoolean("train");
 		String username = configurations.getString("username");
 		
 		KalmanDBConnection.getInstance("KalmanFilterDB");
 		KalmanDAO kalmanDAO = new KalmanDAO();
-		for(String sorte : preparedData.keySet()) {
-			String filePath = kalmanPath+"temp\\" + sorte + ".tmp";
-			if(sorte.equals("S11")) {
-				System.out.println("STOP");
-			}
+		for(String targetVariable : preparedData.keySet()) {
+			String filePath = kalmanPath+"temp\\" + targetVariable + ".tmp";
 			JSONObject model = new JSONObject();
 			JSONObject executionResult = new JSONObject();
 			//Input Daily OutputWeekly
-			CustomFileWriter.createFile(filePath, preparedData.getString(sorte));
+			CustomFileWriter.createFile(filePath, preparedData.getString(targetVariable));
 			
 			try {
 				if(train) {
-				model = trainModel(inputAggr, outputAggr, processingAggr, kalmanPath, filePath, sorte, forecastPeriods, factors);
+				model = trainModel(inputAggr, outputAggr, processingAggr, kalmanPath, filePath, targetVariable, forecastPeriods, factors);
 					
-					kalmanDAO.storeModel(model, username, inputAggr, outputAggr, sorte);
+					kalmanDAO.storeModel(configurations, "Kalman", username, model, targetVariable);
 				}else {
-					model = kalmanDAO.getModel(username, inputAggr, outputAggr, sorte);
+					model = kalmanDAO.getModel(configurations, "Kalman", username, targetVariable);
 				}			
-				executionResult = forecastModel(inputAggr, outputAggr, processingAggr, kalmanPath, filePath, sorte, forecastPeriods, model.toString());
-				resultValues.put(sorte, executionResult);
+				executionResult = forecastModel(inputAggr, outputAggr, processingAggr, kalmanPath, filePath, targetVariable, forecastPeriods, model.toString());
+				resultValues.put(targetVariable, executionResult);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -178,9 +172,6 @@ public class KalmanAnalysis {
 
 			for(String sorte : preparedData.keySet()) {
 					String filePath = kalmanPath+"temp\\" + sorte + ".tmp";
-					if(sorte.equals("S1")) {
-						System.out.println("Stop");
-					}
 					JSONObject executionResult = new JSONObject();
 					//Input Daily OutputWeekly
 					CustomFileWriter.createFile(filePath, preparedData.getString(sorte));

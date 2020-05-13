@@ -29,6 +29,7 @@ public class CallbackDAO {
 	}
 	
 	public void writeForecastResultsToDB(JSONObject configurations, String serviceName, JSONObject forecastResult){
+		
 		String from = configurations.getJSONObject("data").getString("from") ;
 		String to = configurations.getJSONObject("data").getString("to");
 		String externalRegressors = "";
@@ -41,10 +42,23 @@ public class CallbackDAO {
 			externalRegressors = independentVariableList.toString();
 		}
 		
+		String aggregationInputData = null;
+		String aggregationProcessing = null;
+		String aggregationOutputData = null;
+		
 		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
-		String aggregationInputData = configurations.getJSONObject("parameters").getString("aggregationInputData");
-		String aggregationProcessing = configurations.getJSONObject("parameters").getString("aggregationProcessing");
-		String aggregationOutputData = configurations.getJSONObject("parameters").getString("aggregationOutputData");
+		if(configurations.getJSONObject("parameters").has("aggregationInputData")) {
+			aggregationInputData = configurations.getJSONObject("parameters").getString("aggregationInputData");
+		}
+		if(configurations.getJSONObject("parameters").has("aggregationProcessing")) {
+			aggregationProcessing = configurations.getJSONObject("parameters").getString("aggregationProcessing");
+		}
+		if(configurations.getJSONObject("parameters").has("aggregationOutputData")) {
+			aggregationOutputData = configurations.getJSONObject("parameters").getString("aggregationOutputData");
+		}
+		
+		
+		
 		
 		double campaignLowerLimit = 0;
 		double campaignUpperLimit = 0;

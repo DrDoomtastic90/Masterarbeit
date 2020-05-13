@@ -146,7 +146,10 @@ public class EvaluationPreparationService {
     	for(int i = 0; i<executionRuns.length();i++) {
     		String to = executionRuns.getJSONObject(i). getString("to");
     		String from = executionRuns.getJSONObject(i).getString("from");
-    		forecastResults.put(to, callbackDAO.getForecastResult(configurations, consideratedConfigurations, procedureName, from, to));
+    		JSONObject forecastResult = callbackDAO.getForecastResult(configurations, consideratedConfigurations, procedureName, from, to);
+    		if(forecastResult!=null) {
+    			forecastResults.put(to, forecastResult);
+    		}
     	}
     		
 		return forecastResults;

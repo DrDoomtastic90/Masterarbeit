@@ -110,6 +110,56 @@ public class ServiceController {
 		}
 	}
 	
+	@GET
+	@Path("/Kalman")
+	@Produces(MediaType.APPLICATION_JSON)
+	public void performKalmanAnalysis(@Context HttpServletRequest request, @Suspended final AsyncResponse asyncResponse) {
+		try{
+			JSONObject combinedAnalysisResults = new JSONObject();
+			ServiceCombiner.test();
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject loginCredentials = invokeLoginService(requestBody);
+			if(loginCredentials.getBoolean("isAuthorized")) {
+	        		        	
+				//login credentials to access customer system and dB passphrase is provided
+				JSONObject loginCredentialsCustomerSystem = new JSONObject();
+	        	String passPhrase = requestBody.getString("passPhrase");
+				loginCredentialsCustomerSystem.put("username", "ForecastingTool");
+				loginCredentialsCustomerSystem.put("password", "forecasting");
+				loginCredentialsCustomerSystem.put("passPhrase", passPhrase);
+				
+				
+				//Get Configuration file and set initial execution parameters
+				String serviceURL = loginCredentials.getString("apiURL");
+	        	JSONObject jsonConfigurations =  invokeHTTPSService(serviceURL, loginCredentialsCustomerSystem);       	
+	        	
+	        	//Return asyn response
+	        	asyncResponse.resume("Request Successfully Received. Result will be returned as soon as possible!");
+	        	
+	        	//Run procedures for each provided date
+				JSONArray executionRuns = requestBody.getJSONArray("executionRuns");
+				String username = jsonConfigurations.getJSONObject("user").getString("name");
+				
+				for(int i = 0; i<executionRuns.length();i++) {
+					String to = executionRuns.getJSONObject(i). getString("to");
+	        		String from = executionRuns.getJSONObject(i).getString("from");
+	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman").getJSONObject("data").put("to", to);
+	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman").getJSONObject("data").put("from", from);
+	        		JSONObject kalmanConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman");
+	        		executeKalmanForecasting(kalmanConfigurations, loginCredentialsCustomerSystem, username);
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+	
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	
+	
 	private Callable<JSONObject> getJSONCallable(JSONObject executionRun) {
 	    return () -> {
 	    	return executionRun;
@@ -614,7 +664,7 @@ public class ServiceController {
 		//Write perpared data to file
 		String forecastDate = ruleBasedConfigurations.getJSONObject("data").getString("to");
 		filename = forecastDate + "_" + filename+ "_Prep";	
-		CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+	//	CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		
 		//Outlier Handling - not applicable for rulebased forecasting
 		//prepare request body for forecasting service call
@@ -653,7 +703,7 @@ public class ServiceController {
 		//Write perpared data to file
 		String forecastDate = aRIMAConfigurations.getJSONObject("data").getString("to");
 		filename = forecastDate + "_" + filename+ "_Prep";	
-		CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+	//	CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 
 
 		//perform campaign handling
@@ -665,7 +715,7 @@ public class ServiceController {
 			
 			//Write perpared data to file
 			 filename = filename + "_Campaigns";	
-			 CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+		//	 CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		}
 		
 		//perform outlier handling
@@ -677,7 +727,7 @@ public class ServiceController {
 			
 			//Write perpared data to file
 			 filename = filename + "_Outliers";	
-			 CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+			// CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		}
 		
 		//prepare request body for forecasting service call
@@ -715,7 +765,7 @@ public class ServiceController {
 		//Write perpared data to file
 		String forecastDate = kalmanConfigurations.getJSONObject("data").getString("to");
 		filename = forecastDate + "_" + filename + "_Prep";	
-		CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+		//CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		
 		//perform campaign handling
 		if(kalmanConfigurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained")) {
@@ -726,7 +776,7 @@ public class ServiceController {
 			
 			//Write perpared data to file
 			 filename = filename + "_Campaigns";	
-			 CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+			// CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		}
 		
 		//perform outlier handling
@@ -738,7 +788,7 @@ public class ServiceController {
 			
 			//Write perpared data to file
 			 filename = filename + "_Outliers";	
-			 CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+			// CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		}
 		
 		//prepare request body for forecasting service call
@@ -775,7 +825,7 @@ public class ServiceController {
 		//Write perpared data to fil
 		String forecastDate = expSmoothingConfigurations.getJSONObject("data").getString("to");
 		filename = forecastDate + "_" + filename + "_Prep";	
-		CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+	//	CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 				
 		//perform campaign handling
 		if(expSmoothingConfigurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained")) {
@@ -786,7 +836,7 @@ public class ServiceController {
 			
 			//Write perpared data to file
 			 filename = filename + "_Campaigns";	
-			 CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+	//		 CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		}
 				
 		//perform outlier handling
@@ -798,7 +848,7 @@ public class ServiceController {
 			
 			//Write perpared data to file
 			 filename = filename + "_Outliers";	
-			 CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+	//		 CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		}
 	
 		//prepare request body for forecasting service call
@@ -835,7 +885,7 @@ public class ServiceController {
 		//Write perpared data to file
 		String forecastDate = aNNConfigurations.getJSONObject("data").getString("to");
 		filename = forecastDate + "_" + filename + "_Prep";	
-		CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+	//	CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		
 		//perform outlier handling
 		//Not needed in case of neural networks

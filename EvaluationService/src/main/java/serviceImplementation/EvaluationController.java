@@ -236,6 +236,48 @@ public class EvaluationController {
 				expSmoothingEvaluation.put("fileContentString",fileContentString);
 				evaluationResults.put("ExponentialSmoothing", expSmoothingEvaluation);
 			}
+			if(configurations.getJSONObject("forecasting").getJSONObject("Kalman").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject kalmanEvaluation = new JSONObject();
+				JSONObject kalmanEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("Kalman"));			
+				
+				file = EvaluationService.writeEvaluationResultsToExcelFile(kalmanEvaluationMAE, "Kalman");
+				fileName = file.getName();
+				byte[] bytes = Files.readAllBytes(file.toPath());   
+				fileContentString = new String(Base64.getEncoder().encode(bytes));
+				
+				kalmanEvaluation.put("MAE", kalmanEvaluationMAE);
+				kalmanEvaluation.put("fileName",fileName);
+				kalmanEvaluation.put("fileContentString",fileContentString);
+				evaluationResults.put("Kalman", kalmanEvaluation);
+			}
+			if(configurations.getJSONObject("forecasting").getJSONObject("ANN").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject aNNEvaluation = new JSONObject();
+				JSONObject aNNEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ANN"));			
+				
+				file = EvaluationService.writeEvaluationResultsToExcelFile(aNNEvaluationMAE, "ANN");
+				fileName = file.getName();
+				byte[] bytes = Files.readAllBytes(file.toPath());   
+				fileContentString = new String(Base64.getEncoder().encode(bytes));
+				
+				aNNEvaluation.put("MAE", aNNEvaluationMAE);
+				aNNEvaluation.put("fileName",fileName);
+				aNNEvaluation.put("fileContentString",fileContentString);
+				evaluationResults.put("ANN", aNNEvaluation);
+			}
+			if(configurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject ruleBasedEvaluation = new JSONObject();
+				JSONObject ruleBasedEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ruleBased"));			
+				
+				file = EvaluationService.writeEvaluationResultsToExcelFile(ruleBasedEvaluationMAE, "ruleBased");
+				fileName = file.getName();
+				byte[] bytes = Files.readAllBytes(file.toPath());   
+				fileContentString = new String(Base64.getEncoder().encode(bytes));
+				
+				ruleBasedEvaluation.put("MAE", ruleBasedEvaluationMAE);
+				ruleBasedEvaluation.put("fileName",fileName);
+				ruleBasedEvaluation.put("fileContentString",fileContentString);
+				evaluationResults.put("ruleBased", ruleBasedEvaluation);
+			}
 			
 			
 		} catch (IOException e) {

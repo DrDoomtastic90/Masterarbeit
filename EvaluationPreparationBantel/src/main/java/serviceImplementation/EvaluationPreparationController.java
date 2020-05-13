@@ -125,21 +125,21 @@ public class EvaluationPreparationController {
 				JSONObject configurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman");		
 				configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-				forecastResults.put("Kalman", EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "Kalman"));
+				forecastResults = EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "Kalman");
 				preparedData.put("Kalman", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));
 			}
 			if(jsonConfigurations.getJSONObject("forecasting").getJSONObject("ANN").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 				JSONObject configurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ANN");		
 				configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-				forecastResults.put("ANN", EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ANN"));
+				forecastResults = EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ANN");
 				preparedData.put("ANN", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));
 			}
 			if(jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 				JSONObject configurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased");		
 				configurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
 				configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
-				forecastResults.put("ruleBased", EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ruleBased"));
+				forecastResults = EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "ruleBased");
 				preparedData.put("ruleBased", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));
 			}
 			

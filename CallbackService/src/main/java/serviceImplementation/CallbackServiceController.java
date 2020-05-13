@@ -62,6 +62,21 @@ public class CallbackServiceController {
 						JSONObject expSmoothingResult = forecastResults.getJSONObject("ExpSmoothingResult");
 						callbackDAO.writeForecastResultsToDB(expSmoothingConfigurations, "ExpSmoothing", expSmoothingResult);
 					}
+					if(forecastResults.has("kalmanResult")) {
+						JSONObject kalmanConfigurations = configurations.getJSONObject("forecasting").getJSONObject("Kalman");
+						JSONObject kalmanResult = forecastResults.getJSONObject("kalmanResult");
+						callbackDAO.writeForecastResultsToDB(kalmanConfigurations, "Kalman", kalmanResult);
+					}
+					if(forecastResults.has("ruleBasedResult")) {
+						JSONObject ruleBasedConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ruleBased");
+						JSONObject ruleBasedResult = forecastResults.getJSONObject("ruleBasedResult");
+						callbackDAO.writeForecastResultsToDB(ruleBasedConfigurations, "ruleBased", ruleBasedResult);
+					}
+					if(forecastResults.has("ANNResult")) {
+						JSONObject aNNConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ANN");
+						JSONObject aNNResult = forecastResults.getJSONObject("ANNResult");
+						callbackDAO.writeForecastResultsToDB(aNNConfigurations, "ANN", aNNResult);
+					}
 				
 					
 					
