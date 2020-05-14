@@ -13,12 +13,16 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import javax.swing.text.html.parser.TagElement;
 
 import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
 import org.apache.poi.ss.usermodel.BuiltinFormats;
@@ -40,7 +44,8 @@ import webClient.RestClient;
 
 
 public class EvaluationService {
-
+	static List<String> skipList = Arrays.asList("MAE", "ME", "MAEPercentage", "MEPercentage");
+	
 	private static JSONObject evaluationMAE(JSONObject actualResults, JSONObject forecastingResults) {
 		JSONObject diffSKBez = new JSONObject();
 		for(String skbez : forecastingResults.keySet()) {
@@ -157,28 +162,31 @@ public class EvaluationService {
 						periodResults.put("MAEPercentage", ABSDeviation/actualDemand);
 						periodResults.put("forecastResult", forecastResult);
 						periodResults.put("actualDemand", actualDemand);
+						totalDeviationForecastPeriods.put(period, periodResults);
 						totalDeviationForecastPeriods.put("ME", (totalDeviationForecastPeriods.getDouble("ME") + periodResults.getDouble("ME"))/2);
 						totalDeviationForecastPeriods.put("MEPercentage", (totalDeviationForecastPeriods.getDouble("MEPercentage") + periodResults.getDouble("MEPercentage"))/2);
 						totalDeviationForecastPeriods.put("MAE", (totalDeviationForecastPeriods.getDouble("MAE") + periodResults.getDouble("MAE"))/2);
 						totalDeviationForecastPeriods.put("MAEPercentage", (totalDeviationForecastPeriods.getDouble("MAEPercentage") + periodResults.getDouble("MAEPercentage"))/2);
 					}
-				
+					totalDeviationObservationPeriod.put(configuration, totalDeviationForecastPeriods);
 					totalDeviationObservationPeriod.put("ME", (totalDeviationObservationPeriod.getDouble("ME") + totalDeviationForecastPeriods.getDouble("ME"))/2);
 					totalDeviationObservationPeriod.put("MEPercentage", (totalDeviationObservationPeriod.getDouble("MEPercentage") + totalDeviationForecastPeriods.getDouble("MEPercentage"))/2);
 					totalDeviationObservationPeriod.put("MAE", (totalDeviationObservationPeriod.getDouble("MAE") + totalDeviationForecastPeriods.getDouble("MAE"))/2);
 					totalDeviationObservationPeriod.put("MAEPercentage", (totalDeviationObservationPeriod.getDouble("MAEPercentage") + totalDeviationForecastPeriods.getDouble("MAEPercentage"))/2);
 				}
+				totalDeviationConfiguration.put(forecastDate, totalDeviationObservationPeriod);
 				totalDeviationConfiguration.put("ME", (totalDeviationConfiguration.getDouble("ME") + totalDeviationObservationPeriod.getDouble("ME"))/2);
 				totalDeviationConfiguration.put("MEPercentage", (totalDeviationConfiguration.getDouble("MEPercentage") + totalDeviationObservationPeriod.getDouble("MEPercentage"))/2);
 				totalDeviationConfiguration.put("MAE", (totalDeviationConfiguration.getDouble("MAE") + totalDeviationObservationPeriod.getDouble("MAE"))/2);
 				totalDeviationConfiguration.put("MAEPercentage", (totalDeviationConfiguration.getDouble("MAEPercentage") + totalDeviationObservationPeriod.getDouble("MAEPercentage"))/2);
 			}
+			totalDeviationTargetVariable.put(targetVariableName, totalDeviationConfiguration);
 			totalDeviationTargetVariable.put("ME", (totalDeviationTargetVariable.getDouble("ME") + totalDeviationConfiguration.getDouble("ME"))/2);
 			totalDeviationTargetVariable.put("MEPercentage", (totalDeviationTargetVariable.getDouble("MEPercentage") + totalDeviationConfiguration.getDouble("MEPercentage"))/2);
 			totalDeviationTargetVariable.put("MAE", (totalDeviationTargetVariable.getDouble("MAE") + totalDeviationConfiguration.getDouble("MAE"))/2);
 			totalDeviationTargetVariable.put("MAEPercentage", (totalDeviationTargetVariable.getDouble("MAEPercentage") + totalDeviationConfiguration.getDouble("MAEPercentage"))/2);
 		}
-		return procedureResults;
+		return totalDeviationTargetVariable;
 	}
 	
 	
@@ -203,11 +211,16 @@ public class EvaluationService {
 		cell.setCellValue(value);
 	}
 	
-	private static void initializeHeaders(XSSFSheet sheet, JSONObject targetVariableResult) {
+	private static JSONObject initializeHeaders(XSSFSheet sheet, ArrayList<String> configurations, ArrayList<String> dates, int forecastPeriods/*JSONObject targetVariableResult*/) {
 		//XSSFSheet sheet = wb.getSheet("Produktübersicht");
+		JSONObject colRowMapper = new JSONObject();
+		colRowMapper.put("Dates", new JSONObject());
+		colRowMapper.put("Configurations", new JSONObject());
+		
 		int baseRowIndex = 3;
 		int baseColIndex = CellReference.convertColStringToIndex("B");		
-		int numberOfConfigurations = targetVariableResult.length();
+		//int numberOfConfigurations = targetVariableResult.length();
+		int numberOfConfigurations = configurations.size();
 		int rowIndex = baseRowIndex;
 		int colIndex = baseColIndex;
 		writeValueToCell(sheet, rowIndex, colIndex, "ForecastDate");
@@ -232,24 +245,42 @@ public class EvaluationService {
 		rowIndex+=1;
 		writeValueToCell(sheet, rowIndex, colIndex, "Period");
 		sheet.autoSizeColumn(colIndex);
-		baseColIndex +=1;
 		rowIndex = baseRowIndex;
 		int i = 0;
-		for(String configuration : targetVariableResult.keySet()) {
-			rowIndex += 3;
-			writeValueToCell(sheet, rowIndex, colIndex, configuration);
-			rowIndex+=(3+numberOfConfigurations);
-			writeValueToCell(sheet, rowIndex, colIndex, configuration);
-			rowIndex+=(3+numberOfConfigurations);
-			writeValueToCell(sheet, rowIndex, colIndex, configuration);
-			rowIndex+=(3+numberOfConfigurations);
-			writeValueToCell(sheet, rowIndex, colIndex, configuration);
-			rowIndex+=(3+numberOfConfigurations);
-			writeValueToCell(sheet, rowIndex, colIndex, configuration);
-			i += 1;
-			rowIndex = baseRowIndex + i;
+		for(String configuration : configurations) {
+		//for(String configuration : targetVariableResult.keySet()) {
+			if(!skipList.contains(configuration)) {
+				rowIndex += 3;
+				writeValueToCell(sheet, rowIndex, colIndex, configuration);
+				colRowMapper.getJSONObject("Configurations").put(configuration, rowIndex);
+				rowIndex+=(3+numberOfConfigurations);
+				writeValueToCell(sheet, rowIndex, colIndex, configuration);
+				rowIndex+=(3+numberOfConfigurations);
+				writeValueToCell(sheet, rowIndex, colIndex, configuration);
+				rowIndex+=(3+numberOfConfigurations);
+				writeValueToCell(sheet, rowIndex, colIndex, configuration);
+				rowIndex+=(3+numberOfConfigurations);
+				writeValueToCell(sheet, rowIndex, colIndex, configuration);
+				i += 1;
+				rowIndex = baseRowIndex + i;
+			}
 		}
-	
+		rowIndex = baseRowIndex;
+		colIndex = baseColIndex;
+		for(String date : dates) {
+			//for(String configuration : targetVariableResult.keySet()) {
+			if(!skipList.contains(date)) {
+				for(int period = 1; period<=forecastPeriods;period++) {
+					colIndex  +=1;
+					writeValueToCell(sheet, rowIndex, colIndex, date);
+					rowIndex +=1;
+					writeValueToCell(sheet, rowIndex, colIndex, period);
+					colRowMapper.getJSONObject("Dates").put(date+period, colIndex);
+					rowIndex = baseRowIndex;
+				}
+			}
+		}
+		return colRowMapper;
 	}
 	
 	private static JSONObject sortJSONObject(JSONObject evaluationResults){
@@ -301,118 +332,141 @@ public class EvaluationService {
 		return unsortedResult;
 	}
 	
+	
 	public static File writeEvaluationResultsToExcelFile(JSONObject evaluationResults, String procedure) throws FileNotFoundException, IOException {
 		XSSFWorkbook workbook = new XSSFWorkbook();        
 		String targetPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\";
 		String filename = procedure + "_Evaluation.xlsx";
 		 File file = new File(targetPath+filename);
-
+		List<String> skipList = Arrays.asList("MAE", "ME", "MAEPercentage", "MEPercentage");
 		//JSONObject sortedResult = sortJSONObject(evaluationResults);
-		JSONObject sortedResult = evaluationResults;
+		
 		ArrayList<String> dateList = new ArrayList<String>();
-		boolean first = true;
-		for(String targetVariableName : sortedResult.keySet()) {
-			for(String configuration : sortedResult.getJSONObject(targetVariableName).keySet()) {
-				if(first) {
-					for(String dateString : sortedResult.getJSONObject(targetVariableName).getJSONObject(configuration).keySet()) {
-						dateList.add(dateString);
+		ArrayList<String> configList = new ArrayList<String>();
+		int forecastPeriods = 1;
+		for(String targetVariableName : evaluationResults.keySet()) {
+			if(!skipList.contains(targetVariableName)) {
+				JSONObject targetVariableResult = evaluationResults.getJSONObject(targetVariableName);
+				for(String configuration : targetVariableResult.keySet()) {
+					if(!skipList.contains(configuration)) {
+						if(!configList.contains(configuration)) {
+							configList.add(configuration);
+						}
+						JSONObject configurationResult = targetVariableResult.getJSONObject(configuration);
+						for(String dateString : configurationResult.keySet()) {
+							if(!skipList.contains(dateString) && !dateList.contains(dateString)) {
+								dateList.add(dateString);
+								forecastPeriods = configurationResult.getJSONObject(dateString).length()-skipList.size();
+							}
+						}	
 					}
 				}
-				first=false;
 			}
 		}
-		 Collections.sort(dateList);		
-		for(String targetVariableName : sortedResult.keySet()) {
-			XSSFSheet sheet = workbook.createSheet(targetVariableName);
-			JSONObject targetVariableResult = sortedResult.getJSONObject(targetVariableName);
-			initializeHeaders(sheet, targetVariableResult);
-			
-			
-			//XSSFSheet sheet = wb.getSheet("Produktübersicht");
-			int baseRowIndex = 3;
-			int baseColIndex = CellReference.convertColStringToIndex("C");		
-			int numberOfConfigurations = targetVariableResult.length();
-			int rowIndex = baseRowIndex;
-			int colIndex = baseColIndex;
-			Cell cell = null;
-			
-			CellStyle stylePercentage = workbook.createCellStyle();
-			stylePercentage.setDataFormat(workbook.createDataFormat().getFormat(BuiltinFormats.getBuiltinFormat( 10 )));
-			
-			
-			first = true;
-			for(String configuration : targetVariableResult.keySet()) {
-				JSONObject configurationResult = targetVariableResult.getJSONObject(configuration);		
-				colIndex = baseColIndex;
+
+		Collections.sort(dateList);		
+		for(String targetVariableName : evaluationResults.keySet()) {
+			if(!skipList.contains(targetVariableName)) {
+				XSSFSheet sheet = workbook.createSheet(targetVariableName);
+				JSONObject targetVariableResult = evaluationResults.getJSONObject(targetVariableName);
+				JSONObject colRowMapper = initializeHeaders(sheet, configList, dateList, forecastPeriods/*targetVariableResult*/);
 				
-					for(String dateString : dateList) {
+				
+				//XSSFSheet sheet = wb.getSheet("Produktübersicht");
+				int baseRowIndex = 3;
+				int baseColIndex = CellReference.convertColStringToIndex("C");		
+				int numberOfConfigurations = targetVariableResult.length()-4;
+				int rowIndex = baseRowIndex;
+				int colIndex = baseColIndex;
+				Cell cell = null;
+				
+				CellStyle stylePercentage = workbook.createCellStyle();
+				stylePercentage.setDataFormat(workbook.createDataFormat().getFormat(BuiltinFormats.getBuiltinFormat( 10 )));
+				
+				
+				//boolean first = true;
+				for(String configuration : targetVariableResult.keySet()) {
+					if(!skipList.contains(configuration)) {
+						JSONObject configurationResult = targetVariableResult.getJSONObject(configuration);		
+						colIndex = baseColIndex;
 						
-					//for(String dateString : configurationResult.keySet()) {
-					
-						int dateRowIndex = baseRowIndex;
-						JSONObject dateResult = configurationResult.getJSONObject(dateString);
-						for(String period : dateResult.keySet()) {
-							rowIndex = baseRowIndex;			
-							JSONObject periodResult = dateResult.getJSONObject(period);
-							double actualDemand = periodResult.getDouble("actualDemand");
-							double forecastResult = periodResult.getDouble("forecastResult");
-							double mE = periodResult.getDouble("ME");
-							double mAE = periodResult.getDouble("MAE");
-							double mEPercentage = periodResult.getDouble("MEPercentage");
-							double mAEPercentage = periodResult.getDouble("MAEPercentage");
-							if(first) {
-								writeValueToCell(sheet, rowIndex, colIndex, dateString);
-								rowIndex+=1;
-								writeValueToCell(sheet, rowIndex, colIndex, period);
-								rowIndex+=1;
-								writeValueToCell(sheet, rowIndex, colIndex, actualDemand);
-								rowIndex+=(1+numberOfConfigurations+1);
-								for(int i = 0; i<4;i++) {	
-									writeValueToCell(sheet, rowIndex, colIndex, dateString);
-									rowIndex+=1;
-									writeValueToCell(sheet, rowIndex, colIndex, period);
-									rowIndex+=(1+numberOfConfigurations+1);
-								}
-							}
-							rowIndex=baseRowIndex+3;
-							writeValueToCell(sheet, rowIndex, colIndex, forecastResult);
-							rowIndex+=(numberOfConfigurations+3);
-							writeValueToCell(sheet, rowIndex, colIndex, mE);
-							rowIndex+=(numberOfConfigurations+3);
-							writeValueToCell(sheet, rowIndex, colIndex, mAE);
-							rowIndex+=(numberOfConfigurations+3);
-							cell = writeValueToCell(sheet, rowIndex, colIndex, mEPercentage);
-							cell.setCellStyle(stylePercentage);
-							rowIndex+=(numberOfConfigurations+3);
-							cell = writeValueToCell(sheet, rowIndex, colIndex, mAEPercentage);	
-							cell.setCellStyle(stylePercentage);
-							sheet.autoSizeColumn(colIndex);
-							colIndex = colIndex + 1;
-						}
+							for(String dateString : dateList) {
 								
-						/*}else {
-							rowIndex+=1;
-							rowIndex+=1;
-							writeValueToCell(sheet, rowIndex, colIndex, forecastResult);
-							rowIndex+=(3+numberOfConfigurations);
-							writeValueToCell(sheet, rowIndex, colIndex, mE);
-							rowIndex+=(3+numberOfConfigurations);
-							writeValueToCell(sheet, rowIndex, colIndex, mAE);
-							rowIndex+=(3+numberOfConfigurations);	
-							writeValueToCell(sheet, rowIndex, colIndex, mEPercentage);
-							rowIndex+=(3+numberOfConfigurations);
-							writeValueToCell(sheet, rowIndex, colIndex, mAEPercentage);
-						}*/
+							//for(String dateString : configurationResult.keySet()) {
+								if(!skipList.contains(dateString) && configurationResult.has(dateString)) {
+									int dateRowIndex = baseRowIndex;
+									JSONObject dateResult = configurationResult.getJSONObject(dateString);
+									for(String period : dateResult.keySet()) {
+										if(!skipList.contains(period)) {
+											JSONObject periodResult = dateResult.getJSONObject(period);								
+											double actualDemand = periodResult.getDouble("actualDemand");
+											double forecastResult = periodResult.getDouble("forecastResult");
+											double mE = periodResult.getDouble("ME");
+											double mAE = periodResult.getDouble("MAE");
+											double mEPercentage = periodResult.getDouble("MEPercentage");
+											double mAEPercentage = periodResult.getDouble("MAEPercentage");
+											
+												
+											colIndex = colRowMapper.getJSONObject("Dates").getInt(dateString+period);
+											rowIndex = baseRowIndex + 2;
+											writeValueToCell(sheet, rowIndex, colIndex, actualDemand);
+											rowIndex = colRowMapper.getJSONObject("Configurations").getInt(configuration);
+											writeValueToCell(sheet, rowIndex, colIndex, forecastResult);
+											rowIndex+=(numberOfConfigurations+3);
+											writeValueToCell(sheet, rowIndex, colIndex, mE);
+											rowIndex+=(numberOfConfigurations+3);
+											writeValueToCell(sheet, rowIndex, colIndex, mAE);
+											rowIndex+=(numberOfConfigurations+3);
+											cell = writeValueToCell(sheet, rowIndex, colIndex, mEPercentage);
+											cell.setCellStyle(stylePercentage);
+											rowIndex+=(numberOfConfigurations+3);
+											cell = writeValueToCell(sheet, rowIndex, colIndex, mAEPercentage);	
+											cell.setCellStyle(stylePercentage);
+											sheet.autoSizeColumn(colIndex);
+											
+											
+											/*
+											if(first) {
+												writeValueToCell(sheet, rowIndex, colIndex, dateString);
+												rowIndex+=1;
+												writeValueToCell(sheet, rowIndex, colIndex, period);
+												rowIndex+=1;
+												writeValueToCell(sheet, rowIndex, colIndex, actualDemand);
+												rowIndex+=(1+numberOfConfigurations+1);
+												for(int i = 0; i<4;i++) {	
+													writeValueToCell(sheet, rowIndex, colIndex, dateString);
+													rowIndex+=1;
+													writeValueToCell(sheet, rowIndex, colIndex, period);
+													rowIndex+=(1+numberOfConfigurations+1);
+												}
+											}
+											rowIndex=baseRowIndex+3;
+											writeValueToCell(sheet, rowIndex, colIndex, forecastResult);
+											rowIndex+=(numberOfConfigurations+3);
+											writeValueToCell(sheet, rowIndex, colIndex, mE);
+											rowIndex+=(numberOfConfigurations+3);
+											writeValueToCell(sheet, rowIndex, colIndex, mAE);
+											rowIndex+=(numberOfConfigurations+3);
+											cell = writeValueToCell(sheet, rowIndex, colIndex, mEPercentage);
+											cell.setCellStyle(stylePercentage);
+											rowIndex+=(numberOfConfigurations+3);
+											cell = writeValueToCell(sheet, rowIndex, colIndex, mAEPercentage);	
+											cell.setCellStyle(stylePercentage);
+											sheet.autoSizeColumn(colIndex);
+											colIndex = colIndex + 1;
+											*/
+										}
+									}
+								}				
+							}
+							//first = false;
+							
 						
-						//colIndex+=1;				
+						//colIndex = baseColIndex;
+						//baseRowIndex = baseRowIndex + 1;
 					}
-					first = false;
-					
-				
-				colIndex = baseColIndex;
-				baseRowIndex = baseRowIndex + 1;
+				}
 			}
-			
 		}
 		
 		try (FileOutputStream outputStream = new FileOutputStream(file)) {
@@ -610,4 +664,232 @@ public class EvaluationService {
 		return evaluationStructuredResults;
 	}	
 	*/
+	
+	
+	public static File writeComparedEvaluationMAEToExcelFile(JSONObject comparedEvaluationMAE, String procedure) throws FileNotFoundException, IOException {
+		JSONObject comparedResult = new JSONObject();
+
+			XSSFWorkbook workbook = new XSSFWorkbook();        
+			String targetPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\";
+			String filename = procedure + "_Evaluation.xlsx";
+			 File file = new File(targetPath+filename);
+			//JSONObject sortedResult = sortJSONObject(evaluationResults);
+			
+			ArrayList<String> dateList = new ArrayList<String>();
+			ArrayList<String> configList = new ArrayList<String>();
+			ArrayList<String> procedureList = new ArrayList<String>();
+			int forecastPeriods = 1;
+			for(String targetVariableName : comparedEvaluationMAE.keySet()) {
+				if(!skipList.contains(targetVariableName)) {
+					JSONObject targetVariableResult = comparedEvaluationMAE.getJSONObject(targetVariableName);
+					for(String configuration : targetVariableResult.keySet()) {
+						if(!skipList.contains(configuration)) {
+							if(!configList.contains(configuration)) {
+								configList.add(configuration);
+							}
+							JSONObject configurationResult = targetVariableResult.getJSONObject(configuration);
+							for(String dateString : configurationResult.keySet()) {
+								if(!skipList.contains(dateString)) {
+									JSONObject dateResult = configurationResult.getJSONObject(dateString);
+									if(!dateList.contains(dateString)) {
+										dateList.add(dateString);
+										forecastPeriods = dateResult.length();
+									}
+									for(String period : dateResult.keySet()) {
+										if(!skipList.contains(period)) {
+											JSONObject periodResult = dateResult.getJSONObject(period);
+											for(String procedureName : periodResult.keySet()) {
+												if(!procedureList.contains(procedureName)) {
+													procedureList.add(procedureName);
+												}
+											}
+										}
+									}
+								}
+							}	
+						}
+					}
+				}
+			}
+			Collections.sort(dateList);		
+			for(String targetVariableName : comparedEvaluationMAE.keySet()) {
+				if(!skipList.contains(targetVariableName)) {
+					XSSFSheet sheet = workbook.createSheet(targetVariableName);
+					JSONObject targetVariableResult = comparedEvaluationMAE.getJSONObject(targetVariableName);
+					JSONObject colRowMapper = initializeHeadersCompared(sheet, configList, dateList, procedureList, forecastPeriods);
+					
+					
+					//XSSFSheet sheet = wb.getSheet("Produktübersicht");
+					int baseRowIndex = 3;
+					int baseColIndex = CellReference.convertColStringToIndex("C");		
+					int numberOfConfigurations = targetVariableResult.length()-4;
+					int rowIndex = baseRowIndex;
+					int colIndex = baseColIndex;
+					Cell cell = null;
+					
+					CellStyle stylePercentage = workbook.createCellStyle();
+					stylePercentage.setDataFormat(workbook.createDataFormat().getFormat(BuiltinFormats.getBuiltinFormat( 10 )));
+					
+					
+					//boolean first = true;
+					for(String configuration : targetVariableResult.keySet()) {
+						if(!skipList.contains(configuration)) {
+							JSONObject configurationResult = targetVariableResult.getJSONObject(configuration);		
+							colIndex = baseColIndex;
+							
+								for(String dateString : dateList) {
+									
+								//for(String dateString : configurationResult.keySet()) {
+									if(!skipList.contains(dateString) && configurationResult.has(dateString)) {
+										int dateRowIndex = baseRowIndex;
+										JSONObject dateResult = configurationResult.getJSONObject(dateString);
+										for(String period : dateResult.keySet()) {
+											if(!skipList.contains(period)) {
+												JSONObject periodResult = dateResult.getJSONObject(period);
+												for(String procedureName : periodResult.keySet()) {
+													JSONObject procedureResult = periodResult.getJSONObject(procedureName);								
+													double mAEPercentage = procedureResult.getDouble("MAEPercentage");	
+													colIndex = colRowMapper.getJSONObject("Dates").getInt(dateString+period);
+													rowIndex = colRowMapper.getJSONObject("Configurations").getJSONObject(configuration).getInt(procedureName);
+													cell = writeValueToCell(sheet, rowIndex, colIndex, mAEPercentage);	
+													cell.setCellStyle(stylePercentage);
+													sheet.autoSizeColumn(colIndex);
+												}
+									
+											}
+										}
+									}				
+								}
+							}
+						}
+					}
+				}
+			
+			
+			try (FileOutputStream outputStream = new FileOutputStream(file)) {
+	            workbook.write(outputStream);
+			}
+			workbook.close();
+			return file;
+		}
+			
+			private static JSONObject initializeHeadersCompared(XSSFSheet sheet, ArrayList<String> configurations, ArrayList<String> dates, ArrayList<String> procedures, int forecastPeriods/*JSONObject targetVariableResult*/) {
+				//XSSFSheet sheet = wb.getSheet("Produktübersicht");
+				JSONObject colRowMapper = new JSONObject();
+				colRowMapper.put("Dates", new JSONObject());
+				colRowMapper.put("Configurations", new JSONObject());
+				
+				int baseRowIndex = 3;
+				int baseColIndex = CellReference.convertColStringToIndex("B");		
+				//int numberOfConfigurations = targetVariableResult.length();
+				int numberOfConfigurations = configurations.size();
+				int rowIndex = baseRowIndex;
+				int colIndex = baseColIndex;
+				writeValueToCell(sheet, rowIndex, colIndex, "ForecastDate");
+				rowIndex+=1;
+				writeValueToCell(sheet, rowIndex, colIndex, "Period");
+				sheet.autoSizeColumn(colIndex);
+				rowIndex = baseRowIndex;
+				int i = 0;
+				rowIndex+=3;
+				for(String configuration : configurations) {
+				//for(String configuration : targetVariableResult.keySet()) {
+					if(!skipList.contains(configuration)) {
+						writeValueToCell(sheet, rowIndex, colIndex, configuration);
+						colRowMapper.getJSONObject("Configurations").put(configuration, new JSONObject());
+						for(String procedureName : procedures) {
+							writeValueToCell(sheet, rowIndex, colIndex + 1, procedureName);
+							colRowMapper.getJSONObject("Configurations").getJSONObject(configuration).put(procedureName, rowIndex);
+							rowIndex+=1;
+						}
+						i += 1;
+					}
+				}
+				rowIndex = baseRowIndex;
+				colIndex = baseColIndex;
+				colIndex += 1;
+				for(String date : dates) {
+					//for(String configuration : targetVariableResult.keySet()) {
+					if(!skipList.contains(date)) {
+						for(int period = 1; period<=forecastPeriods;period++) {
+							colIndex  +=1;
+							writeValueToCell(sheet, rowIndex, colIndex, date);
+							rowIndex +=1;
+							writeValueToCell(sheet, rowIndex, colIndex, period);
+							colRowMapper.getJSONObject("Dates").put(date+period, colIndex);
+							rowIndex = baseRowIndex;
+						}
+					}
+				}
+				return colRowMapper;
+			}
+		
+	public static JSONObject comparedEvaluationMAE(JSONObject evaluationResults){
+		JSONObject comparedResult = new JSONObject();
+		JSONObject structuredTargetVariableResult;
+		JSONObject structuredConfigurationResult;
+		JSONObject structuredDateResult;
+		JSONObject structuredPeriodResult;
+		JSONObject structuredProcedureResult;
+		for(String procedureName : evaluationResults.keySet()) {
+			if(!skipList.contains(procedureName)) {
+				JSONObject procedureResult = evaluationResults.getJSONObject(procedureName).getJSONObject("MAE");
+				for(String targetVariableName : procedureResult.keySet()) {
+					if(!skipList.contains(targetVariableName)) {
+						JSONObject targetVariableResult = procedureResult.getJSONObject(targetVariableName);
+						for(String configuration : targetVariableResult.keySet()) {
+							if(!skipList.contains(configuration)) {
+								JSONObject configurationResult = targetVariableResult.getJSONObject(configuration);		
+								for(String dateString : configurationResult.keySet()) {	
+								//for(String dateString : configurationResult.keySet()) {
+									if(!skipList.contains(dateString)) {
+										JSONObject dateResult = configurationResult.getJSONObject(dateString);		
+										for(String period : dateResult.keySet()) {	
+										//for(String dateString : configurationResult.keySet()) {
+											if(!skipList.contains(period)) {
+												double mAEPercentage = dateResult.getJSONObject(period).getDouble("MAEPercentage");
+												
+												if(!comparedResult.has(targetVariableName)) {
+													structuredTargetVariableResult = new JSONObject();
+													comparedResult.put(targetVariableName, structuredTargetVariableResult);
+												}else {
+													structuredTargetVariableResult = comparedResult.getJSONObject(targetVariableName);
+												}
+												if(!structuredTargetVariableResult.has(configuration)) {
+													structuredConfigurationResult = new JSONObject();
+													structuredTargetVariableResult.put(configuration, structuredConfigurationResult);
+												}else {
+													structuredConfigurationResult = structuredTargetVariableResult.getJSONObject(configuration);
+												}
+												if(!structuredConfigurationResult.has(dateString)) {
+													structuredDateResult = new JSONObject();
+													structuredConfigurationResult.put(dateString, structuredDateResult);
+												}else {
+													structuredDateResult = structuredConfigurationResult.getJSONObject(dateString);
+												}
+												if(!structuredDateResult.has(period)) {
+													structuredPeriodResult = new JSONObject();
+													structuredDateResult.put(period, structuredPeriodResult);
+												}else {
+													structuredPeriodResult = structuredDateResult.getJSONObject(period);
+												}
+												if(!structuredPeriodResult.has(procedureName)) {
+													structuredProcedureResult = new JSONObject();
+													structuredPeriodResult.put(procedureName, structuredProcedureResult);
+												}else {
+													structuredProcedureResult = structuredPeriodResult.getJSONObject(procedureName);
+												}
+												structuredProcedureResult.put("MAEPercentage", mAEPercentage);
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return comparedResult;
+	}
 }

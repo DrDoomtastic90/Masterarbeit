@@ -278,6 +278,16 @@ public class EvaluationController {
 				ruleBasedEvaluation.put("fileContentString",fileContentString);
 				evaluationResults.put("ruleBased", ruleBasedEvaluation);
 			}
+			JSONObject comparedEvaluation = new JSONObject();
+			JSONObject comparedEvaluationMAE = EvaluationService.comparedEvaluationMAE(evaluationResults);
+			file = EvaluationService.writeComparedEvaluationMAEToExcelFile(comparedEvaluationMAE, "comparedMAE");
+			fileName = file.getName();
+			byte[] bytes = Files.readAllBytes(file.toPath());   
+			fileContentString = new String(Base64.getEncoder().encode(bytes));
+			comparedEvaluation.put("MAE", comparedEvaluationMAE);
+			comparedEvaluation.put("fileName",fileName);
+			comparedEvaluation.put("fileContentString",fileContentString);
+			evaluationResults.put("compared", comparedEvaluation);
 			
 			
 		} catch (IOException e) {

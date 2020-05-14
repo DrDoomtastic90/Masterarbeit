@@ -131,22 +131,36 @@ public class ServiceController {
 				
 				//Get Configuration file and set initial execution parameters
 				String serviceURL = loginCredentials.getString("apiURL");
-	        	JSONObject jsonConfigurations =  invokeHTTPSService(serviceURL, loginCredentialsCustomerSystem);       	
+	        	JSONObject jsonConfigurations =  invokeHTTPSService(serviceURL, loginCredentialsCustomerSystem);  
+	        	
+	        	//Initialize configurations
+	        	JSONObject kalmanConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman");	
+	        	String callbackServiceURL = kalmanConfigurations.getJSONObject("data").getString("callbackServiceURL");
+				JSONArray executionRuns = requestBody.getJSONArray("executionRuns");
+				String username = jsonConfigurations.getJSONObject("user").getString("name");
+	        	
 	        	
 	        	//Return asyn response
 	        	asyncResponse.resume("Request Successfully Received. Result will be returned as soon as possible!");
 	        	
 	        	//Run procedures for each provided date
-				JSONArray executionRuns = requestBody.getJSONArray("executionRuns");
-				String username = jsonConfigurations.getJSONObject("user").getString("name");
-				
 				for(int i = 0; i<executionRuns.length();i++) {
 					String to = executionRuns.getJSONObject(i). getString("to");
 	        		String from = executionRuns.getJSONObject(i).getString("from");
-	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman").getJSONObject("data").put("to", to);
-	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman").getJSONObject("data").put("from", from);
-	        		JSONObject kalmanConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman");
-	        		executeKalmanForecasting(kalmanConfigurations, loginCredentialsCustomerSystem, username);
+	        		kalmanConfigurations.getJSONObject("data").put("to", to);
+	        		kalmanConfigurations.getJSONObject("data").put("from", from);
+	        		JSONObject combinedAnalysisResult = new JSONObject();
+	        		combinedAnalysisResult.put("kalmanResult", executeKalmanForecasting(kalmanConfigurations, loginCredentialsCustomerSystem, username));
+	        	
+	        		//prepare Callback Request
+	        		JSONObject callBackRequestBody = new JSONObject();
+	        		callBackRequestBody.put("results", combinedAnalysisResult);
+	        		callBackRequestBody.put("loginCredentials", loginCredentialsCustomerSystem);		
+	        		callBackRequestBody.put("configurations", jsonConfigurations);	
+	        		
+	        		//return result
+	        		invokeHTTPSService(callbackServiceURL, callBackRequestBody);
+
 				}
 			}
 		} catch (IOException e) {

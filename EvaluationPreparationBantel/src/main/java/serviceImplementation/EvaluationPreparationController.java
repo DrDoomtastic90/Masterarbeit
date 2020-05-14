@@ -164,14 +164,14 @@ public class EvaluationPreparationController {
 			
 			for(String procedureName : evaluationResults.keySet()) {
 				JSONObject procedureResult = evaluationResults.getJSONObject(procedureName);
-				JSONObject mAE = procedureResult.getJSONObject("MAE");
-				evaluationDAO.writeEvaluationResultsToDB(mAE, jsonConfigurations.getJSONObject("forecasting").getJSONObject(procedureName), procedureName, "MAE");
-				
+				if(!(procedureName.equals("compared") || procedureName=="compared")) {
+					JSONObject mAE = procedureResult.getJSONObject("MAE");
+					evaluationDAO.writeEvaluationResultsToDB(mAE, jsonConfigurations.getJSONObject("forecasting").getJSONObject(procedureName), procedureName, "MAE");
+				}	
 				String fileName = procedureResult.getString("fileName");
 				String fileContentString = procedureResult.getString("fileContentString");
 				convertByteToFile(fileContentString, fileName);
-				//JSONObject preparedResults = EvaluationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials);
-				
+				//JSONObject preparedResults = EvaluationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials);				
 			}
 			
 			response.setStatus(202);
