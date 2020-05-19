@@ -26,17 +26,204 @@ public class CallbackDAO {
 		dbConnection = CallbackDBConnection.getInstance();
 	}
 	
-	public JSONObject getForecastResult(JSONObject configurations, JSONObject consideratedConfigurations, String procedureName, String from, String to) throws SQLException {
+	public JSONObject getSingleForecastResult(JSONObject configurations, JSONObject consideratedConfigurations, String procedureName, String from, String to) throws SQLException {
 		JSONObject forecastResults= null;
 		String externalRegressors = "";
 		ArrayList<String> independentVariableList = new ArrayList<String>();
-		if(configurations.getJSONObject("factors").has("independentVariable")) {
+		if(configurations.has("factors") && configurations.getJSONObject("factors").has("independentVariable")) {
 			JSONArray independentVariables = configurations.getJSONObject("factors").getJSONArray("independentVariable");
 			for(int i = 0; i<independentVariables.length();i++) {
 				independentVariableList.add(independentVariables.getJSONObject(i).getString("content"));
 			}
 			externalRegressors = independentVariableList.toString();
 		}
+		
+		int forecastPeriods = 1;
+		
+		String aggregationInputData = null;
+		String aggregationProcessing = null;
+		String aggregationOutputData = null;
+		
+		double campaignLowerLimit = 0;
+		double campaignUpperLimit = 0;
+		String campaignProcedure = "None";
+		boolean campaignEnabled = false;
+		
+		double outlierLowerLimit = 0;
+		double outlierUpperLimit = 0;
+		String outlierProcedure = "None";
+		boolean outlierEnabled = false;
+		
+		if(configurations.has("parameters")) {
+			if(configurations.getJSONObject("parameters").has("forecastPeriods")) {
+				forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
+			}
+			
+			
+			if(configurations.getJSONObject("parameters").has("aggregationInputData")) {
+				aggregationInputData = configurations.getJSONObject("parameters").getString("aggregationInputData");
+			}
+			if(configurations.getJSONObject("parameters").has("aggregationProcessing")) {
+				aggregationProcessing = configurations.getJSONObject("parameters").getString("aggregationProcessing");
+			}
+			if(configurations.getJSONObject("parameters").has("aggregationOutputData")) {
+				aggregationOutputData = configurations.getJSONObject("parameters").getString("aggregationOutputData");
+			}
+			
+	
+			if(configurations.getJSONObject("parameters").has("campaigns")) {
+				campaignLowerLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("lowerLimit");
+				campaignUpperLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("upperLimit");
+				campaignProcedure = configurations.getJSONObject("parameters").getJSONObject("campaigns").getString("procedure");
+				campaignEnabled = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
+			}
+			
+	
+			if(configurations.getJSONObject("parameters").has("outliers")) {
+				outlierLowerLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
+				outlierUpperLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
+				outlierEnabled = configurations.getJSONObject("parameters").getJSONObject("outliers").getBoolean("handle");
+				outlierProcedure = configurations.getJSONObject("parameters").getJSONObject("outliers").getString("procedure");
+			}
+			
+	}
+		String sqlSelect = "select ForecastID, ForecastResult, CampaignEnabled,  CampaignProcedure, CampaignLowerLimit, CampaignUpperLimit, OutlierEnabled, OutlierProcedure, OutlierLowerLimit, OutlierUpperLimit ";
+		String sqlFrom = "from ForecastResults ";
+		String sqlWhereClause = "where ForecastID in (select max(ForecastID) from ForecastResults " +
+				"where ForecastDate = '" + to + "'" + 
+				" AND ForecastProcedure = '"+ procedureName + "'" + 
+				" AND ExecutionPeriods='" + forecastPeriods + "'" +  
+				" AND DataConsideratedFromDate = '"+ from + "' " +
+				" AND ExternalRegressors = '"+ externalRegressors + "' ";
+		String sqlGroupByClause = " Group By CampaignEnabled, CampaignProcedure, CampaignLowerLimit, CampaignUpperLimit, OutlierEnabled, OutlierProcedure, OutlierLowerLimit, OutlierUpperLimit";
+		
+		if(aggregationProcessing != null) {
+			sqlWhereClause = sqlWhereClause + " AND AggregationProcessing='"+ aggregationProcessing + "'";
+		}else {
+			sqlWhereClause = sqlWhereClause + " AND AggregationProcessing is NULL";
+		}
+		
+		if(aggregationInputData != null) {
+			sqlWhereClause = sqlWhereClause + " AND AggregationInputData = '"+ aggregationInputData + "'";
+		}else {
+			sqlWhereClause = sqlWhereClause + " AND AggregationInputData is NULL";
+		}
+		
+		if(aggregationOutputData != null) {
+			sqlWhereClause = sqlWhereClause + " AND AggregationOutputData = '"+ aggregationOutputData + "'";
+		}else {
+			sqlWhereClause = sqlWhereClause + " AND AggregationOutputData is NULL";
+		}
+		
+		if(consideratedConfigurations.has("campaignHandling")) {
+			sqlWhereClause = sqlWhereClause + " AND CampaignEnabled = '"+ (campaignEnabled ? 1 : 0) + "'";
+			if(consideratedConfigurations.has("limitCampaign")) {
+				if(consideratedConfigurations.getBoolean("campaignHandling") && consideratedConfigurations.getBoolean("limitCampaign")) {
+					sqlWhereClause = sqlWhereClause + " AND CampaignLowerLimit = '"+ campaignLowerLimit + "' ";
+					sqlWhereClause = sqlWhereClause + " AND CampaignUpperLimit = '"+ campaignUpperLimit + "' " ;
+				}
+			}
+			if(consideratedConfigurations.has("campaignProcedure")) {
+				if(consideratedConfigurations.getBoolean("campaignProcedure")) {
+					sqlWhereClause = sqlWhereClause + " AND CampaignProcedure = '"+ campaignProcedure + "'";
+				}
+			}
+		} else {
+			if(consideratedConfigurations.has("limitCampaign")) {
+				if(consideratedConfigurations.getBoolean("limitCampaign")) {
+					sqlWhereClause = sqlWhereClause + " AND CampaignLowerLimit = '"+ campaignLowerLimit + "' ";
+					sqlWhereClause = sqlWhereClause + " AND CampaignUpperLimit = '"+ campaignUpperLimit + "' " ;
+				}
+			}
+			if(consideratedConfigurations.has("campaignProcedure")) {
+				if(consideratedConfigurations.getBoolean("campaignProcedure")) {
+					sqlWhereClause = sqlWhereClause + " AND CampaignProcedure = '"+ campaignProcedure + "'";
+				}
+			}
+		}
+
+		if(consideratedConfigurations.has("outlierHandling")) {
+			sqlWhereClause = sqlWhereClause + " AND OutlierEnabled = '"+ (outlierEnabled ? 1 : 0) + "'";
+			if(consideratedConfigurations.has("limitOutlier")) {
+				if(consideratedConfigurations.getBoolean("outlierHandling") && consideratedConfigurations.getBoolean("limitOutlier")) {
+					sqlWhereClause = sqlWhereClause + " AND OutlierLowerLimit = '"+ outlierLowerLimit + "' ";
+					sqlWhereClause = sqlWhereClause + " AND OutlierUpperLimit = '"+ outlierUpperLimit + "' " ;
+				}
+			}
+			if(consideratedConfigurations.has("outlierProcedure")) {
+				if(consideratedConfigurations.getBoolean("outlierProcedure")) {
+					sqlWhereClause = sqlWhereClause + " AND OutlierProcedure = '"+ outlierProcedure + "'";
+					
+				}
+			}
+		}else {
+			if(consideratedConfigurations.has("limitOutlier")) {
+				if(consideratedConfigurations.getBoolean("limitOutlier")) {
+					sqlWhereClause = sqlWhereClause + " AND OutlierLowerLimit = '"+ outlierLowerLimit + "' ";
+					sqlWhereClause = sqlWhereClause + " AND OutlierUpperLimit = '"+ outlierUpperLimit + "' " ;
+				}
+			}
+			if(consideratedConfigurations.has("outlierProcedure")) {
+				if(consideratedConfigurations.getBoolean("outlierProcedure")) {
+					sqlWhereClause = sqlWhereClause + " AND OutlierProcedure = '"+ outlierProcedure + "'";
+					
+				}
+			}
+		}
+	
+		
+		sqlWhereClause = sqlWhereClause + sqlGroupByClause + ")";
+		String sql = sqlSelect + sqlFrom + sqlWhereClause + " Order By ForecastID desc";
+		Statement statement = null;
+		ResultSet resultSet = null;
+		Connection connection = dbConnection.checkConnectivity();
+		try {
+			statement = connection.createStatement();
+			resultSet = statement.executeQuery(sql);
+			boolean first = true;
+			while (resultSet.next()) {
+				if(first) {
+					forecastResults = new JSONObject();
+					first = false;
+				}
+				JSONObject singleForecastResult =  new JSONObject(resultSet.getString(2));
+				String configuration = "P";
+				if(resultSet.getBoolean(3)) {
+					configuration = configuration + "_" + resultSet.getString(4);
+					configuration = configuration + "_" + resultSet.getString(5);
+					configuration = configuration + "_" + resultSet.getString(6);
+				}else {
+					configuration = configuration + "_NONE_X_X";
+				}
+				if(resultSet.getBoolean(7)) {
+					configuration = configuration + "_" + resultSet.getString(8);
+					configuration = configuration + "_" + resultSet.getString(9);
+					configuration = configuration + "_" + resultSet.getString(10);
+				}else {
+					configuration = configuration + "_NONE_X_X";
+				}
+				configuration = configuration + "_" + externalRegressors;
+				forecastResults.put(configuration,singleForecastResult);
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return forecastResults;	
+		
+	}
+	
+	public JSONObject getForecastResults(JSONObject configurations, JSONObject consideratedConfigurations, String procedureName, String from, String to) throws SQLException {
+		JSONObject forecastResults= null;
+		String externalRegressors = "";
+		ArrayList<String> independentVariableList = new ArrayList<String>();
+		/*if(configurations.getJSONObject("factors").has("independentVariable")) {
+			JSONArray independentVariables = configurations.getJSONObject("factors").getJSONArray("independentVariable");
+			for(int i = 0; i<independentVariables.length();i++) {
+				independentVariableList.add(independentVariables.getJSONObject(i).getString("content"));
+			}
+			externalRegressors = independentVariableList.toString();
+		}*/
 		
 		int forecastPeriods = 1;
 		if(configurations.getJSONObject("parameters").has("forecastPeriods")) {
@@ -79,24 +266,23 @@ public class CallbackDAO {
 		}
 		
 		
-		String sqlSelect = "select ForecastID, ForecastResult, CampaignEnabled,  CampaignProcedure, CampaignLowerLimit, CampaignUpperLimit, OutlierEnabled, OutlierProcedure, OutlierLowerLimit, OutlierUpperLimit ";
-		String sqlFrom = "from ForecastResults ";
-		String sqlWhereClause = "where ForecastID in (select max(ForecastID) from ForecastResults " +
-				"where ForecastDate = '" + to + "'" + 
+		String sqlSelect = "select ForecastDate, ForecastResult";
+		String sqlFrom = " from ForecastResults";
+		String sqlWhereClause = " where ForecastID in (select ForecastID from ForecastResults" +
+				" where ForecastDate <= '" + to + "'" +
+				" AND ForecastDate >= '"+ from + "'" +
 				" AND ForecastProcedure = '"+ procedureName + "'" + 
 				" AND ExecutionPeriods='" + forecastPeriods + "'" + 
 				" AND AggregationInputData = '"+ aggregationInputData + "'" +  
-				" AND AggregationOutputData = '"+ aggregationOutputData + "'" + 
-				" AND DataConsideratedFromDate = '"+ from + "' " +
-				" AND ExternalRegressors = '"+ externalRegressors + "' ";
-		String sqlGroupByClause = " Group By CampaignEnabled, CampaignProcedure, CampaignLowerLimit, CampaignUpperLimit, OutlierEnabled, OutlierProcedure, OutlierLowerLimit, OutlierUpperLimit";
-		
+				" AND AggregationOutputData = '"+ aggregationOutputData + "'";
+				//" AND ExternalRegressors = '"+ externalRegressors + "' ";
+	
 		if(consideratedConfigurations.has("AggregationProcessing") && aggregationProcessing != null) {
 			sqlWhereClause = sqlWhereClause + " AND AggregationProcessing='"+ aggregationProcessing + "'";
 		}
 		
 		if(consideratedConfigurations.has("campaignHandling")) {
-			sqlWhereClause = sqlWhereClause + " AND CampaignEnabled = '"+ (consideratedConfigurations.getBoolean("campaignHandling") ? 1 : 0) + "'";
+			sqlWhereClause = sqlWhereClause + " AND CampaignEnabled = '"+ (campaignEnabled ? 1 : 0) + "'";
 			if(consideratedConfigurations.has("limitCampaign")) {
 				if(consideratedConfigurations.getBoolean("campaignHandling") && consideratedConfigurations.getBoolean("limitCampaign")) {
 					sqlWhereClause = sqlWhereClause + " AND CampaignLowerLimit = '"+ campaignLowerLimit + "' ";
@@ -123,7 +309,7 @@ public class CallbackDAO {
 		}
 
 		if(consideratedConfigurations.has("outlierHandling")) {
-			sqlWhereClause = sqlWhereClause + " AND OutlierEnabled = '"+ (consideratedConfigurations.getBoolean("outlierHandling") ? 1 : 0) + "'";
+			sqlWhereClause = sqlWhereClause + " AND OutlierEnabled = '"+ (outlierEnabled ? 1 : 0) + "'";
 			if(consideratedConfigurations.has("limitOutlier")) {
 				if(consideratedConfigurations.getBoolean("outlierHandling") && consideratedConfigurations.getBoolean("limitOutlier")) {
 					sqlWhereClause = sqlWhereClause + " AND OutlierLowerLimit = '"+ outlierLowerLimit + "' ";
@@ -149,10 +335,8 @@ public class CallbackDAO {
 					
 				}
 			}
-		}
-		
-		
-		sqlWhereClause = sqlWhereClause + sqlGroupByClause + ")";
+		}	
+		sqlWhereClause = sqlWhereClause +  ")";
 		String sql = sqlSelect + sqlFrom + sqlWhereClause + " Order By ForecastID desc";
 		Statement statement = null;
 		ResultSet resultSet = null;
@@ -160,13 +344,14 @@ public class CallbackDAO {
 		try {
 			statement = connection.createStatement();
 			resultSet = statement.executeQuery(sql);
-			boolean first = true;
+			forecastResults = new JSONObject();
+			//boolean first = true;
 			while (resultSet.next()) {
-				if(first) {
+				/*if(first) {
 					forecastResults = new JSONObject();
 					first = false;
 				}
-				JSONObject singleForecastResult =  new JSONObject(resultSet.getString(2));
+				JSONObject singleForecastResult =  new JSONObject();
 				String configuration = "P";
 				if(resultSet.getBoolean(3)) {
 					configuration = configuration + "_" + resultSet.getString(4);
@@ -182,8 +367,12 @@ public class CallbackDAO {
 				}else {
 					configuration = configuration + "_NONE_X_X";
 				}
-				configuration = configuration + "_" + externalRegressors;
-				forecastResults.put(configuration,singleForecastResult);
+				singleForecastResult.put(dateString,
+				*/
+				
+				if(!forecastResults.has(resultSet.getString(1))) {
+					forecastResults.put(resultSet.getString(1), new JSONObject(resultSet.getString(2)));
+				}
 			}
 			
 		} catch (SQLException e) {
@@ -312,7 +501,7 @@ public class CallbackDAO {
 	}
 	
 	
-	public JSONObject getWeightCalculationValues(String toDateString, String serviceNames, String username) throws SQLException, ParseException {	
+	/*public JSONObject getWeightCalculationValues(String toDateString, String fromDate, String serviceNames, String username) throws SQLException, ParseException {	
 		JSONObject weightCalculationValues = new JSONObject();
 		Statement statement = null;
 		ResultSet resultSet = null;
@@ -322,8 +511,8 @@ public class CallbackDAO {
 		Date toDate = dateFormat.parse(toDateString);
 		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
 		calendar.setTime(toDate);
-		calendar.add(Calendar.DAY_OF_MONTH, - 14);
-		Date fromDate = calendar.getTime();
+		//calendar.add(Calendar.DAY_OF_MONTH, - 14);
+		//Date fromDate = calendar.getTime();
 		String fromDateString = dateFormat.format(fromDate);	
 		try {
 			statement = connection.createStatement();
@@ -352,7 +541,8 @@ public class CallbackDAO {
 				}
 			}
 		}
-	}
+	}*/
+	
 	
 	public void storeModel(JSONObject model, String username, String inputAggr, String forecastAggr, String modelID) throws SQLException {		
 		 String sql = "INSERT OR REPLACE INTO Models(model, username, inputAggregation, ForecastAggregation, ModelID) VALUES(?,?,?,?,?)"; 

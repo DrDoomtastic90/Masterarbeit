@@ -6,7 +6,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -49,35 +53,46 @@ public class CallbackServiceController {
 				//JSONObject loginCredentials = invokeLoginService(requestBody.getJSONObject("forecasting").getJSONObject("Combined"));
 				if(loginCredentials.getBoolean("isAuthorized")) {
 					
+					DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+					Date toDate = new Date();
+					String dateString = dateFormat.format(toDate);
+			        UUID uuid = UUID.randomUUID();
+			        String randomUUIDString = uuid.toString();
+					String groupIdentifier = dateString + "_" + randomUUIDString;
+					
 					CallbackDBConnection.getInstance("CallbackDB");
 					CallbackDAO callbackDAO = new CallbackDAO();
 							
 					if(forecastResults.has("ARIMAResult")) {
 						JSONObject aRIMAConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ARIMA");
 						JSONObject aRIMAResult = forecastResults.getJSONObject("ARIMAResult");
-						callbackDAO.writeForecastResultsToDB(aRIMAConfigurations, "ARIMA", aRIMAResult);
+						callbackDAO.writeForecastResultsToDB(aRIMAConfigurations, "ARIMA", aRIMAResult, groupIdentifier);
 					}
-					if(forecastResults.has("ExpSmoothingResult")) {
+					if(forecastResults.has("ExponentialSmoothing")) {
 						JSONObject expSmoothingConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing");
 						JSONObject expSmoothingResult = forecastResults.getJSONObject("ExpSmoothingResult");
-						callbackDAO.writeForecastResultsToDB(expSmoothingConfigurations, "ExpSmoothing", expSmoothingResult);
+						callbackDAO.writeForecastResultsToDB(expSmoothingConfigurations, "ExponentialSmoothing", expSmoothingResult, groupIdentifier);
 					}
 					if(forecastResults.has("kalmanResult")) {
 						JSONObject kalmanConfigurations = configurations.getJSONObject("forecasting").getJSONObject("Kalman");
 						JSONObject kalmanResult = forecastResults.getJSONObject("kalmanResult");
-						callbackDAO.writeForecastResultsToDB(kalmanConfigurations, "Kalman", kalmanResult);
+						callbackDAO.writeForecastResultsToDB(kalmanConfigurations, "Kalman", kalmanResult, groupIdentifier);
 					}
 					if(forecastResults.has("ruleBasedResult")) {
 						JSONObject ruleBasedConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ruleBased");
 						JSONObject ruleBasedResult = forecastResults.getJSONObject("ruleBasedResult");
-						callbackDAO.writeForecastResultsToDB(ruleBasedConfigurations, "ruleBased", ruleBasedResult);
+						callbackDAO.writeForecastResultsToDB(ruleBasedConfigurations, "ruleBased", ruleBasedResult, groupIdentifier);
 					}
 					if(forecastResults.has("ANNResult")) {
 						JSONObject aNNConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ANN");
 						JSONObject aNNResult = forecastResults.getJSONObject("ANNResult");
-						callbackDAO.writeForecastResultsToDB(aNNConfigurations, "ANN", aNNResult);
+						callbackDAO.writeForecastResultsToDB(aNNConfigurations, "ANN", aNNResult, groupIdentifier);
 					}
-				
+					if(forecastResults.has("CombinedResult")) {
+						JSONObject combinedConfigurations = configurations.getJSONObject("forecasting").getJSONObject("Combined");
+						JSONObject combinedResult = forecastResults.getJSONObject("CombinedResult");
+						callbackDAO.writeForecastResultsToDB(combinedConfigurations, "Combined", combinedResult, groupIdentifier);
+					}
 					
 					
 					String filePath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\Result.json";

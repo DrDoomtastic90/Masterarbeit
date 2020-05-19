@@ -155,7 +155,7 @@ public class EvaluationController {
 				*/
 			}
 			if(configurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
-				evaluationResult.put("ExpSmoothing", EvaluationService.evaluationMAE(evaluationResults.getJSONObject("ExpSmoothing")));
+				evaluationResult.put("ExponentialSmoothing", EvaluationService.evaluationMAE(evaluationResults.getJSONObject("ExponentialSmoothing")));
 			}
 			
 			
@@ -224,7 +224,7 @@ public class EvaluationController {
 			}
 			if(configurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 				JSONObject expSmoothingEvaluation = new JSONObject();
-				JSONObject expSmoothingEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ExpSmoothing"));			
+				JSONObject expSmoothingEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ExponentialSmoothing"));			
 				
 				file = EvaluationService.writeEvaluationResultsToExcelFile(expSmoothingEvaluationMAE, "ExponentialSmoothing");
 				fileName = file.getName();
@@ -264,6 +264,7 @@ public class EvaluationController {
 				aNNEvaluation.put("fileContentString",fileContentString);
 				evaluationResults.put("ANN", aNNEvaluation);
 			}
+
 			if(configurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 				JSONObject ruleBasedEvaluation = new JSONObject();
 				JSONObject ruleBasedEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ruleBased"));			
@@ -278,11 +279,25 @@ public class EvaluationController {
 				ruleBasedEvaluation.put("fileContentString",fileContentString);
 				evaluationResults.put("ruleBased", ruleBasedEvaluation);
 			}
+			JSONObject combinedEvaluation = new JSONObject();
+			JSONObject combinedvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("Combined"));			
+			
+			file = EvaluationService.writeEvaluationResultsToExcelFile(combinedvaluationMAE, "Combined");
+			fileName = file.getName();
+			byte[] bytes = Files.readAllBytes(file.toPath());   
+			fileContentString = new String(Base64.getEncoder().encode(bytes));
+			
+			combinedEvaluation.put("MAE", combinedvaluationMAE);
+			combinedEvaluation.put("fileName",fileName);
+			combinedEvaluation.put("fileContentString",fileContentString);
+			evaluationResults.put("Combined", combinedEvaluation);
+		
+			
 			JSONObject comparedEvaluation = new JSONObject();
 			JSONObject comparedEvaluationMAE = EvaluationService.comparedEvaluationMAE(evaluationResults);
 			file = EvaluationService.writeComparedEvaluationMAEToExcelFile(comparedEvaluationMAE, "comparedMAE");
 			fileName = file.getName();
-			byte[] bytes = Files.readAllBytes(file.toPath());   
+			bytes = Files.readAllBytes(file.toPath());   
 			fileContentString = new String(Base64.getEncoder().encode(bytes));
 			comparedEvaluation.put("MAE", comparedEvaluationMAE);
 			comparedEvaluation.put("fileName",fileName);

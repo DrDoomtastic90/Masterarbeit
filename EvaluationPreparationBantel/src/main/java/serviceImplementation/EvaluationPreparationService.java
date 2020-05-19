@@ -9,8 +9,10 @@ import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -98,6 +100,95 @@ public class EvaluationPreparationService {
 	*/
 
 	
+	public static JSONObject getWeightCalculationValues(JSONObject configurations, String fromDateString, String toDateString) throws SQLException, ParseException, ClassNotFoundException {
+		JSONObject weightCalculationValues = new JSONObject();
+		JSONObject consideratedConfigurations = new JSONObject();
+		consideratedConfigurations.put("outlierHandling", "true");
+		consideratedConfigurations.put("limitOutlier", "true");
+		consideratedConfigurations.put("outlierProcedure", "true");
+		consideratedConfigurations.put("campaignHandling", "true");
+		consideratedConfigurations.put("limitCampaign", "true");
+		consideratedConfigurations.put("campaignProcedure", "true");
+
+    	JSONObject combinedConfigurations = configurations.getJSONObject("forecasting").getJSONObject("Combined");
+		int forecastPeriods = combinedConfigurations.getInt("forecastPeriods");
+		
+		CallbackDBConnection.getInstance("CallbackDB");
+		CallbackDAO callbackDAO = new CallbackDAO();
+		ArrayList<String> forecastProcedureNames = new ArrayList<String>();
+		JSONObject forecastProcedures = configurations.getJSONObject("forecasting");
+		for(String forecastProcedureName : forecastProcedures.keySet()) {
+			if(!forecastProcedureName.equals("Combined")) {
+				boolean execution = forecastProcedures.getJSONObject(forecastProcedureName).getJSONObject("parameters").getJSONObject("execution").getBoolean("execute");
+				if(execution) {
+			    	//overwrite forecasting specific configurations with shared combined parameters
+					JSONObject procedureConfiguration = forecastProcedures.getJSONObject(forecastProcedureName);
+					procedureConfiguration.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
+					weightCalculationValues.put(forecastProcedureName, callbackDAO.getForecastResults(procedureConfiguration, consideratedConfigurations, forecastProcedureName, fromDateString, toDateString));
+					forecastProcedureNames.add(forecastProcedureName);
+				}
+			}
+		}
+		
+		return weightCalculationValues;
+		//weightCalculationValues = prepareAverageWeightCalculation(weightCalculationValues);
+		//weights = calculateAverageWeights(weightCalculationValues, forecastDate, serviceNames, username);
+	}
+	
+	public static JSONObject getActualDemandDaily(String fromDateString, String toDateString, String passPhrase) throws SQLException, ParseException, ClassNotFoundException {
+		JSONObject actualResults = new JSONObject();
+		BantelDAO evaluationDAO = new BantelDAO(passPhrase);
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
+		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
+		calendar.setFirstDayOfWeek(Calendar.MONDAY);
+		calendar.setTime(dateFormat.parse(toDateString));
+		calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+		calendar.add(Calendar.DAY_OF_MONTH, + 1);
+		calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+		Date endDate = calendar.getTime();
+
+		calendar.setTime(dateFormat.parse(fromDateString));
+		calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+		calendar.add(Calendar.DAY_OF_MONTH, + 1);
+		Date weekBeginDate = calendar.getTime();
+		String weekBeginDateString = dateFormat.format(weekBeginDate);	
+		calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+		Date weekEndDate = calendar.getTime();
+		String weekEndDateString = dateFormat.format(weekEndDate);
+		while(!weekBeginDate.after(endDate)) {
+			JSONObject demand = evaluationDAO.getSalesAmounts(weekBeginDateString, weekEndDateString);
+			JSONObject campaigns = evaluationDAO.getCampaignAmounts(weekBeginDateString, weekEndDateString);
+			for(String skbez : demand.keySet()) {
+				double totalDemand = demand.getDouble(skbez);
+				double knownDemand = 0.0;
+				double unknownDemand = totalDemand;
+				if(campaigns.has(skbez)) {
+					knownDemand = campaigns.getDouble(skbez);
+					unknownDemand = totalDemand - knownDemand;
+					
+					if(unknownDemand < 0) {
+						//ToDo: Should not be possible. Implement error message if occurs!!
+						unknownDemand = totalDemand;
+					}
+				}
+				demand.put(skbez, new JSONObject());
+				demand.getJSONObject(skbez).put("totalDemand",totalDemand);
+				demand.getJSONObject(skbez).put("knownDemand", knownDemand);
+				demand.getJSONObject(skbez).put("unknownDemand", unknownDemand);	
+			}
+			
+			actualResults.put(weekBeginDateString, demand);
+			calendar.add(Calendar.DAY_OF_MONTH, + 1);
+			weekBeginDate = calendar.getTime();
+			weekBeginDateString = dateFormat.format(weekBeginDate);
+			calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+			weekEndDate = calendar.getTime();
+			weekEndDateString = dateFormat.format(weekEndDate);
+		}
+		
+		return actualResults;
+	}
+	
 	public static JSONObject getActualResultsWeekly(String toDate, int forecastPeriods, String passPhrase) throws SQLException, ParseException, ClassNotFoundException {
 		JSONObject actualResults = new JSONObject();
 		BantelDAO evaluationDAO = new BantelDAO(passPhrase);
@@ -114,12 +205,36 @@ public class EvaluationPreparationService {
 			calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
 			toDate = dateFormat.format(calendar.getTime());	
 			counter = counter + 1;
-			actualResults.put(Integer.toString(counter), evaluationDAO.getSalesAmounts(fromDate, toDate));
+			
+			//uncomment if campaigns are not considered		
+			/**/
+			JSONObject demand = evaluationDAO.getSalesAmounts(fromDate, toDate);
+			JSONObject campaigns = evaluationDAO.getCampaignAmounts(fromDate, toDate);
+			for(String skbez : demand.keySet()) {
+				double totalDemand = demand.getDouble(skbez);
+				double knownDemand = 0.0;
+				double unknownDemand = totalDemand;
+				if(campaigns.has(skbez)) {
+					knownDemand = campaigns.getDouble(skbez);
+					unknownDemand = totalDemand - knownDemand;
+					if(unknownDemand < 0) {
+						//ToDo: Should not be possible. Implement error message if occurs!!
+						unknownDemand = totalDemand;
+					}
+				}
+				demand.put(skbez, new JSONObject());
+				demand.getJSONObject(skbez).put("totalDemand",totalDemand);
+				demand.getJSONObject(skbez).put("knownDemand", knownDemand);
+				demand.getJSONObject(skbez).put("unknownDemand", unknownDemand);	
+			}
+			
+			/**/
+			actualResults.put(Integer.toString(counter), demand);
 		}
 		return actualResults;
 	}
 	
-	public static JSONObject getActualResultsDaily(String toDate, int forecastPeriods, String passPhrase) throws SQLException, ParseException, ClassNotFoundException {
+	public static JSONObject getForecastDemandDaily(String toDate, int forecastPeriods, String passPhrase) throws SQLException, ParseException, ClassNotFoundException {
 		JSONObject actualResults = new JSONObject();
 		BantelDAO evaluationDAO = new BantelDAO(passPhrase);
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
@@ -133,10 +248,36 @@ public class EvaluationPreparationService {
 			String fromDate = dateFormat.format(calendar.getTime());
 			toDate = fromDate;
 			counter = counter + 1;
-			actualResults.put(Integer.toString(counter), evaluationDAO.getSalesAmounts(fromDate, toDate));
+
+			//uncomment if campaigns are not considered
+			/**/
+			JSONObject demand = evaluationDAO.getSalesAmounts(fromDate, toDate);
+			JSONObject campaigns = evaluationDAO.getCampaignAmounts(fromDate, toDate);
+			for(String skbez : demand.keySet()) {
+				double totalDemand = demand.getDouble(skbez);
+				double knownDemand = 0.0;
+				double unknownDemand = totalDemand;
+				if(campaigns.has(skbez)) {
+					knownDemand = campaigns.getDouble(skbez);
+					unknownDemand = totalDemand - knownDemand;
+					if(unknownDemand < 0) {
+						//ToDo: Should not be possible. Implement error message if occurs!!
+						unknownDemand = totalDemand;
+					}
+				}
+				demand.put(skbez, new JSONObject());
+				demand.getJSONObject(skbez).put("totalDemand",totalDemand);
+				demand.getJSONObject(skbez).put("knownDemand", knownDemand);
+				demand.getJSONObject(skbez).put("unknownDemand", unknownDemand);	
+			}
+			/**/
+			actualResults.put(Integer.toString(counter), demand);
+			
 		}
 		return actualResults;
 	}
+	
+	
 	
 	//Function of Bantel GmbH To get all ARIMA ForecastResults
 	public static JSONObject getForecastResultsMulti(JSONObject configurations, JSONObject consideratedConfigurations, JSONArray executionRuns, String procedureName) throws SQLException, ParseException, ClassNotFoundException {
@@ -146,7 +287,7 @@ public class EvaluationPreparationService {
     	for(int i = 0; i<executionRuns.length();i++) {
     		String to = executionRuns.getJSONObject(i). getString("to");
     		String from = executionRuns.getJSONObject(i).getString("from");
-    		JSONObject forecastResult = callbackDAO.getForecastResult(configurations, consideratedConfigurations, procedureName, from, to);
+    		JSONObject forecastResult = callbackDAO.getSingleForecastResult(configurations, consideratedConfigurations, procedureName, from, to);
     		if(forecastResult!=null) {
     			forecastResults.put(to, forecastResult);
     		}
@@ -175,7 +316,7 @@ public class EvaluationPreparationService {
 				//get actual demand for specific date if not already retrieved
 				if(!actualDemand.has(dateString)) {
 					if(aggregationOutputData.equals("DAILY")) {
-						actualDemand.put(dateString, getActualResultsDaily(dateString, forecastPeriods, passPhrase));
+						actualDemand.put(dateString, getForecastDemandDaily(dateString, forecastPeriods, passPhrase));
 			    	}else {
 			    		actualDemand.put(dateString, getActualResultsWeekly(dateString, forecastPeriods, passPhrase));
 			    	}
@@ -189,9 +330,14 @@ public class EvaluationPreparationService {
 	        			for(String period : periodResults.keySet()) {
 	        				JSONObject evaluationAttributes = new JSONObject();
 		        			double result = periodResults.getDouble(period);
-		        			double demand = 0;
+		        			
+		        			//switch comment if campaings are not considered
+		        			//double demand = 0;
+		        			JSONObject demand = null;
 		        			if(actualDemand.getJSONObject(dateString).getJSONObject(period).has(targetVariableName)) {
-		        				demand = actualDemand.getJSONObject(dateString).getJSONObject(period).getDouble(targetVariableName);
+		        				//switch comment if campaigns are not considered
+		        				//demand = actualDemand.getJSONObject(dateString).getJSONObject(period).getDouble(targetVariableName);
+		        				demand = actualDemand.getJSONObject(dateString).getJSONObject(period).getJSONObject(targetVariableName);
 		        			}
 		        			periodResults.put(period, evaluationAttributes);
 		        			evaluationAttributes.put("forecastResult", result);

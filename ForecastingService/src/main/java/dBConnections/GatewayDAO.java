@@ -56,8 +56,7 @@ public class GatewayDAO {
 	}
 	
 	public JSONObject getAveragedWeights(String toDateString, String serviceNames, String username) throws SQLException, ParseException {	
-		JSONObject averagedWeights = new JSONObject();
-		JSONObject weights;
+		JSONObject weights = null;
 		Statement statement = null;
 		ResultSet resultSet = null;
 		Connection connection = dbConnection.checkConnectivity();
@@ -66,27 +65,29 @@ public class GatewayDAO {
 		Date toDate = dateFormat.parse(toDateString);
 		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
 		calendar.setTime(toDate);
-		calendar.add(Calendar.DAY_OF_MONTH, - 14);
+		calendar.add(Calendar.DAY_OF_MONTH, - 31);
 		Date fromDate = calendar.getTime();
 		String fromDateString = dateFormat.format(fromDate);	
 		try {
 			statement = connection.createStatement();
-			String sql = "SELECT CalculationValuesJSON from CalculationValues where ForecastDate >= '" + fromDateString + "' and ForecastDate <= '" + toDateString + "' and Username = '" + username + "' and Services = '" + serviceNames + "'";
+			String sql = "SELECT Weights from ServiceWeights where ForecastDate >= '" + fromDateString + "' and ForecastDate <= '" + toDateString + "' and Username = '" + username + "' and Services = '" + serviceNames + "' order by Forecastdate desc";
 			resultSet = statement.executeQuery(sql);
 			boolean first = true;
 			while (resultSet.next()) {
-				weights = new JSONObject(resultSet.getString(1));
-				for(String procedureName : weights.keySet()) {
+				if(first) {
+					weights = new JSONObject(resultSet.getString(1));
+				}
+				/*for(String procedureName : weights.keySet()) {
 					if(first) {
 						averagedWeights.put(procedureName, weights.getDouble(procedureName));
 					}else {
 						double averagedWeight = (averagedWeights.getDouble(procedureName) + weights.getDouble(procedureName))/2;
 						averagedWeights.put(procedureName, averagedWeight);
 					}
-				}
+				}*/
 				first = false;
 			}	
-			return averagedWeights;
+			return weights;
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw e;

@@ -171,7 +171,60 @@ public class ServiceController {
 			e.printStackTrace();
 		}
 	}
+
+	@GET
+	@Path("/CombinedServices/Sequential")
+	@Produces(MediaType.APPLICATION_JSON)
+	public void performCombinedAnalysisSequential(@Context HttpServletRequest request, @Suspended final AsyncResponse asyncResponse) {
+		try{
+			JSONObject combinedAnalysisResults = new JSONObject();
+			ServiceCombiner.test();
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject loginCredentials = invokeLoginService(requestBody);
+			if(loginCredentials.getBoolean("isAuthorized")) {
+	        		        	
+				//login credentials to access customer system and dB passphrase is provided
+				JSONObject loginCredentialsCustomerSystem = new JSONObject();
+	        	String passPhrase = requestBody.getString("passPhrase");
+				loginCredentialsCustomerSystem.put("username", "ForecastingTool");
+				loginCredentialsCustomerSystem.put("password", "forecasting");
+				loginCredentialsCustomerSystem.put("passPhrase", passPhrase);
+				
+				
+				//Get Configuration file and set initial execution parameters
+				String serviceURL = loginCredentials.getString("apiURL");
+	        	JSONObject jsonConfigurations =  invokeHTTPSService(serviceURL, loginCredentialsCustomerSystem);  
+	        	
+	        	//Initialize configurations
+	        	JSONArray executionRuns = requestBody.getJSONArray("executionRuns");
+				
+	        	//Return asyn response
+	        	asyncResponse.resume("Request Successfully Received. Result will be returned as soon as possible!");
+	        	
+	        	//Run procedures for each provided date
+				for(int i = 0; i<executionRuns.length();i++) {		        		
+					String to = executionRuns.getJSONObject(i). getString("to");
+	        		String from = executionRuns.getJSONObject(i).getString("from");
+	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("to", to);
+	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("from", from);
+					try {
+						performCombinedAnalysis(loginCredentials, loginCredentialsCustomerSystem, jsonConfigurations);
+					} catch (ClassNotFoundException | SQLException | ParseException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	        		
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 	
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 	
 	
 	private Callable<JSONObject> getJSONCallable(JSONObject executionRun) {
@@ -404,16 +457,27 @@ public class ServiceController {
 		JSONObject jsonConfigurations = requestBody.getJSONObject("configurations");
 		JSONObject loginCredentialsCustomerSystem = requestBody.getJSONObject("loginCredentialsCustomerSystem");
 		JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
-    	//Return asyn response
-		ResponseBuilder rBuild = Response.status(202);
-		//rBuild.type(MediaType.APPLICATION_JSON);
-		JSONObject responseMessage = new JSONObject();
-		responseMessage.put("result", "Request Successfully Received. Result will be returned as soon as possible!");
-		rBuild.entity(responseMessage.toString());
-		asyncResponse.resume(rBuild.build());
-		performCombinedAnalysis(loginCredentials, loginCredentialsCustomerSystem, jsonConfigurations);
-		//Return asyn response
-    	
+		if(loginCredentials.getBoolean("isAuthorized")) {
+        		        	
+	    	//Return asyn response
+			ResponseBuilder rBuild = Response.status(202);
+			//rBuild.type(MediaType.APPLICATION_JSON);
+			JSONObject responseMessage = new JSONObject();
+			responseMessage.put("result", "Request Successfully Received. Result will be returned as soon as possible!");
+			rBuild.entity(responseMessage.toString());
+			asyncResponse.resume(rBuild.build());
+			performCombinedAnalysis(loginCredentials, loginCredentialsCustomerSystem, jsonConfigurations);
+			//Return asyn response
+		} else {
+			//Return asyn response
+			ResponseBuilder rBuild = Response.status(405);
+			//rBuild.type(MediaType.APPLICATION_JSON);
+			JSONObject responseMessage = new JSONObject();
+			responseMessage.put("result", "Access Denied!");
+			rBuild.entity(responseMessage.toString());
+			asyncResponse.resume(rBuild.build());
+		}
+
 	}
 	
 	@GET
@@ -471,6 +535,8 @@ public class ServiceController {
      	int forecastPeriods =combinedConfigurations.getInt("forecastPeriods");
      	String callbackServiceURL = combinedConfigurations.getJSONObject("data").getString("callbackServiceURL");
      	String username = jsonConfigurations.getJSONObject("user").getString("name");
+     	ArrayList<String> serviceNames = new ArrayList<String>();
+     	
      	//Execute Forecasting Procedures
     	if(loginCredentials.getBoolean("isEnabledRuleBased") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {	
     		//get relevant rulebased Configurations
@@ -482,6 +548,7 @@ public class ServiceController {
     		ruleBasedConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
     		JSONObject forecastResult = executeRuleBasedForeasting(ruleBasedConfigurations, loginCredentialsCustomerSystem, username);
     		combinedAnalysisResult.put("ruleBasedResult", forecastResult);
+    		serviceNames.add("ruleBased");
 		} 	
 		if(loginCredentials.getBoolean("isEnabledARIMA") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("ARIMA").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {	
 			//get relevant ARIMA Configurations
@@ -493,6 +560,7 @@ public class ServiceController {
 			aRIMAConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);								
 			JSONObject forecastResult = executeARIMAForecasting(aRIMAConfigurations, loginCredentialsCustomerSystem, username);	        		
 			combinedAnalysisResult.put("ARIMAResult", forecastResult);
+			serviceNames.add("ARIMA");
 		}			
 		if(loginCredentials.getBoolean("isEnabledKalman") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("Kalman").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 			//get relevant Kalman Configurations
@@ -503,6 +571,7 @@ public class ServiceController {
 			kalmanConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);		
 			JSONObject forecatsResult = executeKalmanForecasting(kalmanConfigurations, loginCredentialsCustomerSystem, username);
 			combinedAnalysisResult.put("kalmanResult", forecatsResult);
+			serviceNames.add("Kalman");
 		}	
 		if(loginCredentials.getBoolean("isEnabledExpSmoothing") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 			//get relevant expSmoothing Configurations
@@ -512,7 +581,8 @@ public class ServiceController {
 			expSmoothingConfigurations.getJSONObject("data").put("to", to);
 			expSmoothingConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);	
 			JSONObject forecatsResult = executeExpSmoothingForecasting(expSmoothingConfigurations, loginCredentialsCustomerSystem, username);
-			combinedAnalysisResult.put("ExpSmoothingResult", forecatsResult);
+			combinedAnalysisResult.put("ExponentialSmoothingResult", forecatsResult);
+			serviceNames.add("ExponentialSmoothing");
 		}		
 		if(loginCredentials.getBoolean("isEnabledANN") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("ANN").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
 			//get relevant ANN Configurations
@@ -523,42 +593,47 @@ public class ServiceController {
 			aNNConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);	
 			JSONObject forecatsResult = executeANNForecasting(aNNConfigurations, loginCredentialsCustomerSystem, username);
 			combinedAnalysisResult.put("ANNResult", forecatsResult);
+			serviceNames.add("ANN");
 		}
 		
 		//getActualDemand
-		JSONObject demandRequestBody = new JSONObject();
-		demandRequestBody.put("configurations", combinedConfigurations);
-		demandRequestBody.put("loginCredentials", loginCredentialsCustomerSystem);
-		JSONObject actualDemand = retrieveActualDemand(demandRequestBody);
+		//JSONObject demandRequestBody = new JSONObject();
+		//demandRequestBody.put("configurations", combinedConfigurations);
+		//demandRequestBody.put("loginCredentials", loginCredentialsCustomerSystem);
+		//JSONObject actualDemand = retrieveActualDemand(demandRequestBody);
+		
 		
 		//store weight calculation values
-		String serviceNames = ServiceCombiner.storeWeightCalculationValues(combinedAnalysisResult, actualDemand, to, username);
+		//Tool does not store values!!
+		//String serviceNames = ServiceCombiner.storeWeightCalculationValues(combinedAnalysisResult, actualDemand, to, username);
 		
 		String weightHandling = combinedConfigurations.getJSONObject("weighting").getString("application").toLowerCase();
 		JSONObject weights = new JSONObject();
-		if(weightHandling.equals("auto")) {
+		//if(weightHandling.equals("auto")) {
 			//calculate Weights
-			weights = ServiceCombiner.calculateWeights(serviceNames, to, username);
-			ServiceCombiner.writeWeightsToDB(weights, serviceNames, to, username);
+		//	weights = ServiceCombiner.calculateWeights(serviceNames, to, username);
+		//	ServiceCombiner.writeWeightsToDB(weights, serviceNames, to, username);
+		//	combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultDynamicWeights(combinedAnalysisResult, weights));
+		//}else if(weightHandling.equals("load")){
+		if(weightHandling.equals("load")){
+			weights = ServiceCombiner.getAveragedWeights(to, serviceNames.toString(), username);
 			combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultDynamicWeights(combinedAnalysisResult, weights));
-		}else if(weightHandling.equals("load")){
-			weights = ServiceCombiner.getAveragedWeights(to, serviceNames, username);
-			combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultDynamicWeights(combinedAnalysisResult, weights));
-		}else if(weightHandling.equals("manual")){
-			weights = combinedConfigurations.getJSONObject("weighting").getJSONObject("manualWeights");
-			combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultStaticWeights(combinedAnalysisResult, weights));
-		}else {
-			combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultEqualWeights(combinedAnalysisResult));
+		//}else if(weightHandling.equals("manual")){
+		//	weights = combinedConfigurations.getJSONObject("weighting").getJSONObject("manualWeights");
+		//	combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultStaticWeights(combinedAnalysisResult, weights));
+		//}else {
+		//	combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultEqualWeights(combinedAnalysisResult));
 		}
+		
 			
 		//Write actualDemand, weights and combinedResult to file
 		String targetString = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\Results\\";
-		String filename = "AveragedWeights";	
-		CustomFileWriter.writeResultToFile(targetString + filename + ".txt", weights);
-		filename = "CombinedResults";	
+	//	String filename = "AveragedWeights";	
+	//	CustomFileWriter.writeResultToFile(targetString + filename + ".txt", weights);
+		String filename = "CombinedResults";	
 		CustomFileWriter.writeResultToFile(targetString + filename + ".txt", combinedAnalysisResult.getJSONObject("CombinedResult"));
-		filename = to + "_" + "ActualDemand";	
-		CustomFileWriter.writeResultToFile(targetString + filename + ".txt", actualDemand);
+		//filename = to + "_" + "ActualDemand";	
+		//CustomFileWriter.writeResultToFile(targetString + filename + ".txt", actualDemand);
 		//combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResult(combinedAnalysisResult, to, serviceNames, username));
 		
 		//prepare Callback Request
@@ -574,9 +649,171 @@ public class ServiceController {
 		return combinedAnalysisResult;
 		
 	}
+	@POST
+	@Path("/CombinedServices/CalculateCombined")
+	@Produces(MediaType.APPLICATION_JSON)
+	//public void calculateCombinedResult(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+	public void calculateCombinedResult(@Context HttpServletRequest request, @Suspended final AsyncResponse asyncResponse){
+		try {
+			JSONObject weights = new JSONObject();
+			JSONObject combinedAnalysisResult = new JSONObject();
+			ServiceCombiner.test();
+			JSONObject message = null;
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			
+			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
+			String passPhrase = loginCredentials.getString("passPhrase");
+			loginCredentials = invokeLoginService(loginCredentials);
+			
+			if(loginCredentials.getBoolean("isAuthorized")) {
+        		        	
+				//login credentials to access customer system and dB passphrase is provided
+				JSONObject loginCredentialsCustomerSystem = new JSONObject();
+	        	
+				loginCredentialsCustomerSystem.put("username", "ForecastingTool");
+				loginCredentialsCustomerSystem.put("password", "forecasting");
+				loginCredentialsCustomerSystem.put("passPhrase", passPhrase);
+				
+				//Get Configuration file and set initial execution parameters
+				String serviceURL = loginCredentials.getString("apiURL");
+	        	JSONObject configurations;
+				
+				configurations = invokeHTTPSService(serviceURL, loginCredentialsCustomerSystem);
+	        	
+				ResponseBuilder rBuild = Response.status(202);
+				//rBuild.type(MediaType.APPLICATION_JSON);
+				JSONObject responseMessage = new JSONObject();
+				responseMessage.put("result", "Request Successfully Received. Result will be returned as soon as possible!");
+				rBuild.entity(responseMessage.toString());
+				asyncResponse.resume(rBuild.build());
+			
+				
+	        	JSONObject forecastingResults = requestBody.getJSONObject("forecastResults");
+	        	JSONObject combinedConfigurations = configurations.getJSONObject("forecasting").getJSONObject("Combined");
+	        	String weightHandling = combinedConfigurations.getJSONObject("weighting").getString("application").toLowerCase();
+	        	String forecastDate = combinedConfigurations.getJSONObject("data").getString("to");
+	        	String username = configurations.getJSONObject("user").getString("name");
+	        	ArrayList<String> serviceNames = new ArrayList<String>();
+	        	for(String procedureName : forecastingResults.keySet()) {
+					serviceNames.add(procedureName);
+				}
+	        	
+				if(weightHandling.equals("load")){
+					//weights = ServiceCombiner.getAveragedWeights(forecastDate, serviceNames.toString(), username);
+					//combinedAnalysisResult = ServiceCombiner.prepare4MultiPeriodForecasting(forecastingResults, weights);
+					combinedAnalysisResult = ServiceCombiner.prepare4MultiPeriodForecasting(forecastingResults, serviceNames, username);
+					//combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultDynamicWeights(forecastingResults, weights));
+				}
+				
+				
+				
+				//return result
+				for(String dateString : combinedAnalysisResult.keySet()) {
+					configurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("to", dateString);
+					String callbackServiceURL = combinedConfigurations.getJSONObject("data").getString("callbackServiceURL");
+					JSONObject callBackRequestBody = new JSONObject();
+					callBackRequestBody.put("results", new JSONObject());
+					callBackRequestBody.getJSONObject("results").put("CombinedResult",  combinedAnalysisResult.getJSONObject(dateString));
+					callBackRequestBody.put("loginCredentials", loginCredentialsCustomerSystem);		
+					callBackRequestBody.put("configurations", configurations);	
+					invokeHTTPSService(callbackServiceURL, callBackRequestBody);
+				}
+		
+			} else {
+				//Return asyn response
+				ResponseBuilder rBuild = Response.status(405);
+				//rBuild.type(MediaType.APPLICATION_JSON);
+				JSONObject responseMessage = new JSONObject();
+				responseMessage.put("result", "Access Denied!");
+				rBuild.entity(responseMessage.toString());
+				asyncResponse.resume(rBuild.build());
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
+	}
+	 
+	@POST
+	@Path("/CombinedServices/WeightCalculation")
+	public void calculateWeights(@Context HttpServletRequest request, @Context HttpServletResponse response, @PathParam("Service") String service, @PathParam("Port") String port) {
+		try {
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
+			String passPhrase = loginCredentials.getString("passPhrase");
+			loginCredentials = invokeLoginService(loginCredentials);
+			if(loginCredentials.getBoolean("isAuthorized")) {
+	        		        	
+				//login credentials to access customer system and dB passphrase is provided
+				JSONObject loginCredentialsCustomerSystem = new JSONObject();
+	        	
+	        	JSONObject forecastingResults = requestBody.getJSONObject("forecastResults");
+	        	
+				loginCredentialsCustomerSystem.put("username", "ForecastingTool");
+				loginCredentialsCustomerSystem.put("password", "forecasting");
+				loginCredentialsCustomerSystem.put("passPhrase", passPhrase);
+				
+				//Get Configuration file and set initial execution parameters
+				/*String serviceURL = loginCredentials.getString("apiURL");
+	        	JSONObject jsonConfigurations =  invokeHTTPSService(serviceURL, loginCredentialsCustomerSystem);       
+				 */
+				JSONObject configurations =  requestBody.getJSONObject("configurations");
+				JSONObject actualDemands = requestBody.getJSONObject("actualDemands");
+	        	//Set combined execution parameters
+				//JSONObject combinedAnalysisResult = new JSONObject();
+		     	JSONObject combinedConfigurations = configurations.getJSONObject("forecasting").getJSONObject("Combined");
+		     	String forecastDate = combinedConfigurations.getJSONObject("data").getString("to");
+		     	//String from = combinedConfigurations.getJSONObject("data").getString("from");
+		     	//int forecastPeriods =combinedConfigurations.getInt("forecastPeriods");
+		     	//String callbackServiceURL = combinedConfigurations.getJSONObject("data").getString("callbackServiceURL");
+		     	String username = configurations.getJSONObject("user").getString("name");
+		     	ArrayList<String> serviceNames = new ArrayList<String>();
+		     	for(String procedureName : forecastingResults.keySet()) {
+					serviceNames.add(procedureName);
+				}
+				
+				JSONObject preparedWeightCalculationValues = ServiceCombiner.prepareWeightCalculationValues(forecastingResults, actualDemands, forecastDate, username);
+				JSONObject weights = ServiceCombiner.calculateWeights(serviceNames, forecastDate, username, preparedWeightCalculationValues);
+				ServiceCombiner.writeWeightsToDB(weights, serviceNames.toString(), forecastDate, username);
+				response.setStatus(202);
+				response.setContentType("application/json");
+				response.getWriter().write(weights.toString());
+				response.flushBuffer();	
+			}else {
+				response.setStatus(402);
+				response.setContentType("application/json");
+				JSONObject message = new JSONObject();
+				message.put("Result", "Not Authorized");
+				response.getWriter().write(message.toString());
+				response.flushBuffer();	
+			}
+			
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 	
-	
+
 	@POST
 	@Path("/{Service}/shutDownService/{Port}")
 	private static void shutdownService(@Context HttpServletRequest request, @Context HttpServletResponse response, @PathParam("Service") String service, @PathParam("Port") String port) {

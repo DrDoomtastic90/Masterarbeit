@@ -2,11 +2,17 @@ package serviceImplementation;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.text.DateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.commons.math3.optim.OptimizationData;
 import org.apache.commons.math3.optim.PointValuePair;
@@ -20,6 +26,7 @@ import org.apache.commons.math3.optim.linear.SimplexSolver;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import dBConnections.GatewayDAO;
@@ -28,8 +35,8 @@ import jdk.dynalink.linker.support.SimpleLinkRequest;
 import outputHandler.CustomFileWriter;
 
 public class ServiceCombiner {
-	
-	private static JSONObject prepareWeightCalculationValues(JSONObject forecastingResults, JSONObject actualDemands, String forecastDate, String username) {
+	/*
+	public static JSONObject prepareWeightCalculationValues(JSONObject forecastingResults, JSONObject actualDemands, String forecastDate, String username) {
 		JSONObject newStructureTargetVariable = new JSONObject();;
 		JSONObject newStructureForecastPeriod = null;
 		JSONObject newStructureProcedure = null;
@@ -78,8 +85,69 @@ public class ServiceCombiner {
 		}
 		return(newStructureTargetVariable);
 	}
+	*/
 	
-	public static String storeWeightCalculationValues(JSONObject forecastingResults, JSONObject actualDemands, String forecastDate, String username) throws ClassNotFoundException {
+	public static JSONObject prepareWeightCalculationValues(JSONObject forecastingResults, JSONObject actualDemands, String forecastDate, String username) throws ParseException {
+		JSONObject newStructureTargetVariable = new JSONObject();;
+		JSONObject newStructureForecastPeriod = null;
+		JSONObject newStructureProcedure = null;
+		JSONObject independentVariables = null;
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
+		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
+		calendar.setFirstDayOfWeek(Calendar.MONDAY);
+		for(String procedureName : forecastingResults.keySet()) {
+			JSONObject procedure = forecastingResults.getJSONObject(procedureName);
+			for(String dateString : procedure.keySet()) {
+				JSONObject dateResults = procedure.getJSONObject(dateString);
+				for(String targetVariableName : dateResults.keySet()) {
+					JSONObject targetVariable = dateResults.getJSONObject(targetVariableName);
+						double forecastResult = targetVariable.getDouble("1");
+						if(!newStructureTargetVariable.has(targetVariableName)) {
+							newStructureForecastPeriod = new JSONObject();
+							newStructureTargetVariable.put(targetVariableName, newStructureForecastPeriod);
+						} else {
+							newStructureForecastPeriod = newStructureTargetVariable.getJSONObject(targetVariableName);
+						}
+						if(!newStructureForecastPeriod.has(dateString)) {
+							newStructureProcedure = new JSONObject();
+							newStructureForecastPeriod.put(dateString, newStructureProcedure);
+						} else {
+							newStructureProcedure = newStructureForecastPeriod.getJSONObject(dateString);
+						}
+						if(!newStructureProcedure.has("independentVariables")) {
+							independentVariables = new JSONObject();
+							newStructureProcedure.put("independentVariables", independentVariables);
+						} else {
+							independentVariables = newStructureProcedure.getJSONObject("independentVariables");
+						}
+						
+
+						
+						calendar.setTime(dateFormat.parse(dateString));
+						calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+						calendar.add(Calendar.DAY_OF_MONTH, + 1);
+						Date weekBeginDate = calendar.getTime();
+						String weekBeginDateString = dateFormat.format(weekBeginDate);
+						if(actualDemands.getJSONObject(weekBeginDateString).has(targetVariableName)) {
+							independentVariables.put(procedureName, forecastResult);
+							if(!newStructureProcedure.has("dependentVariable")) {
+								//switch commentline if campaign amounts are not considered
+								//double actualDemandTargetVariable = actualDemands.getJSONObject(weekBeginDateString).getDouble(targetVariableName);
+								double actualDemandTargetVariable = actualDemands.getJSONObject(weekBeginDateString).getJSONObject(targetVariableName).getDouble("unknownDemand");
+								newStructureProcedure.put("dependentVariable", actualDemandTargetVariable);
+							}
+						}else {
+							newStructureProcedure.put("dependentVariable", 0); //System.out.println("No actual Demand for Value: " + targetVariableName);
+						}
+			
+					
+				}
+			}
+		}
+		return(newStructureTargetVariable);
+	}
+	
+	public static String storeWeightCalculationValues(JSONObject forecastingResults, JSONObject actualDemands, String forecastDate, String username) throws ClassNotFoundException, ParseException {
 		GatewayServiceDBConnection.getInstance("GatewayDB");
 		GatewayDAO gatewayDAO = new GatewayDAO();
 		JSONObject weightCalculationValues = prepareWeightCalculationValues(forecastingResults, actualDemands, forecastDate, username);
@@ -91,24 +159,47 @@ public class ServiceCombiner {
 		return serviceNames.toString();
 	}
 	
-	public static JSONObject calculateWeights(String serviceNames, String forecastDate, String username) throws ClassNotFoundException, SQLException, ParseException {
+	public static JSONObject calculateWeights(ArrayList<String> serviceNames, String forecastDate, String username, JSONObject forecastResults) throws ClassNotFoundException, SQLException, ParseException {
 		JSONObject weights = new JSONObject();
-		GatewayServiceDBConnection.getInstance("GatewayDB");
-		GatewayDAO gatewayDAO = new GatewayDAO();
-		JSONObject weightCalculationValues = gatewayDAO.getWeightCalculationValues(forecastDate, serviceNames, username);
-		weightCalculationValues = prepareAverageWeightCalculation(weightCalculationValues);
-		weights = calculateAverageWeights(weightCalculationValues, forecastDate, serviceNames, username);
-		
+		//GatewayServiceDBConnection.getInstance("GatewayDB");
+		//GatewayDAO gatewayDAO = new GatewayDAO();
+		//JSONObject weightCalculationValues = gatewayDAO.getWeightCalculationValues(forecastDate, serviceNames, username);
+		//weightCalculationValues = prepareAverageWeightCalculation(weightCalculationValues);
+		//weights = calculateAverageWeights(weightCalculationValues, forecastDate, serviceNames, username);
+		JSONObject weightCalculationValues = prepareAverageWeightCalculation(forecastResults);
+		weights = calculateAverageWeights(weightCalculationValues, forecastDate, serviceNames.toString(), username);
+		for(String targetVariableName : weights.keySet()) {
+			JSONObject targetVariableResult = weights.getJSONObject(targetVariableName);
+			if(targetVariableResult.has("averagedWeights")) {
+				JSONObject averagedResult = targetVariableResult.getJSONObject("averagedWeights");
+				for(String procedureName : averagedResult.keySet()) {
+					double averagedWeights = averagedResult.getJSONObject(procedureName).getDouble("total");
+					weights.getJSONObject(targetVariableName).getJSONObject("averagedWeights").put(procedureName, averagedWeights);
+				}
+			}else {
+				double factor = 1.0/serviceNames.size();
+				JSONObject averagedResult = new JSONObject();
+				for(String procedureName : serviceNames) {
+					averagedResult.put(procedureName, factor);
+				}
+				targetVariableResult.put("averagedWeights", averagedResult);
+			}
+		}
 		return weights;
 	}
 	
 	private static JSONObject prepareAverageWeightCalculation(JSONObject weightCalculationValues) {
+		CustomFileWriter.writeResultToFile("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\test\\oldStructure.json", weightCalculationValues);
+		
 		JSONObject newWeightsStructure = new JSONObject();
 		JSONObject newTaragetVariableStructure = null;
-		for(String dateString : weightCalculationValues.keySet()) {
-			JSONObject targetVariables = weightCalculationValues.getJSONObject(dateString);
-			for(String targetVariableName : targetVariables.keySet()) {
-				JSONObject procedureValues = targetVariables.getJSONObject(targetVariableName).getJSONObject("1");
+		for(String targetVariableName : weightCalculationValues.keySet()) {
+			JSONObject targetVariableResults = weightCalculationValues.getJSONObject(targetVariableName);
+			for(String dateString : targetVariableResults.keySet()) {
+				JSONObject dateResults = targetVariableResults.getJSONObject(dateString);
+				//JSONObject independentVariables = dateResults.getJSONObject("independentVariables");
+				//for(String procedureName : independentVariables.keySet()) {
+				//JSONObject procedureValues = dateResults.getJSONObject("independentVariables");
 				
 				if(!newWeightsStructure.has(targetVariableName)) {
 					newTaragetVariableStructure = new JSONObject();	
@@ -116,9 +207,11 @@ public class ServiceCombiner {
 				}else {
 					newTaragetVariableStructure = newWeightsStructure.getJSONObject(targetVariableName);
 				}
-				newTaragetVariableStructure.put(dateString, procedureValues);		
+				newTaragetVariableStructure.put(dateString, dateResults);		
+				//}
 			}
 		}
+		CustomFileWriter.writeResultToFile("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\test\\newStructure.json", newWeightsStructure);
 		return newWeightsStructure;
 	}
 	
@@ -140,6 +233,15 @@ public class ServiceCombiner {
 			int entryCounter = 0;
 			//double[][] independentVariableArray = new double[numberOfForecastingEntries][];
 			//double[] dependentVariableArray = new double[numberOfForecastingEntries];
+			int amountOfPeriodsConsidered = 0;
+			for(String dateString : targetVariables.keySet()) {
+				if(!(targetVariables.getJSONObject(dateString).getJSONObject("independentVariables").length()<=0)) {
+					amountOfPeriodsConsidered+=1;
+				}
+			}
+		
+			double decay = 0.1;
+			double factor= 1.0/amountOfPeriodsConsidered;
 			for(String dateString : targetVariables.keySet()) {
 				if(!(targetVariables.getJSONObject(dateString).getJSONObject("independentVariables").length()<=0)) {
 				ArrayList<OptimizationData> objectives = new ArrayList<OptimizationData>();
@@ -149,11 +251,16 @@ public class ServiceCombiner {
 				JSONObject forecastEntry = targetVariables.getJSONObject(dateString);
 				double dependentVariable = forecastEntry.getDouble("dependentVariable");
 				JSONObject independentVariables = forecastEntry.getJSONObject("independentVariables");
-				int numberOfIndependentVariables = independentVariables.length();
+				//int numberOfIndependentVariables = independentVariables.length();
+				int numberOfIndependentVariables = 2;
 				double[] resultArraySingleForecastPeriod = new double[numberOfIndependentVariables + 1];
 				
 				
+				
 				//double[] resultArraySingleForecastPeriod = new double[numberOfIndependentVariables + 1];
+				JSONObject nearestValues = new JSONObject();
+				nearestValues.put("nearestSmallerValue", new JSONObject());
+				nearestValues.put("nearestGreaterValue", new JSONObject());
 				int procedureCounter = 0;
 				ArrayList<String> procedureNames = new ArrayList<String>();
 				boolean allGreater = true;
@@ -162,90 +269,141 @@ public class ServiceCombiner {
 					double result = independentVariables.getDouble(procedureName);
 					if(result<dependentVariable) {
 						allGreater = false;
+						
+						if(nearestValues.getJSONObject("nearestSmallerValue").has("procedureName")) {
+							double deviationNewResult = dependentVariable - result;
+							double deviationStoredResult = dependentVariable - nearestValues.getJSONObject("nearestSmallerValue").getDouble("value");
+							if(deviationNewResult<deviationStoredResult) {
+								nearestValues.getJSONObject("nearestSmallerValue").put("procedureName",procedureName);
+								nearestValues.getJSONObject("nearestSmallerValue").put("value",result);
+							}
+						}else {
+							nearestValues.getJSONObject("nearestSmallerValue").put("procedureName",procedureName);
+							nearestValues.getJSONObject("nearestSmallerValue").put("value",result);
+						}
+					}else {
+						if(nearestValues.getJSONObject("nearestGreaterValue").has("procedureName")) {
+							double deviationNewResult = result - dependentVariable;
+							double deviationStoredResult = nearestValues.getJSONObject("nearestGreaterValue").getDouble("value") - dependentVariable;
+							if(deviationNewResult<deviationStoredResult) {
+								nearestValues.getJSONObject("nearestGreaterValue").put("procedureName",procedureName);
+								nearestValues.getJSONObject("nearestGreaterValue").put("value",result);
+							}
+						}else {
+							nearestValues.getJSONObject("nearestGreaterValue").put("procedureName",procedureName);
+							nearestValues.getJSONObject("nearestGreaterValue").put("value",result);
+						}
 					}
 					//resultArraySingleForecastPeriod[procedureCounter] = result;
-					resultArraySingleForecastPeriod[procedureCounter] = result;
-					procedureCounter = procedureCounter + 1;
+					//resultArraySingleForecastPeriod[procedureCounter] = result;
+					//procedureCounter = procedureCounter + 1;
 				}
 				
-				if(allGreater) {
-					resultArraySingleForecastPeriod[procedureCounter] = -1;
-				}else {
-					resultArraySingleForecastPeriod[procedureCounter] = 1;
-				}
-				
-				//resultArraySingleForecastPeriod[procedureCounter] = dependentVariable;
 				
 				
-				//Objective: C1*X1+C2*X2+Error=Y => Y-C1*X1+C2*X2=Error => Bedingungen: P1 = ResultProcedure1 P2 = Result Procedure 2, Goal: Minimize Error => Minimize
-				//=> -P1*X1 + P2*X2 - Y = 0
-				//Constraint 1: SUm(coeff)=1;  X1+X2 = 1 => C1 und C2 1 setzen => C1*1 + C2*1 = 1
-				//Constraint 2: 0<=C1/C2<=1
-				//Constraint 3:  => P1*X1 + P2*X2 = Y Example :constraints.add(new LinearConstraint(new double[] {80,100}, Relationship.EQ, dependentVariable));
-				//Y not considered (constant variable)
-				//Prepare Constraint for Coefficients adding up to 1
-				double[] dummies = new double[numberOfIndependentVariables+1];
-				Arrays.fill(dummies, 1);	
-				dummies[numberOfIndependentVariables]=0;
-				constraints.add(new LinearConstraint(dummies, Relationship.EQ, 1));
-				
-				//Prepare Constraint ensuring positive Error Term
-				/*dummies = new double[numberOfIndependentVariables+1];
-				Arrays.fill(dummies, 0);	
-				dummies[numberOfIndependentVariables]=1;
-				constraints.add(new LinearConstraint(dummies, Relationship.GEQ, 0));*/
-				
-				//Prepare Constraint ensuring positive Coefficient Terms
-				for(int i = 0; i<numberOfIndependentVariables;i++) {
-					dummies = new double[numberOfIndependentVariables+1];
-					dummies[i]=1;
-					constraints.add(new LinearConstraint(dummies, Relationship.LEQ, 1));
-					constraints.add(new LinearConstraint(dummies, Relationship.GEQ, 0));
-				}	
-				
-				//Condition ensuring that targetVariable is met
-				constraints.add(new LinearConstraint(resultArraySingleForecastPeriod, Relationship.EQ, dependentVariable));
-				
-				//not needed wrong thoughts
-				/*
-				//Optimization Problem
-				dummies = new double[numberOfIndependentVariables+1];
-				Arrays.fill(dummies, -1);	
-				dummies[numberOfIndependentVariables]=0;
-				LinearObjectiveFunction OptimizeWeights = new LinearObjectiveFunction(dummies, dependentVariable);	
-				*/
-				
-				dummies = new double[numberOfIndependentVariables+1];
-				Arrays.fill(dummies, 0);	
-				dummies[numberOfIndependentVariables]=1;
-				LinearObjectiveFunction MinimizeError = new LinearObjectiveFunction(dummies,-dependentVariable);
-				
-				//Add Conditions to OptimizationData
-				//objectives.add(OptimizeWeights);
-				objectives.add(MinimizeError);
-				objectives.add(new LinearConstraintSet(constraints));
-				
-				objectives.add(GoalType.MINIMIZE);
-				objectives.add(new NonNegativeConstraint(true));
-				objectives.add(PivotSelectionRule.BLAND);
-			    SimplexSolver solver = new SimplexSolver();    
-			    OptimizationData[] optimizations = new OptimizationData[objectives.size()];
-				for(int i = 0; i<objectives.size();i++) {
-					optimizations[i]=objectives.get(i);
+				 JSONObject proceduresWeights = new JSONObject();
+				    //double[] weights = solution.getPoint();
+				    double solutionValue =  0;
+				    double error = 0;
+				if(nearestValues.getJSONObject("nearestSmallerValue").has("procedureName") && nearestValues.getJSONObject("nearestGreaterValue").has("procedureName")){
+					resultArraySingleForecastPeriod[0] =  nearestValues.getJSONObject("nearestSmallerValue").getDouble("value");
+					resultArraySingleForecastPeriod[1] =  nearestValues.getJSONObject("nearestGreaterValue").getDouble("value");
+					if(allGreater) {
+						resultArraySingleForecastPeriod[numberOfIndependentVariables] = -1;
+					}else {
+						resultArraySingleForecastPeriod[numberOfIndependentVariables] = 1;
+					}
 					
+					//resultArraySingleForecastPeriod[procedureCounter] = dependentVariable;				
+					
+					//Objective: C1*X1+C2*X2+Error=Y => Y-C1*X1+C2*X2=Error => Bedingungen: P1 = ResultProcedure1 P2 = Result Procedure 2, Goal: Minimize Error => Minimize
+					//=> -P1*X1 + P2*X2 - Y = 0
+					//Constraint 1: SUm(coeff)=1;  X1+X2 = 1 => C1 und C2 1 setzen => C1*1 + C2*1 = 1
+					//Constraint 2: 0<=C1/C2<=1
+					//Constraint 3:  => P1*X1 + P2*X2 = Y Example :constraints.add(new LinearConstraint(new double[] {80,100}, Relationship.EQ, dependentVariable));
+					//Y not considered (constant variable)
+					//Prepare Constraint for Coefficients adding up to 1
+					double[] dummies = new double[numberOfIndependentVariables+1];
+					Arrays.fill(dummies, 1);	
+					dummies[numberOfIndependentVariables]=0;
+					constraints.add(new LinearConstraint(dummies, Relationship.EQ, 1));
+					
+					//Prepare Constraint ensuring positive Error Term
+					/*dummies = new double[numberOfIndependentVariables+1];
+					Arrays.fill(dummies, 0);	
+					dummies[numberOfIndependentVariables]=1;
+					constraints.add(new LinearConstraint(dummies, Relationship.GEQ, 0));*/
+					
+					//Prepare Constraint ensuring positive Coefficient Terms
+					for(int i = 0; i<numberOfIndependentVariables;i++) {
+						dummies = new double[numberOfIndependentVariables+1];
+						dummies[i]=1;
+						constraints.add(new LinearConstraint(dummies, Relationship.LEQ, 1));
+						constraints.add(new LinearConstraint(dummies, Relationship.GEQ, 0));
+					}	
+					
+					//Condition ensuring that targetVariable is met
+					constraints.add(new LinearConstraint(resultArraySingleForecastPeriod, Relationship.EQ, dependentVariable));
+					
+					//not needed wrong thoughts
+					/*
+					//Optimization Problem
+					dummies = new double[numberOfIndependentVariables+1];
+					Arrays.fill(dummies, -1);	
+					dummies[numberOfIndependentVariables]=0;
+					LinearObjectiveFunction OptimizeWeights = new LinearObjectiveFunction(dummies, dependentVariable);	
+					*/
+					
+					dummies = new double[numberOfIndependentVariables+1];
+					Arrays.fill(dummies, 0);	
+					dummies[numberOfIndependentVariables]=1;
+					LinearObjectiveFunction MinimizeError = new LinearObjectiveFunction(dummies,-dependentVariable);
+					
+					//Add Conditions to OptimizationData
+					//objectives.add(OptimizeWeights);
+					objectives.add(MinimizeError);
+					objectives.add(new LinearConstraintSet(constraints));
+					
+					objectives.add(GoalType.MINIMIZE);
+					objectives.add(new NonNegativeConstraint(true));
+					objectives.add(PivotSelectionRule.BLAND);
+				    SimplexSolver solver = new SimplexSolver();    
+				    OptimizationData[] optimizations = new OptimizationData[objectives.size()];
+					for(int i = 0; i<objectives.size();i++) {
+						optimizations[i]=objectives.get(i);
+						
+					}
+				    PointValuePair solution = solver.optimize(optimizations);
+				    
+				   
+				    //for(int i = 0; i<(solution.getPoint().length-1);i++) {
+				    //	System.out.println("X"+i+": " + solution.getPoint()[i]);
+				    //	proceduresWeights.put(procedureNames.get(i), solution.getPoint()[i]);
+				    //}
+				    proceduresWeights.put(nearestValues.getJSONObject("nearestSmallerValue").getString("procedureName"), solution.getPoint()[0]);
+				    proceduresWeights.put(nearestValues.getJSONObject("nearestGreaterValue").getString("procedureName"), solution.getPoint()[1]);
+				    
+				    System.out.println(solution.getValue());
+				    //double[] weights = solution.getPoint();
+				    solutionValue = solution.getValue();
+				    error = solutionValue + dependentVariable;
+			   
+				} else {
+					if(nearestValues.getJSONObject("nearestSmallerValue").has("procedureName")) {
+						 proceduresWeights.put(nearestValues.getJSONObject("nearestSmallerValue").getString("procedureName"), 1);
+						 error = dependentVariable - nearestValues.getJSONObject("nearestSmallerValue").getDouble("value");
+					}
+					if(nearestValues.getJSONObject("nearestGreaterValue").has("procedureName")) {
+						 proceduresWeights.put(nearestValues.getJSONObject("nearestGreaterValue").getString("procedureName"), 1);
+						 error = nearestValues.getJSONObject("nearestGreaterValue").getDouble("value")- dependentVariable;
+					}
 				}
-			    PointValuePair solution = solver.optimize(optimizations);
-			    
-			    JSONObject proceduresWeights = new JSONObject();
-			    for(int i = 0; i<(solution.getPoint().length-1);i++) {
-			    	System.out.println("X"+i+": " + solution.getPoint()[i]);
-			    	proceduresWeights.put(procedureNames.get(i), solution.getPoint()[i]);
+			    for(String procedureName : procedureNames) {
+			    	if(!proceduresWeights.has(procedureName)) {
+			    		proceduresWeights.put(procedureName, 0.0);
+			    	}
 			    }
-			    
-			    System.out.println(solution.getValue());
-			    //double[] weights = solution.getPoint();
-			    double error = solution.getValue();
-
+			   
 			    
 			    JSONObject optimizedPeriodWeights = new JSONObject();
 			    
@@ -262,14 +420,31 @@ public class ServiceCombiner {
 			    
 			    if(optimizedWeightsTargetVariable.has("averagedWeights")) {
 		    		JSONObject optimizedAverageWeights = optimizedWeightsTargetVariable.getJSONObject("averagedWeights"); //.getJSONObject("weights");
-		    		 for(int i = 0; i<( optimizedAverageWeights.length());i++) {
-			    		String procedureName = procedureNames.get(i);
-			    		double oldValue = optimizedAverageWeights.getDouble(procedureName);
-			    		double newValue = proceduresWeights.getDouble(procedureName);
-			    		optimizedAverageWeights.put(procedureName, (oldValue + newValue)/2);
+		    		for(String procedureName : optimizedAverageWeights.keySet()) { 
+		    		//for(int i = 0; i<( optimizedAverageWeights.length());i++) {
+		    			JSONObject procedureResults = optimizedAverageWeights.getJSONObject(procedureName);
+		    			double newValue = 0;
+		    			if(procedureNames.contains(procedureName)) {
+		    				newValue = proceduresWeights.getDouble(procedureName) * factor;
+		    			}
+		    			double oldValue = procedureResults.getDouble("oldValue");
+		    			double currentWeight = (oldValue * (0.5-decay) + newValue *(0.5 + decay));
+		    			double total = procedureResults.getDouble("total");
+		    				
+			    		procedureResults.put("oldValue", currentWeight);
+			    		procedureResults.put("total", currentWeight + total);
+			    		optimizedAverageWeights.put(procedureName, procedureResults);
 		    		 }
 		    	}else {
-		    		optimizedWeightsTargetVariable.put("averagedWeights", proceduresWeights);
+		    		JSONObject optimizedAverageWeights = new JSONObject();
+		    		for(String procedureName : proceduresWeights.keySet()) {
+		    			JSONObject procedureResults = new JSONObject();
+			    		double value = proceduresWeights.getDouble(procedureName) * factor;
+			    		procedureResults.put("oldValue", value);
+			    		procedureResults.put("total", value);
+			    		optimizedAverageWeights.put(procedureName, procedureResults);
+		    		 }
+		    		optimizedWeightsTargetVariable.put("averagedWeights", optimizedAverageWeights);
 		    	}
 				entryCounter = entryCounter + 1;
 			}
@@ -366,6 +541,44 @@ public class ServiceCombiner {
 		JSONObject averagedWeights = gatewayDAO.getAveragedWeights(toDate, serviceNames, username);
 		return averagedWeights;
 	}
+	
+	public static JSONObject prepare4MultiPeriodForecasting(JSONObject forecastResult, ArrayList<String> serviceNames, String username/*JSONObject weights*/) throws JSONException, ClassNotFoundException, SQLException, ParseException {
+		JSONObject combinedResult = new JSONObject();
+		JSONObject preparedStructure = new JSONObject();
+		String configurationString = "";
+		
+		JSONObject weights = new JSONObject();
+		for(String procedureName : forecastResult.keySet()) {
+			JSONObject procedureResults = forecastResult.getJSONObject(procedureName);
+			for(String dateString : procedureResults.keySet()) {
+				if(!weights.has(dateString)) {
+					weights.put(dateString, ServiceCombiner.getAveragedWeights(dateString, serviceNames.toString(), username));
+				}
+				combinedResult.put(dateString, new JSONObject());
+				JSONObject dateResult = procedureResults.getJSONObject(dateString);
+				for(String configuration : dateResult.keySet()) {
+					configurationString = configuration;
+					combinedResult.getJSONObject(dateString).put(configurationString, new JSONObject());
+					JSONObject configurationResult = dateResult.getJSONObject(configuration);
+					//preparedStructure.put(procedureName, configurationResult);
+					
+					if(!preparedStructure.has(dateString)) {
+						preparedStructure.put(dateString, new JSONObject());
+					}
+					JSONObject preparedDateResult = preparedStructure.getJSONObject(dateString);
+					if(!preparedDateResult.has(procedureName)) {
+						preparedDateResult.put(procedureName, configurationResult);
+					}
+				}
+				
+			}
+		}
+		for(String dateString : preparedStructure.keySet()) {
+			JSONObject combinedResultSingle =  ServiceCombiner.calculateCombinedResultDynamicWeights(preparedStructure.getJSONObject(dateString), weights.getJSONObject(dateString));
+			combinedResult.put(dateString, combinedResultSingle);
+		}
+		return combinedResult;
+	}
 	/*private static double[] calculateWeights(JSONObject forecastPeriodResults, double actualDemandTargetVariable) {
 		int numberOfForecastingPeriods = forecastPeriodResults.length();
 		double[][] independentVariableArray = new double[numberOfForecastingPeriods][];
@@ -421,13 +634,24 @@ public class ServiceCombiner {
 	
 	public static JSONObject calculateCombinedResultDynamicWeights(JSONObject combinedAnalysisResult, JSONObject weights) {
 		JSONObject combinedResult = new JSONObject();
-		for(String procedureName : combinedAnalysisResult.keySet()) {
-			JSONObject procedure = combinedAnalysisResult.getJSONObject(procedureName);
-			
+		double factor = 0;
+		for(String procedureResult : combinedAnalysisResult.keySet()) {
+			JSONObject procedure = combinedAnalysisResult.getJSONObject(procedureResult);
+			//ToDo if weights == null => factor = 1/anzahlProcedures new result = factor * oldResult
 			for(String targetVariableName : procedure.keySet()) {
 				double weight = 0;
-				if(weights.getJSONObject(targetVariableName).has("averagedWeights")){
-					weight = weights.getJSONObject(targetVariableName).getJSONObject("averagedWeights").getDouble(procedureName);
+				if(weights!=null) {
+					
+					if(weights.getJSONObject(targetVariableName).has("averagedWeights")){
+						String procedureName = procedureResult;
+						if(procedureResult.contains("Result")) {
+							procedureName = procedureResult.substring(0, (procedureResult.length()-6));
+						}
+						//weight = weights.getJSONObject(targetVariableName).getJSONObject("averagedWeights").getJSONObject(procedureName).getDouble("total");
+						weight = weights.getJSONObject(targetVariableName).getJSONObject("averagedWeights").getDouble(procedureName);
+					}
+				}else {
+					factor = 1/combinedAnalysisResult.length();
 				}
 				
 				if(!combinedResult.has(targetVariableName)) {
@@ -437,7 +661,12 @@ public class ServiceCombiner {
 				for(String forecastPeriod : targetVariable.keySet()){
 					if(combinedResult.getJSONObject(targetVariableName).has(forecastPeriod)) {
 						double oldResult = combinedResult.getJSONObject(targetVariableName).getDouble(forecastPeriod);
-						double newResult = targetVariable.getDouble(forecastPeriod) * weight;
+						double newResult = 0;
+						if(weights!=null) {
+							newResult = targetVariable.getDouble(forecastPeriod) * weight;
+						}else {
+							newResult = targetVariable.getDouble(forecastPeriod) * factor;
+						}
 						combinedResult.getJSONObject(targetVariableName).put(forecastPeriod,  (oldResult + newResult));
 					}else {
 						double newResult = targetVariable.getDouble(forecastPeriod) * weight;

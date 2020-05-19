@@ -28,13 +28,14 @@ public class CallbackDAO {
 		dbConnection = CallbackDBConnection.getInstance();
 	}
 	
-	public void writeForecastResultsToDB(JSONObject configurations, String serviceName, JSONObject forecastResult){
+	public void writeForecastResultsToDB(JSONObject configurations, String serviceName, JSONObject forecastResult, String groupIdentifier){
+	//Add column to group analysis
 		
 		String from = configurations.getJSONObject("data").getString("from") ;
 		String to = configurations.getJSONObject("data").getString("to");
 		String externalRegressors = "";
 		ArrayList<String> independentVariableList = new ArrayList<String>();
-		if(configurations.getJSONObject("factors").has("independentVariable")) {
+		if(configurations.has("factors") && configurations.getJSONObject("factors").has("independentVariable")) {
 			JSONArray independentVariables = configurations.getJSONObject("factors").getJSONArray("independentVariable");
 			for(int i = 0; i<independentVariables.length();i++) {
 				independentVariableList.add(independentVariables.getJSONObject(i).getString("content"));
@@ -46,48 +47,56 @@ public class CallbackDAO {
 		String aggregationProcessing = null;
 		String aggregationOutputData = null;
 		
-		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
-		if(configurations.getJSONObject("parameters").has("aggregationInputData")) {
-			aggregationInputData = configurations.getJSONObject("parameters").getString("aggregationInputData");
-		}
-		if(configurations.getJSONObject("parameters").has("aggregationProcessing")) {
-			aggregationProcessing = configurations.getJSONObject("parameters").getString("aggregationProcessing");
-		}
-		if(configurations.getJSONObject("parameters").has("aggregationOutputData")) {
-			aggregationOutputData = configurations.getJSONObject("parameters").getString("aggregationOutputData");
-		}
-		
-		
-		
-		
 		double campaignLowerLimit = 0;
 		double campaignUpperLimit = 0;
 		String campaignProcedure = "None";
 		boolean campaignEnabled = false;
-		if(configurations.getJSONObject("parameters").has("campaigns")) {
-			campaignLowerLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("lowerLimit");
-			campaignUpperLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("upperLimit");
-			campaignProcedure = configurations.getJSONObject("parameters").getJSONObject("campaigns").getString("procedure");
-			campaignEnabled = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
-		}
 		
 		double outlierLowerLimit = 0;
 		double outlierUpperLimit = 0;
 		String outlierProcedure = "None";
 		boolean outlierEnabled = false;
-		if(configurations.getJSONObject("parameters").has("outliers")) {
-			outlierLowerLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
-			outlierUpperLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
-			outlierEnabled = configurations.getJSONObject("parameters").getJSONObject("outliers").getBoolean("handle");
-			outlierProcedure = configurations.getJSONObject("parameters").getJSONObject("outliers").getString("procedure");
+		
+		
+		int forecastPeriods=1;
+		if(configurations.has("parameters")) {
+			forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
+			if(configurations.getJSONObject("parameters").has("aggregationInputData")) {
+				aggregationInputData = configurations.getJSONObject("parameters").getString("aggregationInputData");
+			}
+			if(configurations.getJSONObject("parameters").has("aggregationProcessing")) {
+				aggregationProcessing = configurations.getJSONObject("parameters").getString("aggregationProcessing");
+			}
+			if(configurations.getJSONObject("parameters").has("aggregationOutputData")) {
+				aggregationOutputData = configurations.getJSONObject("parameters").getString("aggregationOutputData");
+			}
+		
+		
+		
+			
+
+			if(configurations.getJSONObject("parameters").has("campaigns")) {
+				campaignLowerLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("lowerLimit");
+				campaignUpperLimit = configurations.getJSONObject("parameters").getJSONObject("campaigns").getDouble("upperLimit");
+				campaignProcedure = configurations.getJSONObject("parameters").getJSONObject("campaigns").getString("procedure");
+				campaignEnabled = configurations.getJSONObject("parameters").getJSONObject("campaigns").getBoolean("contained");
+			}
+			
+
+			if(configurations.getJSONObject("parameters").has("outliers")) {
+				outlierLowerLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("lowerLimit");
+				outlierUpperLimit = configurations.getJSONObject("parameters").getJSONObject("outliers").getDouble("upperLimit");
+				outlierEnabled = configurations.getJSONObject("parameters").getJSONObject("outliers").getBoolean("handle");
+				outlierProcedure = configurations.getJSONObject("parameters").getJSONObject("outliers").getString("procedure");
+			}
 		}
 		
 		/*String sql = "INSERT INTO ForecastResults('ForecastDate','ForecastProcedure', 'ForecastResult','ExecutionPeriods','AggregationInputData','AggregationProcessing','AggregationOutputData','DataConsideratedFromDate','CampaignLowerLimit','CampaignUpperLimit','CampaignProcedure','OutlierLowerLimit','OutlierUpperLimit','OutlierProcedure','ExternalRegressors') "
 				+ "VALUES('" + to + "','" + serviceName + "','" + forecastResult + "','" + forecastPeriods + "','" + aggregationInputData + "','" + aggregationProcessing + "','" + aggregationOutputData + "','" + from + "',"
 						+ "'" + campaignLowerLimit + "','" + campaignUpperLimit + "','" + campaignProcedure + "','" + outlierLowerLimit + "','" + outlierUpperLimit + "','" + outlierProcedure + "','" + externalRegressors + "')"; 
 		*/
-		String sql = "INSERT INTO ForecastResults('ForecastDate','ForecastProcedure', 'ForecastResult','ExecutionPeriods','AggregationInputData','AggregationProcessing','AggregationOutputData','DataConsideratedFromDate','CampaignLowerLimit','CampaignUpperLimit','CampaignProcedure', 'CampaignEnabled','OutlierLowerLimit','OutlierUpperLimit','OutlierProcedure', 'OutlierEnabled','ExternalRegressors') "
-				+ "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		String sql = "INSERT INTO ForecastResults('ForecastDate','ForecastProcedure', 'ForecastResult','ExecutionPeriods','AggregationInputData','AggregationProcessing','AggregationOutputData','DataConsideratedFromDate','CampaignLowerLimit','CampaignUpperLimit','CampaignProcedure', 'CampaignEnabled','OutlierLowerLimit','OutlierUpperLimit','OutlierProcedure', 'OutlierEnabled','ExternalRegressors','GroupIdentifier') "
+				+ "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		try (Connection connection = dbConnection.checkConnectivity();
 	        		PreparedStatement pstmt = connection.prepareStatement(sql)) {
 			pstmt.setString(1, to);
@@ -107,6 +116,7 @@ public class CallbackDAO {
 			pstmt.setString(15, outlierProcedure);
 			pstmt.setBoolean(16, outlierEnabled);
 	        pstmt.setString(17, externalRegressors);
+	        pstmt.setString(18, groupIdentifier);
 	        pstmt.executeUpdate();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());

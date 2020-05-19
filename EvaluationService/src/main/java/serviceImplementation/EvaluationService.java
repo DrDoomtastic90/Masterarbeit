@@ -28,7 +28,11 @@ import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.util.CellReference;
+import org.apache.poi.xssf.usermodel.DefaultIndexedColorMap;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -148,8 +152,26 @@ public class EvaluationService {
 					totalDeviationForecastPeriods.put("MAEPercentage", 0);
 					for(String period : forecastDateResults.keySet()) {
 						JSONObject periodResults = forecastDateResults.getJSONObject(period);
+						
 						double forecastResult = periodResults.getDouble("forecastResult");
-						double actualDemand = periodResults.getDouble("demand");
+						double actualDemand = 0;
+						//switch comment if campaigns are not considered
+						
+						//without campaign handling
+						//actualDemand = periodResults.getDouble("demand");
+						
+						/**/ //with campaign handling
+						//handles case that no demand occured during time period
+						double totalDemand = 0;
+						double knownDemand = 0;
+						if(periodResults.has("demand")){
+								actualDemand = periodResults.getJSONObject("demand").getDouble("unknownDemand");
+								totalDemand = periodResults.getJSONObject("demand").getDouble("totalDemand");
+								knownDemand = periodResults.getJSONObject("demand").getDouble("knownDemand");
+						}else {
+							actualDemand = 0;
+						}
+						/**/
 						if(actualDemand == 0) {
 							//hilfsmethode => Implementierung get all demands set to lowest non 0 demand
 							actualDemand = 1;
@@ -162,6 +184,11 @@ public class EvaluationService {
 						periodResults.put("MAEPercentage", ABSDeviation/actualDemand);
 						periodResults.put("forecastResult", forecastResult);
 						periodResults.put("actualDemand", actualDemand);
+						//uncomment if campaigns are not considered
+						/**/
+						periodResults.put("totalDemand", totalDemand);
+						periodResults.put("knownDemand", knownDemand);
+						/**/
 						totalDeviationForecastPeriods.put(period, periodResults);
 						totalDeviationForecastPeriods.put("ME", (totalDeviationForecastPeriods.getDouble("ME") + periodResults.getDouble("ME"))/2);
 						totalDeviationForecastPeriods.put("MEPercentage", (totalDeviationForecastPeriods.getDouble("MEPercentage") + periodResults.getDouble("MEPercentage"))/2);
@@ -227,7 +254,15 @@ public class EvaluationService {
 		rowIndex+=1;
 		writeValueToCell(sheet, rowIndex, colIndex, "Period");
 		rowIndex+=1;
-		writeValueToCell(sheet, rowIndex, colIndex, "Actual Demand");
+		writeValueToCell(sheet, rowIndex, colIndex, "Total Demand");
+		
+		//uncomment if campaigns are not considered
+		/**/
+		rowIndex+=1;
+		writeValueToCell(sheet, rowIndex, colIndex, "Known Demand");
+		rowIndex+=1;
+		writeValueToCell(sheet, rowIndex, colIndex, "Unknown Demand");
+		/**/
 		rowIndex+=(2+numberOfConfigurations);
 		writeValueToCell(sheet, rowIndex, colIndex, "ForecastDate");
 		rowIndex+=1;
@@ -250,7 +285,10 @@ public class EvaluationService {
 		for(String configuration : configurations) {
 		//for(String configuration : targetVariableResult.keySet()) {
 			if(!skipList.contains(configuration)) {
-				rowIndex += 3;
+				//switch comment if campaigns are not considered
+				//rowIndex += 3;
+				//camapgins considered
+				rowIndex += 5;
 				writeValueToCell(sheet, rowIndex, colIndex, configuration);
 				colRowMapper.getJSONObject("Configurations").put(configuration, rowIndex);
 				rowIndex+=(3+numberOfConfigurations);
@@ -400,6 +438,12 @@ public class EvaluationService {
 										if(!skipList.contains(period)) {
 											JSONObject periodResult = dateResult.getJSONObject(period);								
 											double actualDemand = periodResult.getDouble("actualDemand");
+											
+											//uncomment if campaigns not handled
+											/**/
+											double knownDemand = periodResult.getDouble("knownDemand");
+											double totalDemand = periodResult.getDouble("totalDemand");
+											/**/
 											double forecastResult = periodResult.getDouble("forecastResult");
 											double mE = periodResult.getDouble("ME");
 											double mAE = periodResult.getDouble("MAE");
@@ -409,7 +453,20 @@ public class EvaluationService {
 												
 											colIndex = colRowMapper.getJSONObject("Dates").getInt(dateString+period);
 											rowIndex = baseRowIndex + 2;
+											writeValueToCell(sheet, rowIndex, colIndex, totalDemand);
+											//uncomment if campaigns not handled
+											/**/
+											rowIndex +=1;
+											cell = writeValueToCell(sheet, rowIndex, colIndex, knownDemand);
+											if(knownDemand>totalDemand) {
+												CellStyle style = workbook.createCellStyle();  
+									            style.setFillForegroundColor(IndexedColors.RED.getIndex());  
+									            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+									            cell.setCellStyle(style);
+											}
+											rowIndex +=1;
 											writeValueToCell(sheet, rowIndex, colIndex, actualDemand);
+											/**/
 											rowIndex = colRowMapper.getJSONObject("Configurations").getInt(configuration);
 											writeValueToCell(sheet, rowIndex, colIndex, forecastResult);
 											rowIndex+=(numberOfConfigurations+3);
