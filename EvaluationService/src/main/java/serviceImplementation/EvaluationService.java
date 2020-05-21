@@ -123,28 +123,33 @@ public class EvaluationService {
 	}
 	public static JSONObject evaluationMAE(JSONObject procedureResults) throws SQLException, ParseException, ClassNotFoundException, IOException {	
 		JSONObject totalDeviationTargetVariable = new JSONObject();
+	
 		totalDeviationTargetVariable.put("ME", 0);
 		totalDeviationTargetVariable.put("MEPercentage", 0);
 		totalDeviationTargetVariable.put("MAE", 0);
 		totalDeviationTargetVariable.put("MAEPercentage", 0);
+		
+
 		for(String targetVariableName : procedureResults.keySet()) {
 			JSONObject totalDeviationConfiguration = new JSONObject();
 			totalDeviationConfiguration.put("ME", 0);
 			totalDeviationConfiguration.put("MEPercentage", 0);
 			totalDeviationConfiguration.put("MAE", 0);
 			totalDeviationConfiguration.put("MAEPercentage", 0);
+
+			
 			JSONObject targetVariableResults = procedureResults.getJSONObject(targetVariableName);
 
-			for(String forecastDate : targetVariableResults.keySet()) {	
+			for(String configuration : targetVariableResults.keySet()) {	
 				JSONObject totalDeviationObservationPeriod = new JSONObject();
 				totalDeviationObservationPeriod.put("ME", 0);
 				totalDeviationObservationPeriod.put("MEPercentage", 0);
 				totalDeviationObservationPeriod.put("MAE", 0);
 				totalDeviationObservationPeriod.put("MAEPercentage", 0);
-				JSONObject forecastingConfigurations = targetVariableResults.getJSONObject(forecastDate);
+				JSONObject forecastingConfigurations = targetVariableResults.getJSONObject(configuration);
 				
-				for(String configuration : forecastingConfigurations.keySet()) {	
-					JSONObject forecastDateResults = forecastingConfigurations.getJSONObject(configuration);
+				for(String forecastDate : forecastingConfigurations.keySet()) {	
+					JSONObject forecastDateResults = forecastingConfigurations.getJSONObject(forecastDate);
 					JSONObject totalDeviationForecastPeriods = new JSONObject();
 					totalDeviationForecastPeriods.put("ME", 0);
 					totalDeviationForecastPeriods.put("MEPercentage", 0);
@@ -179,9 +184,11 @@ public class EvaluationService {
 						double deviation = calculateMeanError(forecastResult, actualDemand);
 						double ABSDeviation = calculateMeanAbsoluteError(forecastResult, actualDemand);
 						periodResults.put("ME", deviation);
-						periodResults.put("MEPercentage", deviation/actualDemand);
+						double mEPercentage = deviation/actualDemand;
+						periodResults.put("MEPercentage", mEPercentage);
 						periodResults.put("MAE", ABSDeviation);
-						periodResults.put("MAEPercentage", ABSDeviation/actualDemand);
+						double mAEPercentage = ABSDeviation/actualDemand;
+						periodResults.put("MAEPercentage", mAEPercentage);
 						periodResults.put("forecastResult", forecastResult);
 						periodResults.put("actualDemand", actualDemand);
 						//uncomment if campaigns are not considered
@@ -190,32 +197,78 @@ public class EvaluationService {
 						periodResults.put("knownDemand", knownDemand);
 						/**/
 						totalDeviationForecastPeriods.put(period, periodResults);
-						totalDeviationForecastPeriods.put("ME", (totalDeviationForecastPeriods.getDouble("ME") + periodResults.getDouble("ME"))/2);
-						totalDeviationForecastPeriods.put("MEPercentage", (totalDeviationForecastPeriods.getDouble("MEPercentage") + periodResults.getDouble("MEPercentage"))/2);
-						totalDeviationForecastPeriods.put("MAE", (totalDeviationForecastPeriods.getDouble("MAE") + periodResults.getDouble("MAE"))/2);
-						totalDeviationForecastPeriods.put("MAEPercentage", (totalDeviationForecastPeriods.getDouble("MAEPercentage") + periodResults.getDouble("MAEPercentage"))/2);
+						totalDeviationForecastPeriods.put("ME", (totalDeviationForecastPeriods.getDouble("ME") + periodResults.getDouble("ME")));
+						totalDeviationForecastPeriods.put("MEPercentage", (totalDeviationForecastPeriods.getDouble("MEPercentage") + periodResults.getDouble("MEPercentage")));
+						totalDeviationForecastPeriods.put("MAE", (totalDeviationForecastPeriods.getDouble("MAE") + periodResults.getDouble("MAE")));
+						double newMAEPercentage = totalDeviationForecastPeriods.getDouble("MAEPercentage") + periodResults.getDouble("MAEPercentage");
+						totalDeviationForecastPeriods.put("MAEPercentage", (newMAEPercentage));
 					}
-					totalDeviationObservationPeriod.put(configuration, totalDeviationForecastPeriods);
-					totalDeviationObservationPeriod.put("ME", (totalDeviationObservationPeriod.getDouble("ME") + totalDeviationForecastPeriods.getDouble("ME"))/2);
-					totalDeviationObservationPeriod.put("MEPercentage", (totalDeviationObservationPeriod.getDouble("MEPercentage") + totalDeviationForecastPeriods.getDouble("MEPercentage"))/2);
-					totalDeviationObservationPeriod.put("MAE", (totalDeviationObservationPeriod.getDouble("MAE") + totalDeviationForecastPeriods.getDouble("MAE"))/2);
-					totalDeviationObservationPeriod.put("MAEPercentage", (totalDeviationObservationPeriod.getDouble("MAEPercentage") + totalDeviationForecastPeriods.getDouble("MAEPercentage"))/2);
+					totalDeviationObservationPeriod.put(forecastDate, totalDeviationForecastPeriods);
+					totalDeviationObservationPeriod.put("ME", (totalDeviationObservationPeriod.getDouble("ME") + totalDeviationForecastPeriods.getDouble("ME")));
+					totalDeviationObservationPeriod.put("MEPercentage", (totalDeviationObservationPeriod.getDouble("MEPercentage") + totalDeviationForecastPeriods.getDouble("MEPercentage")));
+					totalDeviationObservationPeriod.put("MAE", (totalDeviationObservationPeriod.getDouble("MAE") + totalDeviationForecastPeriods.getDouble("MAE")));
+					double newMAEPercentage = totalDeviationObservationPeriod.getDouble("MAEPercentage") + totalDeviationForecastPeriods.getDouble("MAEPercentage");
+					totalDeviationObservationPeriod.put("MAEPercentage", (newMAEPercentage));
 				}
-				totalDeviationConfiguration.put(forecastDate, totalDeviationObservationPeriod);
-				totalDeviationConfiguration.put("ME", (totalDeviationConfiguration.getDouble("ME") + totalDeviationObservationPeriod.getDouble("ME"))/2);
-				totalDeviationConfiguration.put("MEPercentage", (totalDeviationConfiguration.getDouble("MEPercentage") + totalDeviationObservationPeriod.getDouble("MEPercentage"))/2);
-				totalDeviationConfiguration.put("MAE", (totalDeviationConfiguration.getDouble("MAE") + totalDeviationObservationPeriod.getDouble("MAE"))/2);
-				totalDeviationConfiguration.put("MAEPercentage", (totalDeviationConfiguration.getDouble("MAEPercentage") + totalDeviationObservationPeriod.getDouble("MAEPercentage"))/2);
+				totalDeviationConfiguration.put(configuration, totalDeviationObservationPeriod);
+				totalDeviationConfiguration.put("ME", (totalDeviationConfiguration.getDouble("ME") + totalDeviationObservationPeriod.getDouble("ME")));
+				totalDeviationConfiguration.put("MEPercentage", (totalDeviationConfiguration.getDouble("MEPercentage") + totalDeviationObservationPeriod.getDouble("MEPercentage")));
+				totalDeviationConfiguration.put("MAE", (totalDeviationConfiguration.getDouble("MAE") + totalDeviationObservationPeriod.getDouble("MAE")));
+				double newMAEPercentage = totalDeviationConfiguration.getDouble("MAEPercentage") + totalDeviationObservationPeriod.getDouble("MAEPercentage");
+				totalDeviationConfiguration.put("MAEPercentage", (newMAEPercentage));
 			}
 			totalDeviationTargetVariable.put(targetVariableName, totalDeviationConfiguration);
-			totalDeviationTargetVariable.put("ME", (totalDeviationTargetVariable.getDouble("ME") + totalDeviationConfiguration.getDouble("ME"))/2);
-			totalDeviationTargetVariable.put("MEPercentage", (totalDeviationTargetVariable.getDouble("MEPercentage") + totalDeviationConfiguration.getDouble("MEPercentage"))/2);
-			totalDeviationTargetVariable.put("MAE", (totalDeviationTargetVariable.getDouble("MAE") + totalDeviationConfiguration.getDouble("MAE"))/2);
-			totalDeviationTargetVariable.put("MAEPercentage", (totalDeviationTargetVariable.getDouble("MAEPercentage") + totalDeviationConfiguration.getDouble("MAEPercentage"))/2);
+			totalDeviationTargetVariable.put("ME", (totalDeviationTargetVariable.getDouble("ME") + totalDeviationConfiguration.getDouble("ME")));
+			totalDeviationTargetVariable.put("MEPercentage", (totalDeviationTargetVariable.getDouble("MEPercentage") + totalDeviationConfiguration.getDouble("MEPercentage")));
+			totalDeviationTargetVariable.put("MAE", (totalDeviationTargetVariable.getDouble("MAE") + totalDeviationConfiguration.getDouble("MAE")));
+			double newMAEPercentage = totalDeviationTargetVariable.getDouble("MAEPercentage") + totalDeviationConfiguration.getDouble("MAEPercentage");
+			totalDeviationTargetVariable.put("MAEPercentage", (newMAEPercentage));
 		}
 		return totalDeviationTargetVariable;
 	}
 	
+	public static JSONObject prepareEvalution(JSONObject loginCredentials, JSONObject configurations, JSONObject forecastResults, JSONObject actualDemand) {
+		JSONObject evaluationStructuredResults = new JSONObject();	
+		for(String dateString : forecastResults.keySet()) {
+			JSONObject forecastingConfigurations = forecastResults.getJSONObject(dateString);
+			for(String configuration: forecastingConfigurations.keySet()) {
+				JSONObject targetVariableResults = forecastingConfigurations.getJSONObject(configuration);
+				for(String targetVariableName : targetVariableResults.keySet()) {
+	    			JSONObject periodResults = targetVariableResults.getJSONObject(targetVariableName);
+	    			JSONObject structuredConfigurations = new JSONObject();
+	    			JSONObject structuredPeriod;
+	    			if(targetVariableName.equals("S1")) {
+    					System.out.println(dateString + ": " + targetVariableResults.getJSONObject(targetVariableName));
+    				}
+	    			for(String period : periodResults.keySet()) {
+	    				
+	    				JSONObject evaluationAttributes = new JSONObject();
+	        			double result = periodResults.getDouble(period);
+		        		periodResults.put(period, evaluationAttributes);
+	        			evaluationAttributes.put("forecastResult", result);
+	        			if(actualDemand.getJSONObject(dateString).getJSONObject(period).has(targetVariableName)) {
+	        				evaluationAttributes.put("demand", actualDemand.getJSONObject(dateString).getJSONObject(period).getJSONObject(targetVariableName));
+	        			}
+	        			
+	        			if(evaluationStructuredResults.has(targetVariableName)) {
+	        				structuredConfigurations = evaluationStructuredResults.getJSONObject(targetVariableName);
+	        			}else {
+	        				structuredConfigurations = new JSONObject();
+	        				evaluationStructuredResults.put(targetVariableName, structuredConfigurations);
+	        			}
+	        			if(structuredConfigurations.has(configuration)) {
+	        				structuredPeriod = structuredConfigurations.getJSONObject(configuration);
+	        			}else {
+	        				structuredPeriod = new JSONObject();
+	        				structuredConfigurations.put(configuration, structuredPeriod);
+	        			}
+	        			structuredPeriod.put(dateString, periodResults);
+	        		}
+	    		}
+			}
+		}
+		return evaluationStructuredResults;
+	}
 	
 	private static XSSFRow retrieveRow(XSSFSheet sheet, int rowIndex) {
 		if(sheet.getRow(rowIndex) != null){

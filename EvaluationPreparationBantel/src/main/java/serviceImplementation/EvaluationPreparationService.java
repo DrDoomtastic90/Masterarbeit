@@ -125,6 +125,7 @@ public class EvaluationPreparationService {
 					JSONObject procedureConfiguration = forecastProcedures.getJSONObject(forecastProcedureName);
 					procedureConfiguration.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);
 					weightCalculationValues.put(forecastProcedureName, callbackDAO.getForecastResults(procedureConfiguration, consideratedConfigurations, forecastProcedureName, fromDateString, toDateString));
+					
 					forecastProcedureNames.add(forecastProcedureName);
 				}
 			}
@@ -176,8 +177,9 @@ public class EvaluationPreparationService {
 				demand.getJSONObject(skbez).put("knownDemand", knownDemand);
 				demand.getJSONObject(skbez).put("unknownDemand", unknownDemand);	
 			}
-			
-			actualResults.put(weekBeginDateString, demand);
+			JSONObject periodResult = new JSONObject();
+			periodResult.put("1", demand);
+			actualResults.put(weekBeginDateString, periodResult);
 			calendar.add(Calendar.DAY_OF_MONTH, + 1);
 			weekBeginDate = calendar.getTime();
 			weekBeginDateString = dateFormat.format(weekBeginDate);
@@ -296,6 +298,25 @@ public class EvaluationPreparationService {
 		return forecastResults;
 	}
 	
+	
+	public static JSONObject getCorrespondingDemandForForecastingValues(JSONArray executionRuns, JSONObject configurations, JSONObject loginCredentials) throws JSONException, ClassNotFoundException, SQLException, ParseException {
+		JSONObject actualDemand = new JSONObject();
+		String passPhrase = loginCredentials.getString("passPhrase");
+		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
+		String aggregationOutputData = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
+		for(int i = 0; i<executionRuns.length();i++) {
+    		String forecastDate = executionRuns.getJSONObject(i). getString("to");
+			//get actual demand for specific date if not already retrieved
+			if(!actualDemand.has(forecastDate)) {
+				if(aggregationOutputData.equals("DAILY")) {
+					actualDemand.put(forecastDate, getForecastDemandDaily(forecastDate, forecastPeriods, passPhrase));
+		    	}else {
+		    		actualDemand.put(forecastDate, getActualResultsWeekly(forecastDate, forecastPeriods, passPhrase));
+		    	}
+			}
+		}
+		return actualDemand;
+	}	
 	
 	
 	public static JSONObject prepareEvaluationBantel(JSONObject forecastResult, JSONObject configurations, JSONObject loginCredentials) throws JSONException, ClassNotFoundException, SQLException, ParseException {

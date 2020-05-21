@@ -18,6 +18,8 @@ import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import outputHandler.CustomFileWriter;
+
 
 public class CallbackDAO {
 	DBConnection dbConnection = null;
@@ -213,7 +215,7 @@ public class CallbackDAO {
 		
 	}
 	
-	public JSONObject getForecastResults(JSONObject configurations, JSONObject consideratedConfigurations, String procedureName, String from, String to) throws SQLException {
+	public JSONObject getForecastResults(JSONObject configurations, JSONObject consideratedConfigurations, String procedureName, String from, String to) throws SQLException, ParseException {
 		JSONObject forecastResults= null;
 		String externalRegressors = "";
 		ArrayList<String> independentVariableList = new ArrayList<String>();
@@ -350,7 +352,8 @@ public class CallbackDAO {
 				/*if(first) {
 					forecastResults = new JSONObject();
 					first = false;
-				}
+				}*/
+				/*
 				JSONObject singleForecastResult =  new JSONObject();
 				String configuration = "P";
 				if(resultSet.getBoolean(3)) {
@@ -367,11 +370,27 @@ public class CallbackDAO {
 				}else {
 					configuration = configuration + "_NONE_X_X";
 				}
-				singleForecastResult.put(dateString,
-				*/
+				singleForecastResult.put(configuration, new JSONObject(resultSet.getString(2)));
 				
-				if(!forecastResults.has(resultSet.getString(1))) {
-					forecastResults.put(resultSet.getString(1), new JSONObject(resultSet.getString(2)));
+				*/
+				JSONObject singleForecastResult =  new JSONObject();
+				String configuration = "Placeholder";
+				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
+				Calendar calendar = new GregorianCalendar(Locale.GERMAN);
+				calendar.setFirstDayOfWeek(Calendar.MONDAY);
+				String dateString = resultSet.getString(1);
+				calendar.setTime(dateFormat.parse(dateString));
+				calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+				calendar.add(Calendar.DAY_OF_MONTH, + 1);
+				Date forecastDate = calendar.getTime();
+				String forecastDateString = dateFormat.format(forecastDate);
+				
+				if(!forecastResults.has(forecastDateString)) {
+					singleForecastResult.put(configuration, new JSONObject(resultSet.getString(2)));
+					CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\test_"+procedureName+"_"+ forecastDateString + ".json", singleForecastResult.toString());
+					
+					//forecastResults.put(resultSet.getString(1), new JSONObject(resultSet.getString(2)));
+					forecastResults.put(forecastDateString, singleForecastResult);
 				}
 			}
 			

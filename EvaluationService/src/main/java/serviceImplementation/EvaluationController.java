@@ -26,6 +26,7 @@ import org.json.JSONObject;
 import dBConnection.EvaluationDAO;
 import dBConnection.EvaluationDBConnection;
 import inputHandler.RestRequestHandler;
+import outputHandler.CustomFileWriter;
 import webClient.RestClient;
 
 @Path("/EvaluationService")
@@ -201,16 +202,21 @@ public class EvaluationController {
 			JSONObject requestBody;
 
 			requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
-
+			//JSONObject forecastResults = requestBody.getJSONObject("forecastResults");
+			
 			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
 			JSONObject configurations = requestBody.getJSONObject("configurations");
-			JSONObject forecastResults = requestBody.getJSONObject("forecastResults");
-
+			JSONObject evaluationData = requestBody.getJSONObject("evaluationData");
+			JSONObject forecastResults = evaluationData.getJSONObject("forecastResults");
+			JSONObject demand = evaluationData.getJSONObject("demand");
 			loginCredentials = EvaluationService.invokeLoginService(loginCredentials);
 			
+				
 			if(configurations.getJSONObject("forecasting").getJSONObject("ARIMA").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ARIMA"), demand);
+				
 				JSONObject aRIMAEvaluation = new JSONObject();
-				JSONObject aRIMAEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ARIMA"));
+				JSONObject aRIMAEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);
 				
 				file = EvaluationService.writeEvaluationResultsToExcelFile(aRIMAEvaluationMAE, "ARIMA");
 				fileName = file.getName();
@@ -223,8 +229,9 @@ public class EvaluationController {
 				evaluationResults.put("ARIMA", aRIMAEvaluation);
 			}
 			if(configurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ExponentialSmoothing"), demand);
 				JSONObject expSmoothingEvaluation = new JSONObject();
-				JSONObject expSmoothingEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ExponentialSmoothing"));			
+				JSONObject expSmoothingEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
 				
 				file = EvaluationService.writeEvaluationResultsToExcelFile(expSmoothingEvaluationMAE, "ExponentialSmoothing");
 				fileName = file.getName();
@@ -237,8 +244,9 @@ public class EvaluationController {
 				evaluationResults.put("ExponentialSmoothing", expSmoothingEvaluation);
 			}
 			if(configurations.getJSONObject("forecasting").getJSONObject("Kalman").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("Kalman"), demand);
 				JSONObject kalmanEvaluation = new JSONObject();
-				JSONObject kalmanEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("Kalman"));			
+				JSONObject kalmanEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
 				
 				file = EvaluationService.writeEvaluationResultsToExcelFile(kalmanEvaluationMAE, "Kalman");
 				fileName = file.getName();
@@ -251,8 +259,9 @@ public class EvaluationController {
 				evaluationResults.put("Kalman", kalmanEvaluation);
 			}
 			if(configurations.getJSONObject("forecasting").getJSONObject("ANN").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ANN"), demand);
 				JSONObject aNNEvaluation = new JSONObject();
-				JSONObject aNNEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ANN"));			
+				JSONObject aNNEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
 				
 				file = EvaluationService.writeEvaluationResultsToExcelFile(aNNEvaluationMAE, "ANN");
 				fileName = file.getName();
@@ -266,8 +275,9 @@ public class EvaluationController {
 			}
 
 			if(configurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ruleBased"), demand);
 				JSONObject ruleBasedEvaluation = new JSONObject();
-				JSONObject ruleBasedEvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("ruleBased"));			
+				JSONObject ruleBasedEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
 				
 				file = EvaluationService.writeEvaluationResultsToExcelFile(ruleBasedEvaluationMAE, "ruleBased");
 				fileName = file.getName();
@@ -279,8 +289,9 @@ public class EvaluationController {
 				ruleBasedEvaluation.put("fileContentString",fileContentString);
 				evaluationResults.put("ruleBased", ruleBasedEvaluation);
 			}
+			JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("Combined"), demand);
 			JSONObject combinedEvaluation = new JSONObject();
-			JSONObject combinedvaluationMAE = EvaluationService.evaluationMAE(forecastResults.getJSONObject("Combined"));			
+			JSONObject combinedvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
 			
 			file = EvaluationService.writeEvaluationResultsToExcelFile(combinedvaluationMAE, "Combined");
 			fileName = file.getName();
@@ -335,6 +346,117 @@ public class EvaluationController {
 			responseMessage.put("result", "Request could not be handled!");
 			rBuild.entity(responseMessage.toString());
 		}
+		return rBuild.build();
+		
+	}
+	
+	@POST
+	@Path("/Combined/JSON")
+	@Produces(MediaType.APPLICATION_JSON)
+	//Simulates evaluation of ForecastResults for BAntel GmbH
+	public Response evaluateResultsCombinedJSON(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+		JSONObject evaluationResults = new JSONObject();
+		ResponseBuilder rBuild = null;
+		rBuild = Response.status(400);
+		JSONObject responseMessage = new JSONObject();
+		responseMessage.put("result", "Request could not be handled!");
+		rBuild.entity(responseMessage.toString());
+		try {
+			
+			
+			JSONObject requestBody;
+
+			requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			//JSONObject forecastResults = requestBody.getJSONObject("forecastResults");
+			
+			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
+			JSONObject configurations = requestBody.getJSONObject("configurations");
+			JSONObject evaluationData = requestBody.getJSONObject("evaluationData");
+			CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\test.json", evaluationData.toString());
+			JSONObject forecastResults = evaluationData.getJSONObject("forecastResults");
+			JSONObject demand = evaluationData.getJSONObject("demand");
+			loginCredentials = EvaluationService.invokeLoginService(loginCredentials);
+			
+				
+			if(configurations.getJSONObject("forecasting").getJSONObject("ARIMA").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ARIMA"), demand);
+				
+				JSONObject aRIMAEvaluation = new JSONObject();
+				JSONObject aRIMAEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);
+				
+				aRIMAEvaluation.put("MAE", aRIMAEvaluationMAE);
+				evaluationResults.put("ARIMA", aRIMAEvaluation);
+			}
+			if(configurations.getJSONObject("forecasting").getJSONObject("ExponentialSmoothing").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ExponentialSmoothing"), demand);
+				JSONObject expSmoothingEvaluation = new JSONObject();
+				JSONObject expSmoothingEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
+
+				expSmoothingEvaluation.put("MAE", expSmoothingEvaluationMAE);;
+				evaluationResults.put("ExponentialSmoothing", expSmoothingEvaluation);
+			}
+			if(configurations.getJSONObject("forecasting").getJSONObject("Kalman").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("Kalman"), demand);
+				JSONObject kalmanEvaluation = new JSONObject();
+				JSONObject kalmanEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
+
+				kalmanEvaluation.put("MAE", kalmanEvaluationMAE);
+				evaluationResults.put("Kalman", kalmanEvaluation);
+			}
+			if(configurations.getJSONObject("forecasting").getJSONObject("ANN").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ANN"), demand);
+				JSONObject aNNEvaluation = new JSONObject();
+				JSONObject aNNEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
+				
+				aNNEvaluation.put("MAE", aNNEvaluationMAE);
+				evaluationResults.put("ANN", aNNEvaluation);
+			}
+
+			if(configurations.getJSONObject("forecasting").getJSONObject("ruleBased").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ruleBased"), demand);
+				JSONObject ruleBasedEvaluation = new JSONObject();
+				JSONObject ruleBasedEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
+				
+				ruleBasedEvaluation.put("MAE", ruleBasedEvaluationMAE);
+				evaluationResults.put("ruleBased", ruleBasedEvaluation);
+			}
+			if(forecastResults.has("Combined")) {
+				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("Combined"), demand);
+				JSONObject combinedEvaluation = new JSONObject();
+				JSONObject combinedvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
+				combinedEvaluation.put("MAE", combinedvaluationMAE);
+				evaluationResults.put("Combined", combinedEvaluation);
+			}
+			
+			JSONObject comparedEvaluation = new JSONObject();
+			JSONObject comparedEvaluationMAE = EvaluationService.comparedEvaluationMAE(evaluationResults);
+			comparedEvaluation.put("MAE", comparedEvaluationMAE);
+			evaluationResults.put("compared", comparedEvaluation);
+
+			rBuild = Response.status(202);
+			responseMessage.put("evaluationResults", evaluationResults);
+			rBuild.entity(responseMessage.toString());
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		//rBuild.type(MediaType.APPLICATION_JSON);
+		
+		
 		return rBuild.build();
 		
 	}

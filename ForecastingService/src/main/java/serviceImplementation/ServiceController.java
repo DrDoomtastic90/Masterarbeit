@@ -750,13 +750,11 @@ public class ServiceController {
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
 			String passPhrase = loginCredentials.getString("passPhrase");
-			loginCredentials = invokeLoginService(loginCredentials);
-			if(loginCredentials.getBoolean("isAuthorized")) {
+			JSONObject loginCredentialsFirstCall = invokeLoginService(loginCredentials);
+			if(loginCredentialsFirstCall.getBoolean("isAuthorized")) {
 	        		        	
 				//login credentials to access customer system and dB passphrase is provided
 				JSONObject loginCredentialsCustomerSystem = new JSONObject();
-	        	
-	        	JSONObject forecastingResults = requestBody.getJSONObject("forecastResults");
 	        	
 				loginCredentialsCustomerSystem.put("username", "ForecastingTool");
 				loginCredentialsCustomerSystem.put("password", "forecasting");
@@ -767,7 +765,21 @@ public class ServiceController {
 	        	JSONObject jsonConfigurations =  invokeHTTPSService(serviceURL, loginCredentialsCustomerSystem);       
 				 */
 				JSONObject configurations =  requestBody.getJSONObject("configurations");
+				JSONObject forecastingResults = requestBody.getJSONObject("forecastResults");
 				JSONObject actualDemands = requestBody.getJSONObject("actualDemands");
+				
+				JSONObject preparedData = new JSONObject();
+				preparedData.put("forecastResults", forecastingResults);
+				preparedData.put("demand", actualDemands);
+				
+				JSONObject evaluationRequestBody = new JSONObject();
+				String serviceURL = "https://localhost:" + 443 + "/ForecastingTool/EvaluationService/Combined/JSON";
+				evaluationRequestBody.put("evaluationData", preparedData);
+				evaluationRequestBody.put("loginCredentials", loginCredentials);		
+				evaluationRequestBody.put("configurations", configurations);
+				JSONObject evaluationResponse = invokeHTTPSService(serviceURL, evaluationRequestBody);
+				JSONObject evaluationResults = evaluationResponse.getJSONObject("evaluationResults");
+				
 	        	//Set combined execution parameters
 				//JSONObject combinedAnalysisResult = new JSONObject();
 		     	JSONObject combinedConfigurations = configurations.getJSONObject("forecasting").getJSONObject("Combined");
@@ -780,10 +792,12 @@ public class ServiceController {
 		     	for(String procedureName : forecastingResults.keySet()) {
 					serviceNames.add(procedureName);
 				}
+		     	CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\test.json", evaluationResults.toString());
 				
-				JSONObject preparedWeightCalculationValues = ServiceCombiner.prepareWeightCalculationValues(forecastingResults, actualDemands, forecastDate, username);
-				JSONObject weights = ServiceCombiner.calculateWeights(serviceNames, forecastDate, username, preparedWeightCalculationValues);
-				ServiceCombiner.writeWeightsToDB(weights, serviceNames.toString(), forecastDate, username);
+				//JSONObject preparedWeightCalculationValues = ServiceCombiner.prepareWeightCalculationValues(forecastingResults, actualDemands, forecastDate, username);
+				//JSONObject weights = ServiceCombiner.calculateWeights(serviceNames, forecastDate, username, preparedWeightCalculationValues);
+		     	JSONObject weights = ServiceCombiner.calculateWeightsNeu(serviceNames, forecastDate, username, forecastingResults, actualDemands, evaluationResults);
+		     	ServiceCombiner.writeWeightsToDB(weights, serviceNames.toString(), forecastDate, username);
 				response.setStatus(202);
 				response.setContentType("application/json");
 				response.getWriter().write(weights.toString());
