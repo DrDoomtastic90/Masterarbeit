@@ -25,14 +25,32 @@ import java.util.Map;
 import javax.swing.text.html.parser.TagElement;
 
 import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
+import org.apache.poi.ss.usermodel.BorderFormatting;
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Color;
+import org.apache.poi.ss.usermodel.ColorScaleFormatting;
+import org.apache.poi.ss.usermodel.ComparisonOperator;
+import org.apache.poi.ss.usermodel.ConditionType;
+import org.apache.poi.ss.usermodel.ConditionalFormattingRule;
+import org.apache.poi.ss.usermodel.ConditionalFormattingThreshold;
+import org.apache.poi.ss.usermodel.ConditionalFormattingThreshold.RangeType;
+import org.apache.poi.ss.usermodel.ExtendedColor;
 import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.IconMultiStateFormatting;
+import org.apache.poi.ss.usermodel.IconMultiStateFormatting.IconSet;
 import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.PatternFormatting;
+import org.apache.poi.ss.usermodel.SheetConditionalFormatting;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.DefaultIndexedColorMap;
+import org.apache.poi.xssf.usermodel.IndexedColorMap;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFColorScaleFormatting;
+import org.apache.poi.xssf.usermodel.XSSFConditionalFormattingThreshold;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -40,7 +58,16 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbookFactory;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTCfRule;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTCfvo;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTColor;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTConditionalFormatting;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTDxf;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTDxfs;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTFill;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTPatternFill;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.STCfType;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STConditionalFormattingOperatorImpl;
 
 import dBConnection.EvaluationDAO;
 import outputHandler.CustomFileWriter;
@@ -778,8 +805,17 @@ public class EvaluationService {
 	
 	public static File writeComparedEvaluationMAEToExcelFile(JSONObject comparedEvaluationMAE, String procedure) throws FileNotFoundException, IOException {
 		JSONObject comparedResult = new JSONObject();
-
-			XSSFWorkbook workbook = new XSSFWorkbook();        
+		XSSFWorkbook workbook = new XSSFWorkbook();
+		
+		/*CTDxfs dxfs = workbook.getStylesSource().getCTStylesheet().getDxfs();
+		dxfs.setCount(dxfs.getCount() + 1); 
+		CTDxf dxf=dxfs.addNewDxf();
+		CTFill fill = dxf.addNewFill();
+	    CTPatternFill pattern = fill.addNewPatternFill();
+	    CTColor color = pattern.addNewBgColor();
+	    color.setRgb(javax.xml.bind.DatatypeConverter.parseHexBinary("FF00FF7F"));
+		int dxsfIndex = (int) (dxfs.getCount() - 1);
+			*/        
 			String targetPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\";
 			String filename = procedure + "_Evaluation.xlsx";
 			 File file = new File(targetPath+filename);
@@ -826,7 +862,7 @@ public class EvaluationService {
 				if(!skipList.contains(targetVariableName)) {
 					XSSFSheet sheet = workbook.createSheet(targetVariableName);
 					JSONObject targetVariableResult = comparedEvaluationMAE.getJSONObject(targetVariableName);
-					JSONObject colRowMapper = initializeHeadersCompared(sheet, configList, dateList, procedureList, forecastPeriods);
+					JSONObject colRowMapper = initializeHeadersCompared(sheet, configList, dateList, procedureList, forecastPeriods, targetVariableResult);
 					
 					
 					//XSSFSheet sheet = wb.getSheet("Produktübersicht");
@@ -846,7 +882,7 @@ public class EvaluationService {
 						if(!skipList.contains(configuration)) {
 							JSONObject configurationResult = targetVariableResult.getJSONObject(configuration);		
 							colIndex = baseColIndex;
-							
+								JSONObject deviationSums = new JSONObject();
 								for(String dateString : dateList) {
 									
 								//for(String dateString : configurationResult.keySet()) {
@@ -858,21 +894,136 @@ public class EvaluationService {
 												JSONObject periodResult = dateResult.getJSONObject(period);
 												for(String procedureName : periodResult.keySet()) {
 													JSONObject procedureResult = periodResult.getJSONObject(procedureName);								
-													double mAEPercentage = procedureResult.getDouble("MAEPercentage");	
+													double mAEPercentage = procedureResult.getDouble("MAEPercentage");
+													double mEPercentage = procedureResult.getDouble("MEPercentage");
 													colIndex = colRowMapper.getJSONObject("Dates").getInt(dateString+period);
-													rowIndex = colRowMapper.getJSONObject("Configurations").getJSONObject(configuration).getInt(procedureName);
+													rowIndex = colRowMapper.getJSONObject("Configurations").getInt(configuration + "_" + procedureName + "_MAEPercentage");
 													cell = writeValueToCell(sheet, rowIndex, colIndex, mAEPercentage);	
-													cell.setCellStyle(stylePercentage);
+													cell.setCellStyle(stylePercentage);;	
+													//NEW
+													/**/
+													if(!deviationSums.has(configuration + "_" + procedureName+"_MAEPercentage")) {
+														//JSONObject procedureDeviation = new JSONObject();
+														//procedureDeviation.put("MAEPercentage", 0);
+														//procedureDeviation.put("MEPercentage", 0);
+														//deviationSums.put(configuration + "_" + procedureName, procedureDeviation);
+														deviationSums.put(configuration + "_" + procedureName+"_MAEPercentage", 0);
+													}	
+													if(!deviationSums.has(configuration + "_" + procedureName+"_MEPercentage")) {
+														deviationSums.put(configuration + "_" + procedureName+"_MEPercentage", 0);
+													}	
+													double sumDeviationMAE = deviationSums.getDouble(configuration + "_" + procedureName+"_MAEPercentage");
+													double sumDeviationME = deviationSums.getDouble(configuration + "_" + procedureName+"_MEPercentage");
+													sumDeviationMAE = sumDeviationMAE + mAEPercentage;
+													sumDeviationME = sumDeviationME + mEPercentage;
+													deviationSums.put(configuration + "_" + procedureName+"_MAEPercentage", sumDeviationMAE);
+													deviationSums.put(configuration + "_" + procedureName+"_MEPercentage", sumDeviationME);
+													//CellStyle style = workbook.createCellStyle();  
+										            //style.setFillForegroundColor(IndexedColors.RED.getIndex());  
+										            //style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+										            //cell.setCellStyle(style);
+										            /**/
+										            
+										            colIndex = colRowMapper.getJSONObject("Dates").getInt(dateString+period);
+													rowIndex = colRowMapper.getJSONObject("Configurations").getInt(configuration + "_" + procedureName + "_MEPercentage");
+													cell = writeValueToCell(sheet, rowIndex, colIndex, mEPercentage);	
+										            cell.setCellStyle(stylePercentage);
 													sheet.autoSizeColumn(colIndex);
 												}
 									
 											}
 										}
-									}				
+									}
+									
 								}
+								for(String entry : deviationSums.keySet()) {
+										double sum = deviationSums.getDouble(entry);
+										rowIndex = colRowMapper.getJSONObject("Configurations").getInt(entry);
+										cell = writeValueToCell(sheet, rowIndex, (dateList.size()+3), sum);
+								}
+									
+									
+								
+								//NEW
+								/**/
+								//colIndex +=1;
+								//cell = writeValueToCell(sheet, rowIndex-1, colIndex, sumDeviationMAE);
+								//colIndex +=1;
+								//cell = writeValueToCell(sheet, (rowIndex + configList.size() + 1) , colIndex, sumDeviationME);
+								/**/
+								
 							}
 						}
+					
+						CellRangeAddress[] regions = new CellRangeAddress[(dateList.size()*2)];
+						int counter = 0;
+						for(int i = 0; i<(dateList.size());i++) {
+							CellRangeAddress cellRange = null;
+							cellRange = new CellRangeAddress(6, (6 + procedureList.size()*2), (3+i), (3+i));
+							regions[counter]=cellRange;
+							counter+=1;
+							cellRange= new CellRangeAddress((7 + procedureList.size()*2), (7 + procedureList.size() * 4), (3+i), (3+i));
+							regions[counter]=cellRange;
+							counter+=1;
+						}
+					
+						/*ArrayList<String> regions = new ArrayList<String>();
+						for(int i = 0; i<(dateList.size()*2);i++) {
+							CellRangeAddress cellRange = null;
+							if(i%2==0) {
+								cellRange = new CellRangeAddress(6, (6 + procedureList.size()*2), (3+i%2), (3+i%2));
+								regions.add(cellRange.formatAsString());
+							}else {
+								cellRange= new CellRangeAddress((7 + procedureList.size()*2), (7 + procedureList.size() * 4), (3+i%2), (3+i%2));
+								cellRange.formatAsString();
+								regions.add(cellRange.formatAsString());
+							}
+							
+							
+						}*/
+						//from https://stackoverflow.com/questions/50175877/apache-poi-conditional-formatting-need-to-set-different-cell-range-for-rule
+						SheetConditionalFormatting sheetCF = sheet.getSheetConditionalFormatting();	
+						IndexedColorMap colorMap = workbook.getStylesSource().getIndexedColors();
+						XSSFColor green = new XSSFColor(IndexedColors.GREEN, colorMap);
+						/*ConditionalFormattingRule rule = sheetCF.createConditionalFormattingRule("    With Selection.FormatConditions(1)\r\n" + 
+								"        .TopBottom = xlTop10Bottom\r\n" + 
+								"        .Rank = 1\r\n" + 
+								"        .Percent = False\r\n" + 
+								"    End With");
+						*/
+										
+						
+						/*CTConditionalFormatting colorScale = sheet.getCTWorksheet().addNewConditionalFormatting();
+						CTCfRule myCFRule = colorScale.addNewCfRule(); //create a rule
+						colorScale.setSqref(regions);
+						myCFRule.setPriority(1); // rule priority = 1
+						myCFRule.setType(STCfType.TOP_10); 
+						myCFRule.setBottom(true);// set type of rule to Colour Scale
+						myCFRule.setOperator(STConditionalFormattingOperatorImpl.LESS_THAN_OR_EQUAL);
+						myCFRule.setPercent(false);
+						myCFRule.setText("1");
+						//myCFRule.setDxfId(dxsfIndex);
+*/
+						
+						ConditionalFormattingRule rule = sheetCF.createConditionalFormattingColorScaleRule();			
+						ColorScaleFormatting csf = rule.getColorScaleFormatting();
+						csf.setNumControlPoints(3);
+						csf.getThresholds()[0].setRangeType(ConditionalFormattingThreshold.RangeType.MIN);
+						csf.getThresholds()[1].setRangeType(ConditionalFormattingThreshold.RangeType.PERCENTILE);
+						csf.getThresholds()[1].setValue(1.0);
+						csf.getThresholds()[2].setRangeType(ConditionalFormattingThreshold.RangeType.MAX);
+						
+						((ExtendedColor)csf.getColors()[0]).setARGBHex("FF00FF7F");
+						((ExtendedColor)csf.getColors()[1]).setARGBHex("FFFFFFFF");
+						((ExtendedColor)csf.getColors()[2]).setARGBHex("FFFFFFFF");
+						
+					
+						for(CellRangeAddress region:regions) {
+							sheetCF.addConditionalFormatting(new CellRangeAddress[] {region}, rule);
+						}
 					}
+				
+				
 				}
 			
 			
@@ -883,7 +1034,7 @@ public class EvaluationService {
 			return file;
 		}
 			
-			private static JSONObject initializeHeadersCompared(XSSFSheet sheet, ArrayList<String> configurations, ArrayList<String> dates, ArrayList<String> procedures, int forecastPeriods/*JSONObject targetVariableResult*/) {
+			private static JSONObject initializeHeadersCompared(XSSFSheet sheet, ArrayList<String> configurations, ArrayList<String> dates, ArrayList<String> procedures, int forecastPeriods, JSONObject targetVariableResult) {
 				//XSSFSheet sheet = wb.getSheet("Produktübersicht");
 				JSONObject colRowMapper = new JSONObject();
 				colRowMapper.put("Dates", new JSONObject());
@@ -906,11 +1057,16 @@ public class EvaluationService {
 				//for(String configuration : targetVariableResult.keySet()) {
 					if(!skipList.contains(configuration)) {
 						writeValueToCell(sheet, rowIndex, colIndex, configuration);
-						colRowMapper.getJSONObject("Configurations").put(configuration, new JSONObject());
+						writeValueToCell(sheet, (rowIndex + procedures.size()*configurations.size() + 1), colIndex, configuration);
+						//colRowMapper.getJSONObject("Configurations").put(configuration, new JSONObject());
 						for(String procedureName : procedures) {
-							writeValueToCell(sheet, rowIndex, colIndex + 1, procedureName);
-							colRowMapper.getJSONObject("Configurations").getJSONObject(configuration).put(procedureName, rowIndex);
-							rowIndex+=1;
+							//if( targetVariableResult.getJSONObject(configuration).has(procedureName)) {
+								writeValueToCell(sheet, rowIndex, colIndex + 1, procedureName+"_MAEPercentage");
+								colRowMapper.getJSONObject("Configurations").put(configuration + "_" + procedureName+"_MAEPercentage", rowIndex);
+								writeValueToCell(sheet,  (rowIndex + procedures.size()*configurations.size() + 1), colIndex + 1, procedureName+"_MEPercentage");
+								colRowMapper.getJSONObject("Configurations").put(configuration + "_" + procedureName+"_MEPercentage", (rowIndex + procedures.size()*configurations.size() + 1));
+								rowIndex+=1;
+							//}
 						}
 						i += 1;
 					}
@@ -958,7 +1114,7 @@ public class EvaluationService {
 										//for(String dateString : configurationResult.keySet()) {
 											if(!skipList.contains(period)) {
 												double mAEPercentage = dateResult.getJSONObject(period).getDouble("MAEPercentage");
-												
+												double mEPercentage = dateResult.getJSONObject(period).getDouble("MEPercentage");
 												if(!comparedResult.has(targetVariableName)) {
 													structuredTargetVariableResult = new JSONObject();
 													comparedResult.put(targetVariableName, structuredTargetVariableResult);
@@ -990,6 +1146,7 @@ public class EvaluationService {
 													structuredProcedureResult = structuredPeriodResult.getJSONObject(procedureName);
 												}
 												structuredProcedureResult.put("MAEPercentage", mAEPercentage);
+												structuredProcedureResult.put("MEPercentage", mEPercentage);
 											}
 										}
 									}
