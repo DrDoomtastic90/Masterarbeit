@@ -270,6 +270,83 @@ public class EvaluationPreparationController {
 	}
 	
 	@POST
+	@Path("/ANN/BruteForce")
+	@Produces(MediaType.APPLICATION_JSON)
+	//Simulates evaluation of ForecastResults for BAntel GmbH
+	public void executeBruteForceTrainingANN(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+		try {
+			JSONObject preparedData = new JSONObject();
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
+			JSONObject consideratedConfigurations = requestBody.getJSONObject("consideratedConfigurations");
+			String targetVariable = requestBody.getString("targetVariable");
+			int bruteForceLimit = requestBody.getInt("bruteForceLimit");
+			JSONArray executionRuns = requestBody.getJSONArray("executionRuns");
+			String serviceURL = "https://localhost:9100/Daten/ConfigFile/Bantel_config";        		     
+        	JSONObject jsonConfigurations =  invokeHTTPSService(serviceURL, loginCredentials);  
+        	
+        	//overwrite forecasting specific configurations with shared combined parameters
+        	JSONObject combinedConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined");
+        	int forecastPeriods =combinedConfigurations.getInt("forecastPeriods");
+        	String initialPassPhrase = loginCredentials.getString("passPhrase");    	
+			loginCredentials = EvaluationPreparationService.invokeLoginService(loginCredentials);
+
+			
+
+			JSONObject configurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined");	
+			configurations.put("forecastPeriods", forecastPeriods);
+			configurations.put("passPhrase", loginCredentials.getString("passPhrase"));
+			//forecastResults = EvaluationPreparationService.getForecastResultsMulti(configurations, consideratedConfigurations, executionRuns, "Combined");
+			//preparedData.put("Combined", EvaluationPreparationService.prepareEvaluationBantel(forecastResults, configurations, loginCredentials));	
+			JSONObject demand = EvaluationPreparationService.getCorrespondingDemandForForecastingValues(executionRuns, configurations, loginCredentials);
+
+			preparedData.put("demand", demand);
+			//Update LoginCredentials to Call ForecastingTool Service
+			loginCredentials.put("username", "BantelGmbH");
+			loginCredentials.put("password", "bantel");		
+			loginCredentials.put("passPhrase", initialPassPhrase);	
+			
+			JSONObject bruteForceRequestBody = new JSONObject();
+			serviceURL = "https://localhost:" + 443 + "/ForecastingTool/ForecastingServices/ANNService/bruteForce";
+			bruteForceRequestBody.put("evaluationData", preparedData);
+			bruteForceRequestBody.put("loginCredentials", loginCredentials);		
+			bruteForceRequestBody.put("configurations", jsonConfigurations);
+			bruteForceRequestBody.put("executionRuns", executionRuns);
+			bruteForceRequestBody.put("targetVariable", targetVariable);
+			bruteForceRequestBody.put("bruteForceLimit", bruteForceLimit);
+			//return result
+			JSONObject bruteForceResponse = invokeHTTPSService(serviceURL, bruteForceRequestBody);
+			//JSONObject bruteForeceResults = bruteForceResponse.getJSONObject("evaluationResults");
+			
+			
+			response.setStatus(202);
+			response.setContentType("application/json");
+			JSONObject responseContent = new JSONObject();
+			responseContent.put("Result", "DONE");
+			response.getWriter().write(responseContent.toString());
+			response.flushBuffer();
+		
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	
+	
+	@POST
 	@Path("/Combined/Forecast")
 	@Produces(MediaType.APPLICATION_JSON)
 	//Simulates evaluation of ForecastResults for BAntel GmbH

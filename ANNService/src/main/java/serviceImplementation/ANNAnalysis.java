@@ -19,6 +19,7 @@ import org.json.JSONObject;
 import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.Rengine;
 
+
 import dBConnections.ANNDAO;
 import dBConnections.ANNDBConnection;
 import outputHandler.CustomFileWriter;
@@ -69,9 +70,23 @@ public class ANNAnalysis {
 		String networktype = network.getString("networkType");
 		int amountInputNodes = network.getInt("amountInputNodes");
 		int amountOutputNodes = network.getInt("amountOutputNodes");
+		
+		//old
+		/*
 		int amountHiddenNodes = network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getInt("amountNodes");
 		String transformationFunction = network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getString("transformationFunction");
 		String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods + " " + transformationFunction + " " + networktype +  " " + amountInputNodes + " " + amountHiddenNodes + " " + amountOutputNodes;
+		*/
+		//new
+		JSONArray hiddenLayers = null;
+		if(network.getJSONObject("hiddenLayers").length()>1){
+			hiddenLayers = network.getJSONObject("hiddenLayers").getJSONArray("hiddenLayer");
+			//String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods + " " + transformationFunction + " " + networktype +  " " + amountInputNodes + " " + amountHiddenNodes + " " + amountOutputNodes;
+		}else {
+			hiddenLayers = new JSONArray();
+			hiddenLayers.put(network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer"));
+		}
+		String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods + " " + JSONObject.quote(hiddenLayers.toString()) + " " + networktype +  " " + amountInputNodes + " " + amountOutputNodes;
 		System.out.println(execString);
 		return new JSONObject(executeProcessCMD(execString));	
 	}
@@ -145,6 +160,74 @@ public class ANNAnalysis {
 			}
 		}		
 		return resultValues;
+	}
+	
+	public JSONObject executeBruteForceAnalysisCMD(JSONObject configurations, JSONObject preparedData, JSONObject existingModels, String targetVariable, int bruteForceLimit) throws SQLException, ClassNotFoundException {
+		JSONObject resultValues = new JSONObject();
+		String scriptPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\ANN\\";
+		
+		JSONObject network = configurations.getJSONObject("parameters").getJSONObject("network");
+		int forecastPeriods = configurations.getJSONObject("parameters").getInt("forecastPeriods");
+		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
+		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
+		boolean train = configurations.getJSONObject("parameters").getJSONObject("execution").getBoolean("train");
+		String username = configurations.getString("username");
+		
+		ANNDBConnection.getInstance("ANNDB");
+		ANNDAO aNNDAO = new ANNDAO();
+		JSONObject model = new JSONObject();
+		JSONObject executionResult = new JSONObject();
+		//Input Daily OutputWeekly
+		String sourcePath = scriptPath+"temp\\" + targetVariable + ".tmp";
+		String modelPath = scriptPath+"temp\\network.xml";
+		String targetPath = scriptPath+"temp\\" + targetVariable + "_result.tmp";
+		JSONArray dataset = preparedData.getJSONArray(targetVariable);		
+		CustomFileWriter.createFile(sourcePath, dataset.toString());
+		
+		
+		String networktype = network.getString("networkType");
+		int amountInputNodes = network.getInt("amountInputNodes");
+		int amountOutputNodes = network.getInt("amountOutputNodes");
+		
+		//old
+		/*
+		int amountHiddenNodes = network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getInt("amountNodes");
+		String transformationFunction = network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getString("transformationFunction");
+		String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods + " " + transformationFunction + " " + networktype +  " " + amountInputNodes + " " + amountHiddenNodes + " " + amountOutputNodes;
+		*/
+		//new
+		JSONArray hiddenLayers = new JSONArray();
+		JSONObject hiddenLayer = new JSONObject();
+		hiddenLayer.put("transformationFunction","Sigmoid");
+		hiddenLayers.put(network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer"));
+		
+		JSONObject bruteForceResults = new JSONObject();
+		JSONObject bruteForceModels = new JSONObject();
+		JSONObject bruteForceResponse = new JSONObject();
+		try {
+			for(int i = 1;i<=bruteForceLimit;i++) {
+				hiddenLayer.put("amountNodes",i);
+				String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + targetVariable + " " + forecastPeriods + " " + JSONObject.quote(hiddenLayers.toString()) + " " + networktype +  " " + amountInputNodes + " " + amountOutputNodes;
+				System.out.println(execString);
+				JSONObject bruteForceModel = null;
+				if(train) {
+					bruteForceModel = new JSONObject(executeProcessCMD(execString));
+					bruteForceModels.put("Model_" + i, bruteForceModel);
+				}else{
+					bruteForceModel = existingModels.getJSONObject("Model_" + i);
+				}
+				CustomFileWriter.createFile(modelPath, bruteForceModel.getString("model"));
+				executionResult = forecastModel(inputAggr, outputAggr, scriptPath, sourcePath, targetVariable, forecastPeriods, modelPath);
+				bruteForceResults.put("Model_" + i, executionResult);
+				
+			}
+			bruteForceResponse.put("Models", bruteForceModels);
+			bruteForceResponse.put("Results", bruteForceResults);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
+		return bruteForceResponse;
 	}
 
 		public JSONObject getPreparedData(JSONObject aNNConfigurations) throws JSONException, IOException {

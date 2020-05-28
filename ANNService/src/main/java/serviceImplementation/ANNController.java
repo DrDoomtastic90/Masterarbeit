@@ -27,7 +27,7 @@ public class ANNController {
 	
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
-	public void performARIMAAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+	public void performANNAnalysis(@Context HttpServletRequest request, @Context HttpServletResponse response) {
 		try {
 			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
 			JSONObject aNNConfigurations = requestBody.getJSONObject("configurations");
@@ -36,6 +36,46 @@ public class ANNController {
 			ANNAnalysis aNNAnalysis = new ANNAnalysis();
 			//JSONObject preparedData = aNNAnalysis.getPreparedData(aNNConfigurations);
 			JSONObject analysisResult = aNNAnalysis.executeAnalysisCMD(aNNConfigurations, preparedData);
+			
+			response.setStatus(202);
+			response.setContentType("application/json");
+			response.getWriter().write(analysisResult.toString());
+			response.flushBuffer();
+			if(HttpServerANN.isAutomaticShutdown()) {
+				HttpServerANN.attemptShutdown();
+			}
+		} catch (JSONException | IOException e) {
+			e.printStackTrace();
+			
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	@POST
+	@Path("/bruteForce")
+	@Produces(MediaType.APPLICATION_JSON)
+	public void bruteForce(@Context HttpServletRequest request, @Context HttpServletResponse response) {
+		try {
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject aNNConfigurations = requestBody.getJSONObject("configurations");
+			JSONObject preparedData = requestBody.getJSONObject("dataset");
+			JSONObject existingModels = null;
+			if(requestBody.has("existingModels")) {
+				existingModels = requestBody.getJSONObject("existingModels");
+			}else {
+				existingModels = null;
+			}
+			String targetVariable = requestBody.getString("targetVariable");
+			int bruteForceLimit = requestBody.getInt("bruteForceLimit");
+			//JSONObject aNNConfigurations = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			ANNAnalysis aNNAnalysis = new ANNAnalysis();
+			//JSONObject preparedData = aNNAnalysis.getPreparedData(aNNConfigurations);
+			JSONObject analysisResult = aNNAnalysis.executeBruteForceAnalysisCMD(aNNConfigurations, preparedData, existingModels, targetVariable, bruteForceLimit);
 			
 			response.setStatus(202);
 			response.setContentType("application/json");

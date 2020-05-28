@@ -73,10 +73,23 @@ public class ANNDAO {
 		
 		String networkType = configurations.getJSONObject("parameters").getJSONObject("network").getString("networkType");
 		int amountInputNodes = configurations.getJSONObject("parameters").getJSONObject("network").getInt("amountInputNodes");
-		int amountHiddenNodes = configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getInt("amountNodes");
+		JSONArray hiddenLayers = null;
+		if( configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").length()>1){
+			hiddenLayers =  configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONArray("hiddenLayer");
+			//String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods + " " + transformationFunction + " " + networktype +  " " + amountInputNodes + " " + amountHiddenNodes + " " + amountOutputNodes;
+		}else {
+			hiddenLayers = new JSONArray();
+			hiddenLayers.put(configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONObject("hiddenLayer"));
+		}
+		int amountHiddenNodes = 0;
+		ArrayList<String> transformationFunction = new ArrayList<String>();
+		for (int i = 0; i<hiddenLayers.length();i++) {
+			amountHiddenNodes = amountHiddenNodes + hiddenLayers.getJSONObject(i).getInt("amountNodes");
+			transformationFunction.add(hiddenLayers.getJSONObject(i).getString("transformationFunction"));
+		}
 		int amountOutputNodes = configurations.getJSONObject("parameters").getJSONObject("network").getInt("amountOutputNodes");
-		String transformationFunction = configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getString("transformationFunction");
-		
+		//String transformationFunctioxn = configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getString("transformationFunction");
+		//String transformationFunction = hiddenLayers.getJSONObject(0).getString("transformationFunction");
 		String sql = "INSERT INTO Models('ForecastDate','ForecastProcedure', 'TargetVariable', 'Model','AggregationInputData','AggregationOutputData','DataConsideratedFromDate','NetworkType','AmountInputNodes', 'AmountHiddenNodes', 'AmountOutputNodes', 'TransformationFunction', 'ExternalRegressors','Username') "
 				+ "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
@@ -93,7 +106,7 @@ public class ANNDAO {
 			pstmt.setInt(9, amountInputNodes);
 			pstmt.setInt(10, amountHiddenNodes);
 			pstmt.setInt(11, amountOutputNodes);
-			pstmt.setString(12, transformationFunction);
+			pstmt.setString(12, transformationFunction.toString());
 	        pstmt.setString(13, externalRegressors);
 	        pstmt.setString(14, username);
 	        pstmt.executeUpdate();
@@ -104,6 +117,7 @@ public class ANNDAO {
 	
 	public JSONObject getModel(JSONObject configurations, String serviceName, String username, String targetVariable) throws SQLException {	
 		String to = configurations.getJSONObject("data").getString("to");
+		String from = configurations.getJSONObject("data").getString("from");
 		String externalRegressors = "";
 		ArrayList<String> independentVariableList = new ArrayList<String>();
 		if(configurations.getJSONObject("factors").has("independentVariable")) {
@@ -119,9 +133,25 @@ public class ANNDAO {
 		
 		String networkType = configurations.getJSONObject("parameters").getJSONObject("network").getString("networkType");
 		int amountInputNodes = configurations.getJSONObject("parameters").getJSONObject("network").getInt("amountInputNodes");
-		int amountHiddenNodes = configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getInt("amountNodes");
+		//int amountHiddenNodes = configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getInt("amountNodes");
+		//JSONArray hiddenLayers = configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONArray("hiddenLayer");
+		JSONArray hiddenLayers = null;
+		if( configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").length()>1){
+			hiddenLayers =  configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONArray("hiddenLayer");
+			//String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods + " " + transformationFunction + " " + networktype +  " " + amountInputNodes + " " + amountHiddenNodes + " " + amountOutputNodes;
+		}else {
+			hiddenLayers = new JSONArray();
+			hiddenLayers.put(configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONObject("hiddenLayer"));
+		}
+		int amountHiddenNodes = 0;
+		ArrayList<String> transformationFunction = new ArrayList<String>();
+		for (int i = 0; i<hiddenLayers.length();i++) {
+			amountHiddenNodes = amountHiddenNodes + hiddenLayers.getJSONObject(i).getInt("amountNodes");
+			transformationFunction.add(hiddenLayers.getJSONObject(i).getString("transformationFunction"));
+		}
+
 		int amountOutputNodes = configurations.getJSONObject("parameters").getJSONObject("network").getInt("amountOutputNodes");
-		String transformationFunction = configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONObject("hiddenLayer").getString("transformationFunction");
+//		String transformationFunction = configurations.getJSONObject("parameters").getJSONObject("network").getJSONObject("hiddenLayers").getJSONArray("hiddenLayer").getJSONObject(0).getString("transformationFunction");
 		
 		JSONObject model = new JSONObject();
 		Statement statement = null;
@@ -139,11 +169,12 @@ public class ANNDAO {
 					" and AmountInputNodes = '" + amountInputNodes + "'" +
 					" and AmountHiddenNodes = '" + amountHiddenNodes + "'" +
 					" and AmountOutputNodes = '" + amountOutputNodes + "'" +
-					" and TransformationFunction = '" + transformationFunction + "'" +
+					" and TransformationFunction = '" + transformationFunction.toString() + "'" +
 					" and ExternalRegressors = '" + externalRegressors + "'" +
+					" and DataConsideratedFromDate = '"+ from + "'" +
 					" and Username = '" + username + "'" +
 					" and ForecastDate <= '" + to + "'" +
-					" Order by ForecastDate desc" +
+					" Order by ForecastDate desc, modelID desc" +
 					" limit 1";
 			resultSet = statement.executeQuery(sql);
 			

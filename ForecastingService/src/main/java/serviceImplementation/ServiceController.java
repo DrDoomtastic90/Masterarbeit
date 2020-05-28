@@ -171,6 +171,117 @@ public class ServiceController {
 			e.printStackTrace();
 		}
 	}
+	
+	@POST
+	@Path("/ANNService/bruteForce")
+	@Produces(MediaType.APPLICATION_JSON)
+	public void performBruteForceAnalysis(@Context HttpServletRequest request, @Suspended final AsyncResponse asyncResponse) {
+		try {
+			JSONObject requestBody = RestRequestHandler.readJSONEncodedHTTPRequestParameters(request);
+			JSONObject loginCredentials = requestBody.getJSONObject("loginCredentials");
+			String passPhrase = loginCredentials.getString("passPhrase");
+			loginCredentials = invokeLoginService(loginCredentials);
+			JSONObject evaluationData = requestBody.getJSONObject("evaluationData");
+			JSONObject demand = evaluationData.getJSONObject("demand");
+			String targetVariable = requestBody.getString("targetVariable");
+			int bruteForceLimit = requestBody.getInt("bruteForceLimit");
+			JSONArray executionRuns = requestBody.getJSONArray("executionRuns");
+			if(loginCredentials.getBoolean("isAuthorized")) {
+	        	
+				//login credentials to access customer system and dB passphrase is provided
+				JSONObject loginCredentialsCustomerSystem = new JSONObject();
+				
+				loginCredentialsCustomerSystem.put("username", "ForecastingTool");
+				loginCredentialsCustomerSystem.put("password", "forecasting");
+				loginCredentialsCustomerSystem.put("passPhrase", passPhrase);
+	        	
+				//Get Configuration file and set initial execution parameters
+				String serviceURL = loginCredentials.getString("apiURL");
+	        	JSONObject jsonConfigurations =  invokeHTTPSService(serviceURL, loginCredentialsCustomerSystem); 
+	        	
+	        	JSONObject bruteForceResult = new JSONObject();
+	        	//String from = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").getString("from");
+	        	int forecastPeriods = jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getInt("forecastPeriods");
+	        	String username = jsonConfigurations.getJSONObject("user").getString("name");
+				ResponseBuilder rBuild = Response.status(202);
+				//rBuild.type(MediaType.APPLICATION_JSON);
+				JSONObject responseMessage = new JSONObject();
+				responseMessage.put("result", "Request Successfully Received. Result will be returned as soon as possible!");
+				rBuild.entity(responseMessage.toString());
+				asyncResponse.resume(rBuild.build());
+	        	
+	        	if(loginCredentials.getBoolean("isEnabledANN") && jsonConfigurations.getJSONObject("forecasting").getJSONObject("ANN").getJSONObject("parameters").getJSONObject("execution").getBoolean("execute")) {
+	    			//get relevant ANN Configurations
+	    			JSONObject aNNConfigurations = jsonConfigurations.getJSONObject("forecasting").getJSONObject("ANN");				
+	    			
+	    			//overwrite forecasting specific configurations with shared combined parameters
+	    			JSONObject forecastResults = new JSONObject();
+	    			aNNConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);	
+	    			aNNConfigurations.getJSONObject("parameters").getJSONObject("execution").put("train",true);
+	    			JSONObject existingModels = null;
+	    			for(int i = 0; i<executionRuns.length();i++) {		        		
+						String to = executionRuns.getJSONObject(i). getString("to");
+		        		String from = executionRuns.getJSONObject(i).getString("from");
+		    			aNNConfigurations.getJSONObject("data").put("to", to);
+		    			aNNConfigurations.getJSONObject("data").put("from", from);
+						JSONObject forecastResult = executeANNBruteForecasting(aNNConfigurations, loginCredentialsCustomerSystem, username, targetVariable, bruteForceLimit, existingModels);
+						if(forecastResult.getJSONObject("Models").length()>=1) {
+							existingModels = forecastResult.getJSONObject("Models");
+							aNNConfigurations.getJSONObject("parameters").getJSONObject("execution").put("train",false);
+						}
+						forecastResults.put(to, forecastResult.getJSONObject("Results"));		        		
+					}
+	    			
+	    			
+	    			
+	    			for(String dateString : forecastResults.keySet()) {
+	    				JSONObject dateResults = forecastResults.getJSONObject(dateString);
+	    				for(String modelID : dateResults.keySet()) {
+	    					JSONObject periodResults = dateResults.getJSONObject(modelID);
+	    					for(String period : periodResults.keySet()) {
+	    						double result = periodResults.getDouble(period);
+	    						double actualDemand = 0;
+	    						if(demand.has(dateString)) {
+	    							actualDemand = demand.getJSONObject(dateString).getJSONObject(period).getJSONObject(targetVariable).getDouble("unknownDemand");
+	    						}
+	    						double mAE = result - actualDemand;
+	    						if(!bruteForceResult.has(modelID)) {
+		    						JSONObject modelResult = new JSONObject();
+		    						bruteForceResult.put(modelID,modelResult);
+	    						}
+	    						JSONObject modelResult=bruteForceResult.getJSONObject(modelID);
+	    						if(!modelResult.has(period)) {
+		    						JSONObject periodResult = new JSONObject();
+		    						periodResult.put("singleMAEs", new JSONObject());
+		    						periodResult.put("totalMAE", 0.0);
+		    						periodResult.put("model", existingModels.getJSONObject(modelID));
+		    						modelResult.put(period,periodResult);
+	    						}
+	    						JSONObject periodResult=modelResult.getJSONObject(period);
+		    					double totalMAE = periodResult.getDouble("totalMAE");
+		    					periodResult.put("totalMAE", totalMAE + mAE);
+		    					periodResult.getJSONObject("singleMAEs").put(dateString, mAE);
+	    					}
+	    				}
+	    			}
+		    		//prepare Callback Request
+					JSONObject callBackRequestBody = new JSONObject();
+					JSONObject results = new JSONObject();
+					results.put("bruteForceResult", bruteForceResult);
+					callBackRequestBody.put("configurations",aNNConfigurations);
+					callBackRequestBody.put("results",results);
+					callBackRequestBody.put("loginCredentials", loginCredentialsCustomerSystem);	
+					String callbackServiceURL = aNNConfigurations.getJSONObject("data").getString("callbackServiceURL");
+					
+					//return result
+					invokeHTTPSService(callbackServiceURL, callBackRequestBody);
+	    		}	
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 
 	@GET
 	@Path("/CombinedServices/Sequential")
@@ -590,6 +701,7 @@ public class ServiceController {
 			
 			//overwrite forecasting specific configurations with shared combined parameters
 			aNNConfigurations.getJSONObject("data").put("to", to);
+			aNNConfigurations.getJSONObject("data").put("from", from);
 			aNNConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);	
 			JSONObject forecatsResult = executeANNForecasting(aNNConfigurations, loginCredentialsCustomerSystem, username);
 			combinedAnalysisResult.put("ANNResult", forecatsResult);
@@ -615,23 +727,28 @@ public class ServiceController {
 		//	ServiceCombiner.writeWeightsToDB(weights, serviceNames, to, username);
 		//	combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultDynamicWeights(combinedAnalysisResult, weights));
 		//}else if(weightHandling.equals("load")){
-		if(weightHandling.equals("load")){
-			weights = ServiceCombiner.getAveragedWeights(to, serviceNames.toString(), username);
-			combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultDynamicWeights(combinedAnalysisResult, weights));
-		//}else if(weightHandling.equals("manual")){
+		
+		
+		
+		//if(weightHandling.equals("load")){
+			//weights = ServiceCombiner.getAveragedWeights(to, serviceNames.toString(), username);
+			//combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultDynamicWeights(combinedAnalysisResult, weights));
+		
+			
+			//}else if(weightHandling.equals("manual")){
 		//	weights = combinedConfigurations.getJSONObject("weighting").getJSONObject("manualWeights");
 		//	combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultStaticWeights(combinedAnalysisResult, weights));
 		//}else {
 		//	combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResultEqualWeights(combinedAnalysisResult));
-		}
+		//}
 		
 			
 		//Write actualDemand, weights and combinedResult to file
-		String targetString = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\Results\\";
+		//String targetString = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\Results\\";
 	//	String filename = "AveragedWeights";	
 	//	CustomFileWriter.writeResultToFile(targetString + filename + ".txt", weights);
-		String filename = "CombinedResults";	
-		CustomFileWriter.writeResultToFile(targetString + filename + ".txt", combinedAnalysisResult.getJSONObject("CombinedResult"));
+		//String filename = "CombinedResults";	
+		//CustomFileWriter.writeResultToFile(targetString + filename + ".txt", combinedAnalysisResult.getJSONObject("CombinedResult"));
 		//filename = to + "_" + "ActualDemand";	
 		//CustomFileWriter.writeResultToFile(targetString + filename + ".txt", actualDemand);
 		//combinedAnalysisResult.put("CombinedResult", ServiceCombiner.calculateCombinedResult(combinedAnalysisResult, to, serviceNames, username));
@@ -1165,6 +1282,44 @@ public class ServiceController {
 		filename = filename + "_Result";	
 		CustomFileWriter.writeResultToFile(targetString + filename + ".txt", analysisResult);
 		
+		return analysisResult;
+		
+	}
+	
+	private JSONObject executeANNBruteForecasting(JSONObject aNNConfigurations, JSONObject loginCredentialsCustomerSystem, String username, String targetVariable, int bruteForceLimit, JSONObject existingModels) throws IOException {
+		//initialize request body for service call
+		JSONObject aNNRequestBody = new JSONObject();
+		aNNRequestBody.put("configurations", aNNConfigurations);				
+		
+		//login credentials to access customer system and dB passphrase is provided
+		aNNRequestBody.put("loginCredentials", loginCredentialsCustomerSystem);
+		
+		//define file location to store calculation results
+		String filename = "ANN";
+		
+		//get prepared data
+		String serviceURL = aNNConfigurations.getJSONObject("data").getString("provisioningServiceURL");
+		JSONObject preparedData = invokeHTTPSService(serviceURL, aNNRequestBody);
+		aNNRequestBody.put("dataset", preparedData);
+		aNNRequestBody.put("targetVariable", targetVariable);
+		aNNRequestBody.put("bruteForceLimit", bruteForceLimit);
+		if(existingModels!=null) {
+			aNNRequestBody.put("existingModels", existingModels);
+		}
+		
+		//Write perpared data to file
+		String forecastDate = aNNConfigurations.getJSONObject("data").getString("to");
+		filename = forecastDate + "_" + filename + "_Prep";	
+	//	CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+		
+		//perform outlier handling
+		//Not needed in case of neural networks
+		
+		//prepare request body for forecasting service call
+		//customer username used to link result to corresponding service caller
+		aNNConfigurations.put("username", username);
+		serviceURL = "http://localhost:" + 8110 + "/ANNService/bruteForce";		
+		JSONObject analysisResult = invokeHTTPService(serviceURL, aNNRequestBody);		
 		return analysisResult;
 		
 	}

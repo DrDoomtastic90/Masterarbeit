@@ -93,6 +93,13 @@ public class CallbackServiceController {
 						JSONObject combinedResult = forecastResults.getJSONObject("CombinedResult");
 						callbackDAO.writeForecastResultsToDB(combinedConfigurations, "Combined", combinedResult, groupIdentifier);
 					}
+					if(forecastResults.has("bruteForceResult")) {
+						//JSONObject aNNConfigurations = configurations.getJSONObject("forecasting").getJSONObject("ANN");
+						JSONObject aNNBruteResult = forecastResults.getJSONObject("bruteForceResult");
+						String targetPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\ANN\\";
+						CustomFileWriter.createJSON(targetPath + "bruteForceResult.json", aNNBruteResult.toString());
+						//callbackDAO.writeForecastResultsToDB(combinedConfigurations, "Combined", combinedResult, groupIdentifier);
+					}
 					
 					
 					String filePath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\Bantel\\Daten\\Result.json";

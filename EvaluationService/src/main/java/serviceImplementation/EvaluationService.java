@@ -939,7 +939,7 @@ public class EvaluationService {
 								for(String entry : deviationSums.keySet()) {
 										double sum = deviationSums.getDouble(entry);
 										rowIndex = colRowMapper.getJSONObject("Configurations").getInt(entry);
-										cell = writeValueToCell(sheet, rowIndex, (dateList.size()+3), sum);
+										cell = writeValueToCell(sheet, rowIndex, (dateList.size()+3), Math.abs(sum));
 								}
 									
 									
@@ -955,16 +955,19 @@ public class EvaluationService {
 							}
 						}
 					
-						CellRangeAddress[] regions = new CellRangeAddress[(dateList.size()*2)];
+						CellRangeAddress[] regions = new CellRangeAddress[(dateList.size()+2)];
 						int counter = 0;
-						for(int i = 0; i<(dateList.size());i++) {
+						for(int i = 0; i<(dateList.size()+1);i++) {
 							CellRangeAddress cellRange = null;
 							cellRange = new CellRangeAddress(6, (6 + procedureList.size()*2), (3+i), (3+i));
 							regions[counter]=cellRange;
 							counter+=1;
-							cellRange= new CellRangeAddress((7 + procedureList.size()*2), (7 + procedureList.size() * 4), (3+i), (3+i));
-							regions[counter]=cellRange;
-							counter+=1;
+							if(counter==dateList.size()+1) {
+								cellRange= new CellRangeAddress((7 + procedureList.size()*2), (7 + procedureList.size() * 4), (3+i), (3+i));
+								regions[counter]=cellRange;
+								counter+=1;
+							}
+							
 						}
 					
 						/*ArrayList<String> regions = new ArrayList<String>();
