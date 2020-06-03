@@ -717,17 +717,21 @@ public class SorteDAO {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
 		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
 		calendar.setFirstDayOfWeek(Calendar.MONDAY);
-		calendar.setTime(dateFormat.parse(fromDate)); 
-		calendar.add(Calendar.DAY_OF_MONTH, - 7);
+		calendar.setTime(dateFormat.parse(toDate));
+		calendar.add(Calendar.YEAR, - 1);
+		calendar.add(Calendar.DAY_OF_MONTH, - 14);
+		dateFormat = new SimpleDateFormat("yy");
+		String pastYear = dateFormat.format(calendar.getTime());
+		dateFormat = new SimpleDateFormat("yyyy-MM-dd"); 	
 		int kwFrom = calendar.get(Calendar.WEEK_OF_YEAR);
 		int weekCounter = 0;
 		calendar.setTime(dateFormat.parse(toDate));
 		dateFormat = new SimpleDateFormat("yy"); 
 		String year = dateFormat.format(calendar.getTime());
-		dateFormat = new SimpleDateFormat("yyyy-MM-dd"); 
 		int kwTo = calendar.get(Calendar.WEEK_OF_YEAR);
 		calendar.set(Calendar.WEEK_OF_YEAR, kwTo); 
-		while(kwFrom!=kwTo) {	
+		while(!(Integer.parseInt(year)<=Integer.parseInt(pastYear) && kwTo<=kwFrom)) {	
+			dateFormat = new SimpleDateFormat("yyyy-MM-dd"); 
 			calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
 			fromDate = dateFormat.format(calendar.getTime());
 			calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
@@ -737,7 +741,8 @@ public class SorteDAO {
 			calendar.add(Calendar.DAY_OF_MONTH, -7);
 			kwTo = calendar.get(Calendar.WEEK_OF_YEAR);
 			weekCounter =+ 1;
-			
+			dateFormat = new SimpleDateFormat("yy"); 
+			year = dateFormat.format(calendar.getTime());
 
 		}
 		return salesAmountsSorteAllWeeks;
@@ -765,7 +770,7 @@ public class SorteDAO {
 		return salesAmountsSorteAllWeeks;
 	}*/
 	
-	public Map<String, Map<String, Double>> getPastSalesAmountsDaily(JSONObject configurations) throws JSONException, ParseException, SQLException {
+	/*public Map<String, Map<String, Double>> getPastSalesAmountsDaily(JSONObject configurations) throws JSONException, ParseException, SQLException {
 		Map<String, Map<String, Double>> salesAmountsSorteAllDays = new LinkedHashMap<String, Map<String, Double>>();
 		//int consideredPeriods = configurations.getJSONObject("parameters").getInt("considerPeriods");
 		//String fromDate = configurations.getJSONObject("data").getString("fromDate");	
@@ -792,7 +797,7 @@ public class SorteDAO {
 			fromDate = dateFormat.format(calendar.getTime());
 		}
 		return salesAmountsSorteAllDays;
-	}
+	}*/
 	
 
 	

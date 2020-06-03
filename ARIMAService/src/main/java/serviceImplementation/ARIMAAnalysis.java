@@ -121,7 +121,16 @@ public class ARIMAAnalysis {
 			//create temporary input file (loaded by foreasting rscript)
 			//CustomFileWriter.createFile(resourcePath, preparedData.getString(targetVariable));
 			String execString = "RScript " + aRIMAPath + "Exec_ARIMAAnalysis_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + factorsString;
-			JSONObject executionResult = new JSONObject(executeProcessCMD(execString));
+			JSONObject executionResult = null;
+			try{
+				executionResult = new JSONObject(executeProcessCMD(execString));
+			}catch (JSONException e) {
+				System.out.println("Could not Create JSONObject");
+				executionResult = new JSONObject();
+				for(int i = 1; i<= forecastPeriods; i++) {
+					executionResult.put(Integer.toString(i), "0");
+				}
+			}
 			resultValues.put(targetVariable, executionResult);
 		}
 		return resultValues;

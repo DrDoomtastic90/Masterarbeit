@@ -79,10 +79,34 @@ public class RuleBasedAnalysis extends Analysis {
 		SorteDAO sorteDAO = new SorteDAO(configurations.getString("passPhrase"));
 		Map<String, Sorte> sorteMap = sorteDAO.getSorteMasterData();
 		Map<String, Map<String, Double>> currentSalesWeeklySorte = sorteDAO.getCurrentSalesAmountsWeekly(configurations);
-		Map<String, Map<String, Double>> pastSalesWeeklySorte = sorteDAO.getPastSalesAmountsWeekly(configurations);
+		//Map<String, Map<String, Double>> pastSalesWeeklySorte = sorteDAO.getPastSalesAmountsWeekly(configurations);
 		//Map<String, Double> inventoryMap = sorteDAO.getInventory(sorteMap, configurations);
 		Map<String, Double> campaignMap = sorteDAO.getCampaigns(configurations);
 		Map<String, Double> directSalesMap = sorteDAO.getDirectSales(configurations);
+		
+		String toDateString = configurations.getJSONObject("data").getString("to");
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");  
+		Calendar calendar = new GregorianCalendar(Locale.GERMAN);
+		calendar.setFirstDayOfWeek(Calendar.MONDAY);
+		calendar.setTime(dateFormat.parse(toDateString)); 
+		dateFormat = new SimpleDateFormat("yy");
+		int kwCurrentWeek = calendar.get(Calendar.WEEK_OF_YEAR);
+		String yearCurrentWeek = dateFormat.format(calendar.getTime());
+		calendar.add(Calendar.DAY_OF_WEEK, - 7);
+		int kwPastWeek= calendar.get(Calendar.WEEK_OF_YEAR);
+		String yearPastWeek= dateFormat.format(calendar.getTime());
+		calendar.add(Calendar.DAY_OF_WEEK, - 7);
+		int kwBeforePastWeek= calendar.get(Calendar.WEEK_OF_YEAR);
+		String yearBeforePastWeek= dateFormat.format(calendar.getTime());
+		dateFormat = new SimpleDateFormat("yyyy-MM-dd"); 
+		calendar.setTime(dateFormat.parse(toDateString)); 
+		calendar.add(Calendar.YEAR, -1);
+		dateFormat = new SimpleDateFormat("yy");
+		int kwCurrentWeekPastYear = calendar.get(Calendar.WEEK_OF_YEAR);
+		String yearCurrentWeekPastYear = dateFormat.format(calendar.getTime());
+		calendar.add(Calendar.DAY_OF_WEEK, + 7);
+		int kwNextWeekPastYear = calendar.get(Calendar.WEEK_OF_YEAR);
+		String yearNextWeekPastYear = dateFormat.format(calendar.getTime());
 		//Map<String, Double> unpackedMap = sorteDAO.getMengenUnverpackt(configurations);
 		for(String skbez: sorteMap.keySet()) {
 			Sorte sorte = sorteMap.get(skbez);
@@ -95,9 +119,9 @@ public class RuleBasedAnalysis extends Analysis {
 			for(String strDate : currentSalesWeeklySorte.keySet()) {
 				demands.put(strDate,currentSalesWeeklySorte.get(strDate).get(skbez));
 			}
-			for(String strDate : pastSalesWeeklySorte.keySet()) {
-				demands.put(strDate,pastSalesWeeklySorte.get(strDate).get(skbez));
-			}
+			//for(String strDate : pastSalesWeeklySorte.keySet()) {
+			//	demands.put(strDate,pastSalesWeeklySorte.get(strDate).get(skbez));
+			//}
 			if(skbez.equals("S6")) {
 				System.out.println(skbez + ": " + demands);
 			}
@@ -108,11 +132,20 @@ public class RuleBasedAnalysis extends Analysis {
 			jsonSorte.put("demandWeekLY0",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY0").getString("content"));
 			jsonSorte.put("demandWeekLY1",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY1").getString("content"));
 			*/
-			jsonSorte.put("demandWeek0_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek0_Bez").getString("content")));
-			jsonSorte.put("demandWeek1_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek1_Bez").getString("content")));
-			jsonSorte.put("demandWeek2_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek2_Bez").getString("content")));
-			jsonSorte.put("demandWeekLY0_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY0_Bez").getString("content")));
-			jsonSorte.put("demandWeekLY1_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY1_Bez").getString("content")));
+			
+			//jsonSorte.put("demandWeek0_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek0_Bez").getString("content")));
+			//jsonSorte.put("demandWeek1_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek1_Bez").getString("content")));
+			//jsonSorte.put("demandWeek2_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek2_Bez").getString("content")));
+			//jsonSorte.put("demandWeekLY0_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY0_Bez").getString("content")));
+			//jsonSorte.put("demandWeekLY1_Val", demands.get(configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY1_Bez").getString("content")));
+			
+			jsonSorte.put("demandWeek0_Val", demands.get("" + kwCurrentWeek + "-" + yearCurrentWeek));
+			jsonSorte.put("demandWeek1_Val", demands.get("" + kwPastWeek + "-" + yearPastWeek));
+			jsonSorte.put("demandWeek2_Val", demands.get("" + kwBeforePastWeek + "-" + yearBeforePastWeek));
+			jsonSorte.put("demandWeekLY0_Val", demands.get("" + kwCurrentWeekPastYear + "-" + yearCurrentWeekPastYear));
+			jsonSorte.put("demandWeekLY1_Val", demands.get("" + kwNextWeekPastYear + "-" + yearNextWeekPastYear));
+			
+			
 			/*if(currentSalesWeeklySorte.containsKey("demandWeekM0")){
 				if (currentSalesWeeklySorte.get("demandWeekM0").containsKey(skbez)){
 					jsonSorte.put("demandWeek0",currentSalesWeeklySorte.get("demandWeekM0").get(skbez));
@@ -155,11 +188,15 @@ public class RuleBasedAnalysis extends Analysis {
 
 		Map<String, Sorte> sorteMap = sorteDAO.getSorteMasterData();
 		Map<String, Map<String, Double>> currentSalesDailySorte = sorteDAO.getCurrentSalesAmountsDaily(configurations);
-		Map<String, Map<String, Double>> pastSalesDailySorte = sorteDAO.getPastSalesAmountsDaily(configurations);
+		//Map<String, Map<String, Double>> pastSalesDailySorte = sorteDAO.getPastSalesAmountsDaily(configurations);
 		Map<String, Double> inventoryMap = sorteDAO.getInventory(sorteMap, configurations);
 		Map<String, Double> campaignMap = sorteDAO.getCampaigns(configurations);
 		Map<String, Double> directSalesMap = sorteDAO.getDirectSales(configurations);
 		Map<String, Double> unpackedMap = sorteDAO.getMengenUnverpackt(configurations);
+		
+		
+		
+		
 		for(String skbez: sorteMap.keySet()) {
 			Sorte sorte = sorteMap.get(skbez);
 			if(inventoryMap.containsKey(skbez)) {
@@ -171,17 +208,47 @@ public class RuleBasedAnalysis extends Analysis {
 			for(String dateStr : currentSalesDailySorte.keySet()) {
 				demands.put(dateStr,currentSalesDailySorte.get(dateStr).get(skbez));
 			}
-			for(String dateStr : pastSalesDailySorte.keySet()) {
-				demands.put(dateStr, pastSalesDailySorte.get(dateStr).get(skbez));
-			}
+			//for(String dateStr : pastSalesDailySorte.keySet()) {
+			//	demands.put(dateStr, pastSalesDailySorte.get(dateStr).get(skbez));
+			//}
 
+			
+			
+			
+			String toDateString = configurations.getJSONObject("data").getString("to");
+			DateFormat dateFormat = new SimpleDateFormat("yy");  
+			Calendar calendar = new GregorianCalendar(Locale.GERMAN);
+			calendar.setFirstDayOfWeek(Calendar.MONDAY);
+			calendar.setTime(dateFormat.parse(toDateString)); 
+			int kwCurrentWeek = calendar.get(Calendar.WEEK_OF_YEAR);
+			String yearCurrentWeek = dateFormat.format(calendar.getTime());
+			calendar.add(Calendar.DAY_OF_WEEK, - 7);
+			int kwPastWeek= calendar.get(Calendar.WEEK_OF_YEAR);
+			String yearPastWeek= dateFormat.format(calendar.getTime());
+			calendar.add(Calendar.DAY_OF_WEEK, - 7);
+			int kwBeforePastWeek= calendar.get(Calendar.WEEK_OF_YEAR);
+			String yearBeforePastWeek= dateFormat.format(calendar.getTime());
+			calendar.add(Calendar.YEAR, -1);
+			int kwCurrentWeekPastYear = calendar.get(Calendar.WEEK_OF_YEAR);
+			String yearCurrentWeekPastYear = dateFormat.format(calendar.getTime());
+			calendar.add(Calendar.DAY_OF_WEEK, + 7);
+			int kwNextWeekPastYear = calendar.get(Calendar.WEEK_OF_YEAR);
+			String yearNextWeekPastYear = dateFormat.format(calendar.getTime());
+			
+			jsonSorte.put("demandWeek0_Val", demands.get("" + kwCurrentWeek + "-" + yearCurrentWeek));
+			jsonSorte.put("demandWeek1_Val", demands.get("" + kwPastWeek + "-" + yearPastWeek));
+			jsonSorte.put("demandWeek2_Val", demands.get("" + kwBeforePastWeek + "-" + yearBeforePastWeek));
+			jsonSorte.put("demandWeekLY0_Val", demands.get("" + kwCurrentWeekPastYear + "-" + yearCurrentWeekPastYear));
+			jsonSorte.put("demandWeekLY1_Val", demands.get("" + kwNextWeekPastYear + "-" + yearNextWeekPastYear));
+/*			
+			
 			jsonSorte.put("demand", demands);
 			jsonSorte.put("demandWeek0",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek0").getString("content"));
 			jsonSorte.put("demandWeek1",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek1").getString("content"));
 			jsonSorte.put("demandWeek2",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeek2").getString("content"));
 			jsonSorte.put("demandWeekLY0",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY0").getString("content"));
 			jsonSorte.put("demandWeekLY1",configurations.getJSONObject("factors").getJSONObject("Sorte").getJSONObject("fields").getJSONObject("demandWeekLY1").getString("content"));
-
+*/
 			if(campaignMap.containsKey(skbez)) {
 				jsonSorte.put("campaignAmounts", campaignMap.get(skbez));
 			}

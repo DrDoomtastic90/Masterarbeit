@@ -313,7 +313,8 @@ public class ServiceController {
 	        	asyncResponse.resume("Request Successfully Received. Result will be returned as soon as possible!");
 	        	
 	        	//Run procedures for each provided date
-				for(int i = 0; i<executionRuns.length();i++) {		        		
+				for(int i = 0; i<executionRuns.length();i++) {
+					concurrentThreads+=1;
 					String to = executionRuns.getJSONObject(i). getString("to");
 	        		String from = executionRuns.getJSONObject(i).getString("from");
 	        		jsonConfigurations.getJSONObject("forecasting").getJSONObject("Combined").getJSONObject("data").put("to", to);
@@ -679,6 +680,7 @@ public class ServiceController {
 			
 			//overwrite forecasting specific configurations with shared combined parameters
 			kalmanConfigurations.getJSONObject("data").put("to", to);
+			kalmanConfigurations.getJSONObject("data").put("from", from);
 			kalmanConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);		
 			JSONObject forecatsResult = executeKalmanForecasting(kalmanConfigurations, loginCredentialsCustomerSystem, username);
 			combinedAnalysisResult.put("kalmanResult", forecatsResult);
@@ -690,6 +692,7 @@ public class ServiceController {
 			
 			//overwrite forecasting specific configurations with shared combined parameters
 			expSmoothingConfigurations.getJSONObject("data").put("to", to);
+			expSmoothingConfigurations.getJSONObject("data").put("from", from);
 			expSmoothingConfigurations.getJSONObject("parameters").put("forecastPeriods", forecastPeriods);	
 			JSONObject forecatsResult = executeExpSmoothingForecasting(expSmoothingConfigurations, loginCredentialsCustomerSystem, username);
 			combinedAnalysisResult.put("ExponentialSmoothingResult", forecatsResult);
@@ -1046,7 +1049,7 @@ public class ServiceController {
 		//Write perpared data to file
 		String forecastDate = ruleBasedConfigurations.getJSONObject("data").getString("to");
 		filename = forecastDate + "_" + filename+ "_Prep";	
-	//	CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
+		//CustomFileWriter.writePreparedDataToFile(targetString + filename + ".txt", preparedData);
 		
 		//Outlier Handling - not applicable for rulebased forecasting
 		//prepare request body for forecasting service call

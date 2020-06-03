@@ -196,10 +196,10 @@ public class ANNAnalysis {
 		String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + sorte + " " + forecastPeriods + " " + transformationFunction + " " + networktype +  " " + amountInputNodes + " " + amountHiddenNodes + " " + amountOutputNodes;
 		*/
 		//new
-		JSONArray hiddenLayers = new JSONArray();
-		JSONObject hiddenLayer = new JSONObject();
+		
+		JSONObject hiddenLayer = network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer");
 		hiddenLayer.put("transformationFunction","Sigmoid");
-		hiddenLayers.put(network.getJSONObject("hiddenLayers").getJSONObject("hiddenLayer"));
+		
 		
 		JSONObject bruteForceResults = new JSONObject();
 		JSONObject bruteForceModels = new JSONObject();
@@ -207,6 +207,8 @@ public class ANNAnalysis {
 		try {
 			for(int i = 1;i<=bruteForceLimit;i++) {
 				hiddenLayer.put("amountNodes",i);
+				JSONArray hiddenLayers = new JSONArray();
+				hiddenLayers.put(hiddenLayer);
 				String execString = "python " + scriptPath + "Train_FeedForwardNetwork_" + inputAggr + "_" + outputAggr+".py " + sourcePath + " " + targetVariable + " " + forecastPeriods + " " + JSONObject.quote(hiddenLayers.toString()) + " " + networktype +  " " + amountInputNodes + " " + amountOutputNodes;
 				System.out.println(execString);
 				JSONObject bruteForceModel = null;

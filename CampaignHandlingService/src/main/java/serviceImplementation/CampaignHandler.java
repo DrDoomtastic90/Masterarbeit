@@ -28,7 +28,8 @@ public class CampaignHandler {
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
 		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
-		
+		String todateString = configurations.getJSONObject("data").getString("to");
+		String fromdateString = configurations.getJSONObject("data").getString("from");
 		//Initialize Path Variables
 		String handlerPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\DataProvisioningServices\\campaignHandler\\";
 
@@ -36,7 +37,7 @@ public class CampaignHandler {
 		for(String targetVariable : dataWithOutliers.keySet()) {
 			
 			//create temporary input file (loaded by rscript to handle outliers)
-			String resourcePath = handlerPath+"temp\\inputValues_" + targetVariable + ".tmp";
+			String resourcePath = handlerPath+"temp\\inputValues_" + fromdateString + "_" + todateString + "_" + targetVariable + ".tmp";
 			CustomFileWriter.createFile(resourcePath, dataWithOutliers.getString(targetVariable));
 			String execString = "RScript " + handlerPath + "CampaignHandling_Identification_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitOutliers + " " + upperLimitOutliers;
 			String resultString = executeProcessCMD(execString);
@@ -57,6 +58,8 @@ public class CampaignHandler {
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
 		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
+		String todateString = configurations.getJSONObject("data").getString("to");
+		String fromdateString = configurations.getJSONObject("data").getString("from");
 		
 		//Initialize Path Variables
 		String handlerPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\DataProvisioningServices\\campaignHandler\\";
@@ -105,6 +108,8 @@ public class CampaignHandler {
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
 		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
+		String todateString = configurations.getJSONObject("data").getString("to");
+		String fromdateString = configurations.getJSONObject("data").getString("from");
 		
 		//Initialize Path Variables
 		String handlerPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\DataProvisioningServices\\campaignHandler\\";
@@ -113,10 +118,11 @@ public class CampaignHandler {
 		for(String targetVariable : dataWithOutliers.keySet()) {
 			
 			//create temporary input file (loaded by rscript to handle outliers)
-			String resourcePath = handlerPath+"temp\\inputValues_" + targetVariable + ".tmp";
+			String resourcePath = handlerPath+"temp\\inputValues_" + fromdateString + "_" + todateString + "_" + targetVariable + ".tmp";
 			CustomFileWriter.createFile(resourcePath, dataWithOutliers.getString(targetVariable));
 			String execString = "RScript " + handlerPath + "CampaignHandling_ARIMAAnalysis_" + inputAggr + "_" + inputAggr + "_" + inputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitOutliers + " " + upperLimitOutliers + " " + factorsString;
 			String resultString = executeProcessCMD(execString);
+			//System.out.println(resultString);
 			resultValues.put(targetVariable, resultString);
 		}
 		return resultValues;
@@ -134,6 +140,8 @@ public class CampaignHandler {
 		String inputAggr = configurations.getJSONObject("parameters").getString("aggregationInputData").toUpperCase();
 		String outputAggr = configurations.getJSONObject("parameters").getString("aggregationOutputData").toUpperCase();
 		String processingAggr = configurations.getJSONObject("parameters").getString("aggregationProcessing").toUpperCase();
+		String todateString = configurations.getJSONObject("data").getString("to");
+		String fromdateString = configurations.getJSONObject("data").getString("from");
 		
 		//Initialize Path Variables
 		String handlerPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\DataProvisioningServices\\campaignHandler\\";
@@ -142,7 +150,7 @@ public class CampaignHandler {
 		for(String targetVariable : dataWithOutliers.keySet()) {
 			
 			//create temporary input file (loaded by rscript to handle outliers)
-			String resourcePath = handlerPath+"temp\\inputValues_" + targetVariable + ".tmp";
+			String resourcePath = handlerPath+"temp\\inputValues_" + fromdateString + "_" + todateString + "_" + targetVariable + ".tmp";
 			CustomFileWriter.createFile(resourcePath, dataWithOutliers.getString(targetVariable));
 			String execString = "RScript " + handlerPath + "CampaignHandling_ExpSmoothingAnalysis_" + inputAggr + "_" + processingAggr + "_" + outputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitOutliers + " " + upperLimitOutliers;
 			String resultString = executeProcessCMD(execString);
