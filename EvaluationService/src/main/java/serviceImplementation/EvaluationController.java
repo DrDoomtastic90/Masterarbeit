@@ -384,6 +384,9 @@ public class EvaluationController {
 				JSONObject aRIMAEvaluation = new JSONObject();
 				JSONObject aRIMAEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);
 				
+				CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\ARIMAnMAEDebug.json", aRIMAEvaluationMAE.toString());
+			
+				
 				aRIMAEvaluation.put("MAE", aRIMAEvaluationMAE);
 				evaluationResults.put("ARIMA", aRIMAEvaluation);
 			}
@@ -391,7 +394,8 @@ public class EvaluationController {
 				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ExponentialSmoothing"), demand);
 				JSONObject expSmoothingEvaluation = new JSONObject();
 				JSONObject expSmoothingEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
-
+				CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\ExpSmoothingMAEDebug.json", expSmoothingEvaluationMAE.toString());
+				
 				expSmoothingEvaluation.put("MAE", expSmoothingEvaluationMAE);;
 				evaluationResults.put("ExponentialSmoothing", expSmoothingEvaluation);
 			}
@@ -399,7 +403,9 @@ public class EvaluationController {
 				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("Kalman"), demand);
 				JSONObject kalmanEvaluation = new JSONObject();
 				JSONObject kalmanEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
-
+				CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\KalmanMAEDebug.json", kalmanEvaluationMAE.toString());
+				CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\EvaluationDataStructuredKalmanDebug.json", evaluationStructuredResults.toString());	
+				
 				kalmanEvaluation.put("MAE", kalmanEvaluationMAE);
 				evaluationResults.put("Kalman", kalmanEvaluation);
 			}
@@ -407,6 +413,8 @@ public class EvaluationController {
 				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ANN"), demand);
 				JSONObject aNNEvaluation = new JSONObject();
 				JSONObject aNNEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
+				CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\EvaluationDataStructuredANNDebug.json", evaluationStructuredResults.toString());	
+				CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\ANNMAEDebug.json", aNNEvaluationMAE.toString());
 				
 				aNNEvaluation.put("MAE", aNNEvaluationMAE);
 				evaluationResults.put("ANN", aNNEvaluation);
@@ -416,6 +424,7 @@ public class EvaluationController {
 				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("ruleBased"), demand);
 				JSONObject ruleBasedEvaluation = new JSONObject();
 				JSONObject ruleBasedEvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
+				CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\RulebasedMAEDebug.json", ruleBasedEvaluationMAE.toString());
 				
 				ruleBasedEvaluation.put("MAE", ruleBasedEvaluationMAE);
 				evaluationResults.put("ruleBased", ruleBasedEvaluation);
@@ -423,10 +432,16 @@ public class EvaluationController {
 			if(forecastResults.has("Combined")) {
 				JSONObject evaluationStructuredResults = EvaluationService.prepareEvalution(loginCredentials, configurations, forecastResults.getJSONObject("Combined"), demand);
 				JSONObject combinedEvaluation = new JSONObject();
-				JSONObject combinedvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);			
+				JSONObject combinedvaluationMAE = EvaluationService.evaluationMAE(evaluationStructuredResults);	
+				CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\CombinedMAEDebug.json", evaluationData.toString());
+				
 				combinedEvaluation.put("MAE", combinedvaluationMAE);
 				evaluationResults.put("Combined", combinedEvaluation);
 			}
+			CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\EvaluationData.json", evaluationData.toString());
+			
+			CustomFileWriter.createJSON("D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\ForecatResultsDebug.json", forecastResults.toString());
+		
 			
 			JSONObject comparedEvaluation = new JSONObject();
 			JSONObject comparedEvaluationMAE = EvaluationService.comparedEvaluationMAE(evaluationResults);

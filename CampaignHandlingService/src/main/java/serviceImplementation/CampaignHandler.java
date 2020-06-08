@@ -121,8 +121,8 @@ public class CampaignHandler {
 			String resourcePath = handlerPath+"temp\\inputValues_" + fromdateString + "_" + todateString + "_" + targetVariable + ".tmp";
 			CustomFileWriter.createFile(resourcePath, dataWithOutliers.getString(targetVariable));
 			String execString = "RScript " + handlerPath + "CampaignHandling_ARIMAAnalysis_" + inputAggr + "_" + inputAggr + "_" + inputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitOutliers + " " + upperLimitOutliers + " " + factorsString;
+			System.out.println(execString);
 			String resultString = executeProcessCMD(execString);
-			//System.out.println(resultString);
 			resultValues.put(targetVariable, resultString);
 		}
 		return resultValues;

@@ -110,8 +110,13 @@ public class PreparationDAO {
 		try {
 			statement = connection.createStatement();
 			resultSet = statement.executeQuery(
-					"SELECT kart.Menge from Kartonagen kart join EndproduktKartonagePaarung ekp on ekp.verpID=kart.verpID join Endprodukte ep on ep.pkbez= ekp.pkbez where ep.PKBez='"
-							+ pKBez + "'");
+					"SELECT (kart.Menge/pv.ProdFaktor) as Menge "
+					+ "from Kartonagen kart "
+					+ "join EndproduktKartonagePaarung ekp on ekp.verpID=kart.verpID "
+					+ "join Endprodukte ep on ep.pkbez= ekp.pkbez "
+					+ "join VerpacktEndproduktPaarung vep on vep.pkbez=ep.pkbez "
+					+ "join ProdukteVerpackt pv on pv.vkbez=vep.vkbez "
+					+ "where ep.PKBez='" + pKBez + "'");
 			while (resultSet.next()) {
 				amountPerPackage = resultSet.getDouble(1);
 			}
@@ -130,6 +135,7 @@ public class PreparationDAO {
 		return amountPerPackage;
 	}
 
+	
 	public Map<String, Double> getCustomerDataDaily(String pKBez, String kNo, String fromDate, String toDate/*, boolean nA*/) throws UniqueConstraintException, SQLException {
 		String sql = "SELECT ls.Datum, pos.Menge, pos.LS_No, pos.Pos_No from LS_Positionen pos join Lieferscheine ls on pos.LS_No = ls.LS_NO where pos.PKBez = '"
 				+ pKBez + "' and ls.K_No = '" + kNo + "' order by ls.Datum asc";

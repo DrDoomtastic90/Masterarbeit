@@ -162,7 +162,18 @@ public class PreparationDAO {
 		Connection connection = dBConnection.checkConnectivity();
 		try {
 			statement = connection.createStatement();
-			String sql = "SELECT ls.Datum, svp.skbez, sum(pos.menge*kart.menge) from SorteVerpacktPaarung svp join  VerpacktEndproduktPaarung vep on svp.vkbez=vep.vkbez join EndproduktKartonagePaarung ekp on ekp.pkbez=vep.pkbez join Kartonagen kart on kart.verpID=ekp.VerpID left join LS_Positionen pos on vep.pkbez=pos.pkbez left join Lieferscheine ls on pos.LS_No = ls.LS_NO where ls.Datum>='" + fromDate + "' and ls.Datum <= '" + toDate + "' group by ls.datum, svp.skbez order by ls.Datum asc";
+			String sql = "SELECT ls.Datum, svp.skbez, sum(pos.menge/pv.ProdFaktor*kart.menge) "
+					+ "from SorteVerpacktPaarung svp "
+					+ "join  VerpacktEndproduktPaarung vep on svp.vkbez=vep.vkbez "
+					+ "join ProdukteVerpackt pv on pv.vkbez = vep.vkbez "
+					+ "join EndproduktKartonagePaarung ekp on ekp.pkbez=vep.pkbez "
+					+ "join Kartonagen kart on kart.verpID=ekp.VerpID "
+					+ "left join LS_Positionen pos on vep.pkbez=pos.pkbez "
+					+ "left join Lieferscheine ls on pos.LS_No = ls.LS_NO "
+					+ "where ls.Datum>='" + fromDate + "' "
+					+ "and ls.Datum <= '" + toDate + "' "
+					+ "group by ls.datum, svp.skbez "
+					+ "order by ls.Datum asc";
 			resultSet = statement.executeQuery(sql);
 			while (resultSet.next()) {
 				String lieferdatum = resultSet.getString(1);

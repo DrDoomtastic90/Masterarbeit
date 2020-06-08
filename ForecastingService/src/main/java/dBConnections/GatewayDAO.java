@@ -70,7 +70,7 @@ public class GatewayDAO {
 		String fromDateString = dateFormat.format(fromDate);	
 		try {
 			statement = connection.createStatement();
-			String sql = "SELECT Weights from ServiceWeights where ForecastDate >= '" + fromDateString + "' and ForecastDate <= '" + toDateString + "' and Username = '" + username + "' and Services = '" + serviceNames + "' order by Forecastdate desc";
+			String sql = "SELECT Weights from ServiceWeights where ForecastDate <= '" + toDateString + "' and Username = '" + username + "' and Services = '" + serviceNames + "' order by Forecastdate desc";
 			resultSet = statement.executeQuery(sql);
 			boolean first = true;
 			while (resultSet.next()) {

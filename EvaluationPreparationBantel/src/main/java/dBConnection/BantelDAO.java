@@ -29,7 +29,7 @@ public class BantelDAO {
 		Statement statement = null;
 		ResultSet resultSet = null;
 		JSONObject salesamounts = new  JSONObject();
-		String sql= "select svp.skbez, sum(pos.menge * kart.menge/pv.ProdFaktor) As Menge From Lieferscheine ls \r\n" + 
+		String sql= "select svp.skbez, sum(pos.menge/pv.ProdFaktor * kart.menge) As Menge From Lieferscheine ls \r\n" + 
 				"join LS_Positionen pos on ls.ls_No = pos.LS_No \r\n" + 
 				"left join VerpacktEndproduktPaarung vep on vep.pkbez=pos.pkbez \r\n" + 
 				"join  SorteVerpacktPaarung svp on svp.vkbez=vep.vkbez \r\n" + 

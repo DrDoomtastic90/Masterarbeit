@@ -75,7 +75,7 @@ import webClient.RestClient;
 
 
 public class EvaluationService {
-	static List<String> skipList = Arrays.asList("MAE", "ME", "MAEPercentage", "MEPercentage");
+	static List<String> skipList = Arrays.asList("MAE", "ME", "MAEPercentage", "MEPercentage","MAEAverage", "MEAverage", "MAEAveragePercentage", "MEAveragePercentage");
 	
 	private static JSONObject evaluationMAE(JSONObject actualResults, JSONObject forecastingResults) {
 		JSONObject diffSKBez = new JSONObject();
@@ -163,6 +163,10 @@ public class EvaluationService {
 			totalDeviationConfiguration.put("MEPercentage", 0);
 			totalDeviationConfiguration.put("MAE", 0);
 			totalDeviationConfiguration.put("MAEPercentage", 0);
+			totalDeviationConfiguration.put("MEAverage", 0);
+			totalDeviationConfiguration.put("MEAveragePercentage", 0);
+			totalDeviationConfiguration.put("MAEAverage", 0);
+			totalDeviationConfiguration.put("MAEAveragePercentage", 0);
 
 			
 			JSONObject targetVariableResults = procedureResults.getJSONObject(targetVariableName);
@@ -239,10 +243,21 @@ public class EvaluationService {
 				}
 				totalDeviationConfiguration.put(configuration, totalDeviationObservationPeriod);
 				totalDeviationConfiguration.put("ME", (totalDeviationConfiguration.getDouble("ME") + totalDeviationObservationPeriod.getDouble("ME")));
+				totalDeviationConfiguration.put("MEAverage", (totalDeviationConfiguration.getDouble("MEAverage") + totalDeviationObservationPeriod.getDouble("ME")/forecastingConfigurations.length()));
+				
 				totalDeviationConfiguration.put("MEPercentage", (totalDeviationConfiguration.getDouble("MEPercentage") + totalDeviationObservationPeriod.getDouble("MEPercentage")));
-				totalDeviationConfiguration.put("MAE", (totalDeviationConfiguration.getDouble("MAE") + totalDeviationObservationPeriod.getDouble("MAE")));
-				double newMAEPercentage = totalDeviationConfiguration.getDouble("MAEPercentage") + totalDeviationObservationPeriod.getDouble("MAEPercentage");
-				totalDeviationConfiguration.put("MAEPercentage", (newMAEPercentage));
+				totalDeviationConfiguration.put("MEAveragePercentage", (totalDeviationConfiguration.getDouble("MEAveragePercentage") + totalDeviationObservationPeriod.getDouble("MEPercentage")/forecastingConfigurations.length()));
+				
+				int numberOfDates = forecastingConfigurations.length();
+				double newMAE =totalDeviationObservationPeriod.getDouble("MAE");
+				double newMAEAverage = totalDeviationObservationPeriod.getDouble("MAE")/numberOfDates;
+				totalDeviationConfiguration.put("MAE", (totalDeviationConfiguration.getDouble("MAE") + newMAE));
+				totalDeviationConfiguration.put("MAEAverage", (totalDeviationConfiguration.getDouble("MAEAverage") + newMAEAverage));
+				
+				double newMAEPercentage =  totalDeviationObservationPeriod.getDouble("MAEPercentage");
+				double newMAEAveragePercentage =  totalDeviationObservationPeriod.getDouble("MAEPercentage")/numberOfDates;
+				totalDeviationConfiguration.put("MAEPercentage", (totalDeviationConfiguration.getDouble("MAEPercentage") + newMAEPercentage));
+				totalDeviationConfiguration.put("MAEAveragePercentage", (totalDeviationConfiguration.getDouble("MAEAveragePercentage") + newMAEAveragePercentage));
 			}
 			totalDeviationTargetVariable.put(targetVariableName, totalDeviationConfiguration);
 			totalDeviationTargetVariable.put("ME", (totalDeviationTargetVariable.getDouble("ME") + totalDeviationConfiguration.getDouble("ME")));
@@ -456,7 +471,6 @@ public class EvaluationService {
 		String targetPath = "D:\\Arbeit\\Bantel\\Masterarbeit\\Implementierung\\ForecastingTool\\Services\\ForecastingServices\\Evaluation\\temp\\";
 		String filename = procedure + "_Evaluation.xlsx";
 		 File file = new File(targetPath+filename);
-		List<String> skipList = Arrays.asList("MAE", "ME", "MAEPercentage", "MEPercentage");
 		//JSONObject sortedResult = sortJSONObject(evaluationResults);
 		
 		ArrayList<String> dateList = new ArrayList<String>();
@@ -474,7 +488,6 @@ public class EvaluationService {
 						for(String dateString : configurationResult.keySet()) {
 							if(!skipList.contains(dateString) && !dateList.contains(dateString)) {
 								dateList.add(dateString);
-								forecastPeriods = configurationResult.getJSONObject(dateString).length()-skipList.size();
 							}
 						}	
 					}

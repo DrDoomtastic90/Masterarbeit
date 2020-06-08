@@ -75,6 +75,7 @@ public class OutlierHandler {
 			String resourcePath = handlerPath+"temp\\inputValues_" + fromdateString + "_" + todateString + "_" + targetVariable + ".tmp";
 			CustomFileWriter.createFile(resourcePath, dataWithOutliers.getString(targetVariable));
 			String execString = "RScript " + handlerPath + "OutlierHandling_ARIMAAnalysis_" + inputAggr + "_" + inputAggr + "_" + inputAggr + ".txt " + resourcePath + " " + targetVariable + " " + forecastPeriods + " " + lowerLimitOutliers + " " + upperLimitOutliers;
+			System.out.println(execString);
 			String resultString = executeProcessCMD(execString);
 			resultValues.put(targetVariable, resultString);
 		}

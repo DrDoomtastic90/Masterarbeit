@@ -290,7 +290,7 @@ public class ServiceCombiner {
 							//evalResults.put("MEPercentage",  targetVariableEvaluationResult.getDouble("MEPercentage"));
 							//evalResults.put("MAEPercentage",  targetVariableEvaluationResult.getDouble("MAEPercentage"));
 							//variableStructuredResult.getJSONObject(targetVariable).put(procedureName,  evalResults);
-							variableStructuredResult.getJSONObject(targetVariable).put(procedureName,  targetVariableEvaluationResult.getDouble("MAEPercentage"));
+							variableStructuredResult.getJSONObject(targetVariable).put(procedureName,  targetVariableEvaluationResult.getDouble("MAEAverage"));
 						}
 					}
 				}
@@ -404,17 +404,20 @@ public class ServiceCombiner {
 					nearestValues.put("nearestSmallerValue", new JSONObject());
 					nearestValues.put("nearestGreaterValue", new JSONObject());
 					boolean bestProcedureIsSmaller=false;
+					boolean bestProcedureIsGreater=false;
 					boolean allGreater = true;
-					if(deviation>=0) {
-						nearestValues.getJSONObject("nearestSmallerValue").put("procedureName",bestProcedureName);
-						nearestValues.getJSONObject("nearestSmallerValue").put("value",bestProcedureResult);
-						bestProcedureIsSmaller=true;
-						allGreater = false;
-					}else {
-						nearestValues.getJSONObject("nearestGreaterValue").put("procedureName",bestProcedureName);
-						nearestValues.getJSONObject("nearestGreaterValue").put("value",bestProcedureResult);
+					if(independentVariables.has(bestProcedureName)) {
+						if(deviation>=0) {
+							nearestValues.getJSONObject("nearestSmallerValue").put("procedureName",bestProcedureName);
+							nearestValues.getJSONObject("nearestSmallerValue").put("value",bestProcedureResult);
+							bestProcedureIsSmaller=true;
+							allGreater = false;
+						}else {
+							nearestValues.getJSONObject("nearestGreaterValue").put("procedureName",bestProcedureName);
+							nearestValues.getJSONObject("nearestGreaterValue").put("value",bestProcedureResult);
+							bestProcedureIsGreater=true;
+						}
 					}
-					
 					int procedureCounter = 0;
 					ArrayList<String> procedureNames = new ArrayList<String>();
 					
@@ -437,7 +440,7 @@ public class ServiceCombiner {
 								}
 							}
 						}else {
-							if(bestProcedureIsSmaller) {
+							if(!bestProcedureIsGreater) {
 								if(nearestValues.getJSONObject("nearestGreaterValue").has("procedureName")) {
 									double deviationNewResult = result - dependentVariable;
 									double deviationStoredResult = nearestValues.getJSONObject("nearestGreaterValue").getDouble("value") - dependentVariable;
@@ -549,10 +552,11 @@ public class ServiceCombiner {
 						if(nearestValues.getJSONObject("nearestSmallerValue").has("procedureName")) {
 							 proceduresWeights.put(nearestValues.getJSONObject("nearestSmallerValue").getString("procedureName"), 1);
 							 error = dependentVariable - nearestValues.getJSONObject("nearestSmallerValue").getDouble("value");
-						}
-						if(nearestValues.getJSONObject("nearestGreaterValue").has("procedureName")) {
+						}else if(nearestValues.getJSONObject("nearestGreaterValue").has("procedureName")) {
 							 proceduresWeights.put(nearestValues.getJSONObject("nearestGreaterValue").getString("procedureName"), 1);
 							 error = nearestValues.getJSONObject("nearestGreaterValue").getDouble("value")- dependentVariable;
+						}else {
+							throw new RuntimeException("No forecast results available for given period");
 						}
 					}
 				    for(String procedureName : procedureNames) {
@@ -1174,8 +1178,11 @@ public class ServiceCombiner {
 						if(procedureResult.contains("Result")) {
 							procedureName = procedureResult.substring(0, (procedureResult.length()-6));
 						}
+						System.out.println(targetVariableName);
+						if(weights.getJSONObject(targetVariableName).getJSONObject("averagedWeights").has(procedureName)) {
 						//weight = weights.getJSONObject(targetVariableName).getJSONObject("averagedWeights").getJSONObject(procedureName).getDouble("total");
-						weight = weights.getJSONObject(targetVariableName).getJSONObject("averagedWeights").getDouble(procedureName);
+							weight = weights.getJSONObject(targetVariableName).getJSONObject("averagedWeights").getDouble(procedureName);
+						}
 					}
 				}else {
 					factor = 1/combinedAnalysisResult.length();
