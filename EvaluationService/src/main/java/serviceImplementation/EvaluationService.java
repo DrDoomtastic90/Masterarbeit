@@ -208,17 +208,21 @@ public class EvaluationService {
 							actualDemand = 0;
 						}
 						/**/
-						if(actualDemand == 0) {
-							//hilfsmethode => Implementierung get all demands set to lowest non 0 demand
-							actualDemand = 1;
-						}
+
 						double deviation = calculateMeanError(forecastResult, actualDemand);
 						double ABSDeviation = calculateMeanAbsoluteError(forecastResult, actualDemand);
 						periodResults.put("ME", deviation);
-						double mEPercentage = deviation/actualDemand;
+						double mEPercentage =ABSDeviation;
+						double mAEPercentage = mEPercentage;
+						if(actualDemand != 0) {
+							//hilfsmethode => Implementierung get all demands set to lowest non 0 demand
+							mAEPercentage = ABSDeviation/actualDemand;
+							mEPercentage = deviation/actualDemand;
+						}
+						
 						periodResults.put("MEPercentage", mEPercentage);
 						periodResults.put("MAE", ABSDeviation);
-						double mAEPercentage = ABSDeviation/actualDemand;
+						
 						periodResults.put("MAEPercentage", mAEPercentage);
 						periodResults.put("forecastResult", forecastResult);
 						periodResults.put("actualDemand", actualDemand);
@@ -506,7 +510,7 @@ public class EvaluationService {
 				//XSSFSheet sheet = wb.getSheet("Produktübersicht");
 				int baseRowIndex = 3;
 				int baseColIndex = CellReference.convertColStringToIndex("C");		
-				int numberOfConfigurations = targetVariableResult.length()-4;
+				int numberOfConfigurations = targetVariableResult.length()-8;
 				int rowIndex = baseRowIndex;
 				int colIndex = baseColIndex;
 				Cell cell = null;

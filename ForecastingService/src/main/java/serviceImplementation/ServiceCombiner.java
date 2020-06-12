@@ -1059,10 +1059,10 @@ public class ServiceCombiner {
 	    
 	}
 
-	public static String writeWeightsToDB(JSONObject weights, String serviceNames, String forecastDate, String username) throws ClassNotFoundException {
+	public static String writeWeightsToDB(JSONObject weights, String serviceNames, String forecastDate, String consideratedFromDate, String username) throws ClassNotFoundException {
 		GatewayServiceDBConnection.getInstance("GatewayDB");
 		GatewayDAO gatewayDAO = new GatewayDAO();
-		gatewayDAO.writeWeightsToDB(weights, serviceNames, forecastDate, username);
+		gatewayDAO.writeWeightsToDB(weights, serviceNames, forecastDate, consideratedFromDate, username);
 		return serviceNames;
 	}
 		

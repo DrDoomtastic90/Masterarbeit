@@ -904,6 +904,7 @@ public class ServiceController {
 				//JSONObject combinedAnalysisResult = new JSONObject();
 		     	JSONObject combinedConfigurations = configurations.getJSONObject("forecasting").getJSONObject("Combined");
 		     	String forecastDate = combinedConfigurations.getJSONObject("data").getString("to");
+		     	String consideratedFromDate =  combinedConfigurations.getJSONObject("data").getString("from"); 
 		     	//String from = combinedConfigurations.getJSONObject("data").getString("from");
 		     	//int forecastPeriods =combinedConfigurations.getInt("forecastPeriods");
 		     	//String callbackServiceURL = combinedConfigurations.getJSONObject("data").getString("callbackServiceURL");
@@ -917,7 +918,7 @@ public class ServiceController {
 				//JSONObject preparedWeightCalculationValues = ServiceCombiner.prepareWeightCalculationValues(forecastingResults, actualDemands, forecastDate, username);
 				//JSONObject weights = ServiceCombiner.calculateWeights(serviceNames, forecastDate, username, preparedWeightCalculationValues);
 		     	JSONObject weights = ServiceCombiner.calculateWeightsNeu(serviceNames, forecastDate, username, forecastingResults, actualDemands, evaluationResults);
-		     	ServiceCombiner.writeWeightsToDB(weights, serviceNames.toString(), forecastDate, username);
+		     	ServiceCombiner.writeWeightsToDB(weights, serviceNames.toString(), forecastDate, consideratedFromDate, username);
 				response.setStatus(202);
 				response.setContentType("application/json");
 				response.getWriter().write(weights.toString());

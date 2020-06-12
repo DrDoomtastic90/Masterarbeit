@@ -27,14 +27,15 @@ public class GatewayDAO {
 		dbConnection = GatewayServiceDBConnection.getInstance();
 	}
 	
-	public void writeWeightsToDB(JSONObject weights, String serviceNames, String forecastDate, String username){
-		String sql = "INSERT OR REPLACE INTO ServiceWeights(ForecastDate, Weights, Services, Username) VALUES(?,?,?,?)"; 
+	public void writeWeightsToDB(JSONObject weights, String serviceNames, String forecastDate, String consideratedFromDate, String username){
+		String sql = "INSERT OR REPLACE INTO ServiceWeights(ForecastDate, Weights, Services, Username, ConsideratedFromDate) VALUES(?,?,?,?,?)"; 
 		try (Connection connection = dbConnection.checkConnectivity(); 
 	        		PreparedStatement pstmt = connection.prepareStatement(sql)) {
 			pstmt.setString(1, forecastDate);
 	        pstmt.setString(2, weights.toString());
 	        pstmt.setString(3, serviceNames);
 	        pstmt.setString(4, username);
+	        pstmt.setString(5, consideratedFromDate);
 	        pstmt.executeUpdate();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
