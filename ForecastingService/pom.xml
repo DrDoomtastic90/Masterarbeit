@@ -1,11 +1,13 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>Microservices</groupId>
-  <artifactId>MicroserviceTest</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-  <name>MircroserviceTest</name>
-  <description>Tests Microservices</description>
-  <build>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>Microservices</groupId>
+	<artifactId>ForecastingService</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>ForecastingService</name>
+	<description>Handles the Forecasting Services</description>
+	<build>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -33,7 +35,7 @@
 		<!-- Rest Services -->
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
-			<artifactId>jersey-container-servlet-core</artifactId>
+			<artifactId>jersey-container-servlet</artifactId>
 			<version>2.30</version>
 		</dependency>
 		<dependency>
@@ -55,6 +57,13 @@
 			<artifactId>jackson-databind</artifactId>
 			<version>2.10.0.pr1</version>
 		</dependency>
+		
+		<!-- SQLITE -->
+		<dependency>
+			<groupId>io.github.willena</groupId>
+			<artifactId>sqlite-jdbc</artifactId>
+			<version>3.28.0</version>
+		</dependency>
 
 		<!-- JUNIT -->
 		<dependency>
@@ -64,12 +73,12 @@
 			<scope>test</scope>
 		</dependency>
 		
-		<!-- commonsIO IOUtil -->
+			<!-- commonsIO IOUtil -->
 		<dependency>
 		    <groupId>commons-io</groupId>
 		    <artifactId>commons-io</artifactId>
 		    <version>2.6</version>
-		</dependency>	
+		</dependency>
 		
 		<!--  APACHE COMMONS Lang -->
 		<dependency>
@@ -77,5 +86,19 @@
   			<artifactId>commons-lang3</artifactId>
    			<version>3.9</version>
 		</dependency>	
+			
+		<!-- Apache Commons Validator -->
+		<dependency>
+			<groupId>commons-validator</groupId>
+			<artifactId>commons-validator</artifactId>
+			<version>1.6</version>
+		</dependency>
+		
+		<!--  Apache Commons Math -->
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-math3</artifactId>
+		    <version>3.6.1</version>
+		</dependency>
 	</dependencies>
 </project>
